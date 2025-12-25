@@ -32,7 +32,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
   return (
     <Box flexDirection="column">
       {step === 'security' && (
-        <WizardLayout title="Welcome to Mimir">
+        <WizardLayout title="Welcome to Mimir Code">
           <SecurityWarning
             onAccept={handleSecurityAccept}
             onCancel={onCancel}

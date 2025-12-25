@@ -14,19 +14,19 @@ import { z } from 'zod';
  */
 export const AllowlistSchema = z.object({
   // Command patterns that are always allowed
-  commands: z.array(z.string()).optional().default([]),
+  commands: z.array(z.string()).default([]),
 
   // File patterns that can be modified without confirmation
-  files: z.array(z.string()).optional().default([]),
+  files: z.array(z.string()).default([]),
 
   // Network destinations that are allowed
-  urls: z.array(z.string()).optional().default([]),
+  urls: z.array(z.string()).default([]),
 
   // Environment variables that can be accessed
-  envVars: z.array(z.string()).optional().default([]),
+  envVars: z.array(z.string()).default([]),
 
   // Specific bash commands that are safe
-  bashCommands: z.array(z.string()).optional().default([]),
+  bashCommands: z.array(z.string()).default([]),
 });
 
 export type Allowlist = z.infer<typeof AllowlistSchema>;

@@ -8,11 +8,18 @@ dist/
 build/
 *.tsbuildinfo
 
+# Next.js (docs site)
+docs/.next/
+docs/out/
+.next/
+out/
+
 # Testing
 coverage/
 .nyc_output/
 
 # Mimir user-specific data (keep config in git for team sharing)
+# Note: .mimir/.gitignore has additional selective ignores
 .mimir/logs/
 .mimir/*.db
 .mimir/*.db-shm
@@ -34,6 +41,7 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE
 .vscode/
@@ -50,3 +58,6 @@ temp/
 # Binary builds
 *.exe
 mimir-*
+
+# Git hooks are tracked (.husky/ directory should be in version control)
+# Husky will install hooks automatically on yarn install

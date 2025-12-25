@@ -84,10 +84,10 @@ describe('LRUCache', () => {
     it('should evict least recently used items', () => {
       const cache = new LRUCache<string>({ maxSize: 100 });
 
-      // Add items
-      cache.set('key1', 'a'.repeat(30), 60); // 60 bytes
-      cache.set('key2', 'b'.repeat(30), 60); // 60 bytes
-      cache.set('key3', 'c'.repeat(30), 60); // 60 bytes (should evict key1)
+      // Add items (each 40 bytes, so 2 fit, 3rd evicts oldest)
+      cache.set('key1', 'a'.repeat(20), 40); // 40 bytes
+      cache.set('key2', 'b'.repeat(20), 40); // 40 bytes (total 80)
+      cache.set('key3', 'c'.repeat(20), 40); // 40 bytes (should evict key1)
 
       expect(cache.has('key1')).toBe(false); // Evicted
       expect(cache.has('key2')).toBe(true);
@@ -97,14 +97,14 @@ describe('LRUCache', () => {
     it('should update LRU order on access', () => {
       const cache = new LRUCache<string>({ maxSize: 100 });
 
-      cache.set('key1', 'a'.repeat(30), 60);
-      cache.set('key2', 'b'.repeat(30), 60);
+      cache.set('key1', 'a'.repeat(20), 40);
+      cache.set('key2', 'b'.repeat(20), 40);
 
       // Access key1 to make it more recent
       cache.get('key1');
 
       // Add key3, should evict key2 (least recently used)
-      cache.set('key3', 'c'.repeat(30), 60);
+      cache.set('key3', 'c'.repeat(20), 40);
 
       expect(cache.has('key1')).toBe(true);
       expect(cache.has('key2')).toBe(false); // Evicted

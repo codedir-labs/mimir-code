@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AllowlistLoader, AllowlistSchema } from '../../../src/config/AllowlistLoader.js';
 import { IFileSystem } from '../../../src/platform/IFileSystem.js';
+import path from 'path';
 
 // Mock filesystem
 const createMockFs = (): IFileSystem => {
@@ -49,7 +50,7 @@ bashCommands:
   - 'yarn test'
 `;
 
-      (fs as any).setFile('/project/.mimir/allowlist.yml', allowlistYaml);
+      (fs as any).setFile(path.join('/project', '.mimir', 'allowlist.yml'), allowlistYaml);
 
       const allowlist = await loader.loadProjectAllowlist('/project');
 
@@ -72,7 +73,7 @@ bashCommands:
 commands:
   - '/test'
 `;
-      (fs as any).setFile('/project/.mimir/allowlist.yml', allowlistYaml);
+      (fs as any).setFile(path.join('/project', '.mimir', 'allowlist.yml'), allowlistYaml);
 
       const allowlist = await loader.loadProjectAllowlist('/project');
 
@@ -86,7 +87,7 @@ commands:
     });
 
     it('should return null on invalid YAML', async () => {
-      (fs as any).setFile('/project/.mimir/allowlist.yml', 'invalid: yaml: :');
+      (fs as any).setFile(path.join('/project', '.mimir', 'allowlist.yml'), 'invalid: yaml: :');
 
       const allowlist = await loader.loadProjectAllowlist('/project');
       expect(allowlist).toBeNull();
@@ -101,7 +102,7 @@ commands:
   - '/status'
   - '/help'
 `;
-      (fs as any).setFile(`${homeDir}/.mimir/allowlist.yml`, allowlistYaml);
+      (fs as any).setFile(path.join(homeDir, '.mimir', 'allowlist.yml'), allowlistYaml);
 
       const allowlist = await loader.loadGlobalAllowlist();
 

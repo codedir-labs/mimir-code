@@ -186,7 +186,7 @@ describe('RiskAssessor', () => {
 
     it('should flag sudo without command', () => {
       const assessment = assessor.assess('sudo  ');
-      expect(assessment.level).toBeOneOf(['high', 'medium']);
+      expect(['high', 'medium']).toContain(assessment.level);
       expect(assessment.reasons.some((r) => r.includes('Elevated permissions'))).toBe(true);
     });
 
@@ -202,7 +202,7 @@ describe('RiskAssessor', () => {
 
     it('should flag eval usage', () => {
       const assessment = assessor.assess('eval $(malicious_command)');
-      expect(assessment.level).toBeOneOf(['high', 'medium']);
+      expect(['high', 'medium']).toContain(assessment.level);
       expect(assessment.reasons.some((r) => r.includes('eval'))).toBe(true);
     });
   });

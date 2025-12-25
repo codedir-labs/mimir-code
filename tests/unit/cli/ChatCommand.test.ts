@@ -35,7 +35,21 @@ vi.mock('react', () => ({
     useEffect: vi.fn(),
     useCallback: vi.fn((fn) => fn),
     useMemo: vi.fn((fn) => fn()),
+    createContext: vi.fn(() => ({
+      Provider: vi.fn(() => null),
+      Consumer: vi.fn(() => null),
+    })),
   },
+  createElement: vi.fn(() => null),
+  memo: vi.fn((component) => component),
+  useState: vi.fn(() => [null, vi.fn()]),
+  useEffect: vi.fn(),
+  useCallback: vi.fn((fn) => fn),
+  useMemo: vi.fn((fn) => fn()),
+  createContext: vi.fn(() => ({
+    Provider: vi.fn(() => null),
+    Consumer: vi.fn(() => null),
+  })),
 }));
 
 describe('ChatCommand', () => {
@@ -94,7 +108,7 @@ llm:
   provider: anthropic
   model: claude-3-5-sonnet-20241022
 ui:
-  theme: nord
+  theme: mimir
 `;
       await fs.writeFile(configPath, minimalConfig);
 
@@ -120,7 +134,7 @@ llm:
   provider: anthropic
   model: claude-3-5-sonnet-20241022
 ui:
-  theme: nord
+  theme: mimir
 `;
       await fs.writeFile(configPath, config);
 
@@ -210,7 +224,7 @@ llm:
   provider: anthropic
   model: claude-3-5-sonnet-20241022
 ui:
-  theme: nord
+  theme: mimir
 `;
       await fs.writeFile(configPath, config);
 
@@ -261,7 +275,7 @@ llm:
   provider: anthropic
   model: claude-3-5-sonnet-20241022
 ui:
-  theme: nord
+  theme: mimir
 `;
       await fs.writeFile(configPath, config);
 

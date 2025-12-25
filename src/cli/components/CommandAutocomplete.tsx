@@ -245,7 +245,8 @@ export const CommandAutocomplete: React.FC<CommandAutocompleteProps> = ({
 
   const { visibleCommands, startIndex, endIndex } = useMemo(() => {
     // Helper: count lines a command takes (1 + params if selected and showing param info)
-    const countLines = (cmd: typeof commands[0], idx: number) => {
+    const countLines = (cmd: ISlashCommand | undefined, idx: number) => {
+      if (!cmd) return 1; // Safety: treat undefined as 1 line
       let lines = 1; // Command itself
       if (showParameterInfo && idx === safeSelectedIndex && cmd.parameters) {
         lines += cmd.parameters.length; // Add parameter lines

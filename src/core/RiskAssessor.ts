@@ -19,14 +19,17 @@ export class RiskAssessor {
     { pattern: /shutdown|reboot|poweroff/, reason: 'System shutdown/reboot' },
     { pattern: /dd\s+.*of=\/dev\/(sda|hda|nvme)/, reason: 'Direct disk write (can destroy data)' },
     { pattern: /mkfs/, reason: 'Formats filesystem' },
-    { pattern: />.*\/etc\/(passwd|shadow|sudoers)/, reason: 'Modifies critical system files' },
+    {
+      pattern: /(>|vim|vi|nano|emacs|edit).*\/etc\/(passwd|shadow|sudoers)/,
+      reason: 'Modifies critical system files',
+    },
     { pattern: /curl.*\|\s*(bash|sh|python)/, reason: 'Executes remote script without inspection' },
     { pattern: /wget.*\|\s*(bash|sh|python)/, reason: 'Executes remote script without inspection' },
   ];
 
   // High risk patterns - destructive but recoverable
   private highPatterns = [
-    { pattern: /rm\s+-rf(?!\s+\.)/, reason: 'Recursive force delete' },
+    { pattern: /rm\s+-rf\s+(?!\/($|\s))/, reason: 'Recursive force delete' },
     { pattern: /sudo\s+rm/, reason: 'Elevated permissions file deletion' },
     { pattern: /git\s+push\s+--force/, reason: 'Force pushes can overwrite history' },
     { pattern: /npm\s+publish/, reason: 'Publishes package to registry' },

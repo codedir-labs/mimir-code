@@ -1,30 +1,25 @@
 import React from 'react';
 import { DocsThemeConfig, useConfig } from 'nextra-theme-docs';
 import { useRouter } from 'next/router';
+import { Logo } from './components/Logo';
+import { GITHUB_URL, DOCS_REPO_URL, ORG_NAME } from './lib/constants';
 
 const config: DocsThemeConfig = {
-  logo: (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
-      </svg>
-      <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Mimir</span>
-    </div>
-  ),
+  logo: <Logo />,
   project: {
-    link: 'https://github.com/sebastianstupak/mimir',
+    link: GITHUB_URL,
   },
-  docsRepositoryBase: 'https://github.com/sebastianstupak/mimir/tree/main/docs',
+  docsRepositoryBase: DOCS_REPO_URL,
 
   // Footer configuration
   footer: {
     text: (
       <span>
-        MIT {new Date().getFullYear()} ©{' '}
-        <a href="https://github.com/sebastianstupak/mimir" target="_blank" rel="noopener noreferrer">
-          Mimir
+        © {new Date().getFullYear()}{' '}
+        <a href="https://github.com/codedir-labs" target="_blank" rel="noopener noreferrer">
+          {ORG_NAME}
         </a>
-        .
+        . AGPL-3.0 License.
       </span>
     ),
   },
@@ -38,11 +33,11 @@ const config: DocsThemeConfig = {
     const { asPath } = useRouter();
     if (asPath !== '/') {
       return {
-        titleTemplate: '%s – Mimir',
+        titleTemplate: '%s – Mimir Code',
       };
     }
     return {
-      titleTemplate: 'Mimir – Platform-agnostic AI Coding Agent',
+      titleTemplate: 'Mimir Code – Platform-agnostic AI Coding Agent',
     };
   },
 
@@ -56,7 +51,7 @@ const config: DocsThemeConfig = {
     return (
       <>
         <meta property="og:url" content={url} />
-        <meta property="og:title" content={frontMatter.title || title || 'Mimir'} />
+        <meta property="og:title" content={frontMatter.title || title || 'Mimir Code'} />
         <meta
           property="og:description"
           content={frontMatter.description || 'Platform-agnostic, BYOK AI coding agent CLI'}
@@ -125,16 +120,6 @@ const config: DocsThemeConfig = {
   gitTimestamp: ({ timestamp }) => (
     <>Last updated on {timestamp.toLocaleDateString()}</>
   ),
-
-  // i18n configuration
-  i18n: [
-    { locale: 'en', text: 'English' },
-    { locale: 'es', text: 'Español' },
-    { locale: 'fr', text: 'Français' },
-    { locale: 'de', text: 'Deutsch' },
-    { locale: 'zh', text: '中文' },
-    { locale: 'ja', text: '日本語' },
-  ],
 };
 
 export default config;

@@ -77,12 +77,12 @@ docker --version
   <Tab>
     ### Install Binary
 
-    Download platform-specific binaries from [GitHub Releases](https://github.com/sebastianstupak/mimir/releases).
+    Download platform-specific binaries from [GitHub Releases](https://github.com/codedir-labs/mimir-code/releases).
 
     **macOS / Linux:**
     ```bash
     # Download and extract
-    curl -L https://github.com/sebastianstupak/mimir/releases/latest/download/mimir-macos.tar.gz | tar xz
+    curl -L https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-macos.tar.gz | tar xz
 
     # Make executable
     chmod +x mimir
@@ -97,7 +97,7 @@ docker --version
     **Windows (PowerShell):**
     ```powershell
     # Download binary
-    Invoke-WebRequest -Uri "https://github.com/sebastianstupak/mimir/releases/latest/download/mimir-windows.exe" -OutFile "mimir.exe"
+    Invoke-WebRequest -Uri "https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-windows.exe" -OutFile "mimir.exe"
 
     # Add to PATH or run directly
     .\mimir.exe --version
@@ -204,7 +204,7 @@ sudo dnf install -y ca-certificates curl
 
 ```powershell
 # Run as Administrator
-irm https://github.com/sebastianstupak/mimir/releases/latest/download/install.ps1 | iex
+irm https://github.com/codedir-labs/mimir-code/releases/latest/download/install.ps1 | iex
 ```
 
 **Manual installation**:
@@ -296,7 +296,7 @@ For sandboxed code execution, install Docker:
   </Tab>
 
   <Tab>
-    Download the latest binary from [GitHub Releases](https://github.com/sebastianstupak/mimir/releases) and replace the existing binary.
+    Download the latest binary from [GitHub Releases](https://github.com/codedir-labs/mimir-code/releases) and replace the existing binary.
   </Tab>
 </Tabs>
 
@@ -408,5 +408,5 @@ cat .mimir/config.yml | grep apiKey
 ## Getting Help
 
 - **Installation issues**: Check [Troubleshooting](#troubleshooting) section
-- **Report bugs**: [GitHub Issues](https://github.com/sebastianstupak/mimir/issues)
-- **Community**: [GitHub Discussions](https://github.com/sebastianstupak/mimir/discussions)
+- **Report bugs**: [GitHub Issues](https://github.com/codedir-labs/mimir-code/issues)
+- **Community**: [GitHub Discussions](https://github.com/codedir-labs/mimir-code/discussions)

@@ -24,7 +24,17 @@ describe('Logger', () => {
       } catch {
         // Ignore errors
       }
-      await rm(testDir, { recursive: true, force: true });
+
+      // Wait a bit for file handles to be released (especially on Windows)
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Try cleanup with retries (Windows file locking issue)
+      try {
+        await rm(testDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      } catch (error) {
+        // Ignore cleanup errors in tests
+        console.warn('Test cleanup warning:', error);
+      }
     }
     console.warn = originalConsoleWarn;
   });

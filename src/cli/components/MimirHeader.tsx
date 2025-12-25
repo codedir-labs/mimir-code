@@ -40,7 +40,7 @@ export const MimirHeader: React.FC<MimirHeaderProps> = ({
   const dimText = themeDefinition.colors.comment;
 
   const infoLines = [
-    versionColor(`Mimir v${version}`),
+    versionColor(`Mimir Code v${version}`),
     providerColor(`${provider} · ${model}`),
     dimText(workspace),
     themeDefinition.colors.info(`Theme: ${themeDefinition.name}`),
@@ -50,7 +50,7 @@ export const MimirHeader: React.FC<MimirHeaderProps> = ({
   const LOGO_WIDTH = 7;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" height={MIMIR_LOGO.length} flexShrink={0}>
       {MIMIR_LOGO.map((logoLine, index) => (
         <Box key={index}>
           <Box width={LOGO_WIDTH}>

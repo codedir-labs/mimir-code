@@ -49,7 +49,7 @@ export const SecurityWarning: React.FC<SecurityWarningProps> = ({ onAccept, onCa
 
       <Box marginBottom={1}>
         <Text>
-          Mimir can execute commands and modify files on your system.
+          Mimir Code can execute commands and modify files on your system.
         </Text>
       </Box>
 

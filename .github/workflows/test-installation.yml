@@ -19,15 +19,21 @@ on:
       - '.github/workflows/test-installation.yml'
   workflow_dispatch:
 
+# Cancel in-progress runs when a new workflow with the same group name is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-unix-installation:
     name: Test on ${{ matrix.os }} with Node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest, macos-13, macos-latest]
-        node: ['18', '20', '22']
+        node: ['20', '22']
 
     steps:
       - name: Checkout repository
@@ -85,10 +91,11 @@ jobs:
   test-windows-installation:
     name: Test on Windows with Node ${{ matrix.node }}
     runs-on: windows-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        node: ['18', '20', '22']
+        node: ['20', '22']
 
     steps:
       - name: Checkout repository
@@ -132,6 +139,7 @@ jobs:
   test-upgrade-scenario:
     name: Test Upgrade Scenario
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -141,6 +149,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'yarn'
 
       - name: Install version 0.1.0 (simulated)
         run: |
@@ -170,7 +179,9 @@ jobs:
   test-uninstall:
     name: Test Uninstall Script
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
 
@@ -182,6 +193,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'yarn'
 
       - name: Install mimir
         run: |
@@ -252,6 +264,7 @@ jobs:
   test-dependency-detection:
     name: Test Dependency Detection
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -275,6 +288,7 @@ jobs:
   test-docker-detection:
     name: Test Docker Detection
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -284,6 +298,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'yarn'
 
       - name: Test with Docker available
         run: |
@@ -298,6 +313,7 @@ jobs:
   test-shell-profile-update:
     name: Test Shell Profile Update
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -307,6 +323,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'yarn'
 
       - name: Create .bashrc if not exists
         run: touch ~/.bashrc

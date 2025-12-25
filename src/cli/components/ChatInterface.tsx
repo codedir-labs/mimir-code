@@ -266,13 +266,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   );
 
   // Layout structure (from top to bottom):
-  // MimirHeader (1) + Divider (1) + MessageList (flex) + InputBox + Divider (1) + Footer (1)
+  // MimirHeader (4) + Divider (1) + MessageList (flex) + InputBox + Divider (1) + Footer (1)
   // InputBox contains: Input (1) + Autocomplete (0-N when visible)
   //
-  // Fixed UI lines: Header (1) + Divider (1) + Input (1) + Divider (1) + Footer (1) = 5
+  // Fixed UI lines: Header (4) + Divider (1) + Input (1) + Divider (1) + Footer (1) = 8
   // Variable: MessageList + Autocomplete
 
-  const fixedUIHeight = 5;
+  const fixedUIHeight = 8;
   const minMessageLines = 3;
 
   // Calculate space for autocomplete dynamically:
