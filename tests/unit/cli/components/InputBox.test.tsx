@@ -55,7 +55,8 @@ class InputBoxAutocompleteSimulator {
         const trimmedArgs = currentInput.trim();
 
         // Determine parameter index and partial value
-        const endsWithSpace = currentInput.length > 0 && currentInput[currentInput.length - 1] === ' ';
+        const endsWithSpace =
+          currentInput.length > 0 && currentInput[currentInput.length - 1] === ' ';
         const parts = trimmedArgs ? trimmedArgs.split(/\s+/).filter((a) => a.length > 0) : [];
 
         let paramIndex: number;
@@ -370,7 +371,7 @@ describe('InputBox Autocomplete Logic', () => {
       expect(state.showAutocomplete).toBe(false);
     });
 
-    it('should handle command that doesn\'t exist', () => {
+    it("should handle command that doesn't exist", () => {
       simulator.updateInput('/nonexistent ', {});
       const state = simulator.getState();
 

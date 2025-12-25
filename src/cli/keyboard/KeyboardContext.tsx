@@ -54,11 +54,7 @@ export function KeyboardProvider({
     };
   }, [contextValue]);
 
-  return (
-    <KeyboardContext.Provider value={contextValue}>
-      {children}
-    </KeyboardContext.Provider>
-  );
+  return <KeyboardContext.Provider value={contextValue}>{children}</KeyboardContext.Provider>;
 }
 
 /**

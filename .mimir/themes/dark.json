@@ -1,0 +1,20 @@
+{
+  "name": "dark",
+  "displayName": "Dark",
+  "description": "Classic dark theme with high contrast",
+  "colors": {
+    "primary": "#60A5FA",
+    "secondary": "#A78BFA",
+    "success": "#10B981",
+    "warning": "#F59E0B",
+    "error": "#EF4444",
+    "info": "#06B6D4",
+    "text": "#F3F4F6",
+    "textDim": "#D1D5DB",
+    "textMuted": "#6B7280",
+    "background": "#111827",
+    "backgroundLight": "#1F2937",
+    "border": "#374151",
+    "accent": "#EC4899"
+  }
+}

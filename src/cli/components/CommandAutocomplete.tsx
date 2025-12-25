@@ -29,9 +29,10 @@ function adjustHexBrightness(hex: string, factor: number): string {
 
   // Adjust brightness
   const adjust = (value: number) => {
-    const adjusted = factor < 0
-      ? value * (1 + factor) // Darken
-      : value + (255 - value) * factor; // Lighten
+    const adjusted =
+      factor < 0
+        ? value * (1 + factor) // Darken
+        : value + (255 - value) * factor; // Lighten
     return Math.max(0, Math.min(255, Math.round(adjusted)));
   };
 
@@ -199,18 +200,42 @@ export const CommandAutocomplete: React.FC<CommandAutocompleteProps> = ({
       const header = ` ${parameterName || 'Parameter'} (${parameterSuggestions.length}) `;
       const moreText = moreAbove ? ` ▲ ${moreAboveCount} more above ` : '';
       const moreBelowText = moreBelow ? ` ▼ ${moreBelowCount} more below ` : '';
-      const items = visibleSuggestions.map(s => `  ${s}`);
+      const items = visibleSuggestions.map((s) => `  ${s}`);
 
-      const lengths = [header.length, footerText.length, moreText.length, moreBelowText.length, ...items.map(i => i.length)];
+      const lengths = [
+        header.length,
+        footerText.length,
+        moreText.length,
+        moreBelowText.length,
+        ...items.map((i) => i.length),
+      ];
       const idealWidth = Math.max(...lengths, 50); // Minimum 50 chars
       return Math.min(idealWidth, maxAllowedWidth); // Clamp to terminal width
-    }, [parameterName, parameterSuggestions.length, visibleSuggestions, moreAbove, moreBelow, moreAboveCount, moreBelowCount, footerText, maxAllowedWidth]);
+    }, [
+      parameterName,
+      parameterSuggestions.length,
+      visibleSuggestions,
+      moreAbove,
+      moreBelow,
+      moreAboveCount,
+      moreBelowCount,
+      footerText,
+      maxAllowedWidth,
+    ]);
 
     return (
       <Box flexDirection="column" flexShrink={0}>
-        <Text>{bgLine(` ${parameterName || 'Parameter'} (${parameterSuggestions.length}) `, maxWidth, autocompleteHeaderText)}</Text>
+        <Text>
+          {bgLine(
+            ` ${parameterName || 'Parameter'} (${parameterSuggestions.length}) `,
+            maxWidth,
+            autocompleteHeaderText
+          )}
+        </Text>
         {moreAbove && (
-          <Text>{bgLine(` ▲ ${moreAboveCount} more above `, maxWidth, autocompleteMoreIndicator)}</Text>
+          <Text>
+            {bgLine(` ▲ ${moreAboveCount} more above `, maxWidth, autocompleteMoreIndicator)}
+          </Text>
         )}
         {visibleSuggestions.map((suggestion, idx) => {
           // Calculate actual index in original array
@@ -222,13 +247,17 @@ export const CommandAutocomplete: React.FC<CommandAutocompleteProps> = ({
           return (
             <Text key={`${actualIndex}-${suggestion}`}>
               {isSelected
-                ? autocompleteSelectedBg(autocompleteSelectedText(truncateText(content, maxWidth).padEnd(maxWidth, ' ')))
+                ? autocompleteSelectedBg(
+                    autocompleteSelectedText(truncateText(content, maxWidth).padEnd(maxWidth, ' '))
+                  )
                 : bgLine(content, maxWidth)}
             </Text>
           );
         })}
         {moreBelow && (
-          <Text>{bgLine(` ▼ ${moreBelowCount} more below `, maxWidth, autocompleteMoreIndicator)}</Text>
+          <Text>
+            {bgLine(` ▼ ${moreBelowCount} more below `, maxWidth, autocompleteMoreIndicator)}
+          </Text>
         )}
         <Text>{bgLine(footerText, maxWidth, autocompleteFooterText)}</Text>
       </Box>
@@ -303,7 +332,8 @@ export const CommandAutocomplete: React.FC<CommandAutocompleteProps> = ({
   // Calculate parameter tooltip lines for selected command
   const safeIndex = Math.max(0, Math.min(selectedIndex, commands.length - 1));
   const selectedCmd = commands[safeIndex];
-  const paramTooltipLines = (showParameterInfo && selectedCmd?.parameters) ? selectedCmd.parameters.length : 0;
+  const paramTooltipLines =
+    showParameterInfo && selectedCmd?.parameters ? selectedCmd.parameters.length : 0;
 
   // Calculate exact rendered height by counting lines we're about to render:
   // 1. Header line
@@ -348,21 +378,39 @@ export const CommandAutocomplete: React.FC<CommandAutocompleteProps> = ({
       return maxLen;
     });
 
-    const lengths = [header.length, footerText.length, moreText.length, moreBelowText.length, ...cmdLengths];
+    const lengths = [
+      header.length,
+      footerText.length,
+      moreText.length,
+      moreBelowText.length,
+      ...cmdLengths,
+    ];
     const idealWidth = Math.max(...lengths, 50); // Minimum 50 chars
     return Math.min(idealWidth, maxAllowedWidth); // Clamp to terminal width
-  }, [commands.length, visibleCommands, showParameterInfo, moreAbove, moreBelow, moreAboveCount, moreBelowCount, footerText, maxAllowedWidth]);
+  }, [
+    commands.length,
+    visibleCommands,
+    showParameterInfo,
+    moreAbove,
+    moreBelow,
+    moreAboveCount,
+    moreBelowCount,
+    footerText,
+    maxAllowedWidth,
+  ]);
 
   return (
     <Box flexDirection="column" flexShrink={0}>
       <Text>{bgLine(` Commands (${commands.length}) `, maxWidth, autocompleteHeaderText)}</Text>
       {moreAbove && (
-        <Text>{bgLine(` ▲ ${moreAboveCount} more above `, maxWidth, autocompleteMoreIndicator)}</Text>
+        <Text>
+          {bgLine(` ▲ ${moreAboveCount} more above `, maxWidth, autocompleteMoreIndicator)}
+        </Text>
       )}
       {(() => {
         // Calculate consistent column width for all commands (table layout)
         // Find longest command name in the visible set
-        const longestCmdName = Math.max(...visibleCommands.map(c => c.name.length));
+        const longestCmdName = Math.max(...visibleCommands.map((c) => c.name.length));
         const cmdColumnWidth = longestCmdName + 2; // +2 for '/' and spacing
 
         // Also check parameters if showing
@@ -400,39 +448,58 @@ export const CommandAutocomplete: React.FC<CommandAutocompleteProps> = ({
             <React.Fragment key={`${actualIndex}-${command.name}`}>
               <Text>
                 {isSelected
-                  ? autocompleteSelectedBg(autocompleteSelectedText(cmdPart) + autocompleteSelectedText(chalk.dim(descPart)) + autocompleteSelectedText(rowPadding))
-                  : bg(autocompleteText(cmdPart) + autocompleteText(chalk.dim(descPart)) + autocompleteText(rowPadding))}
+                  ? autocompleteSelectedBg(
+                      autocompleteSelectedText(cmdPart) +
+                        autocompleteSelectedText(chalk.dim(descPart)) +
+                        autocompleteSelectedText(rowPadding)
+                    )
+                  : bg(
+                      autocompleteText(cmdPart) +
+                        autocompleteText(chalk.dim(descPart)) +
+                        autocompleteText(rowPadding)
+                    )}
               </Text>
-              {isSelected && showParameterInfo && command.parameters && command.parameters.length > 0 &&
+              {isSelected &&
+                showParameterInfo &&
+                command.parameters &&
+                command.parameters.length > 0 &&
                 command.parameters.map((param) => {
                   // Parameter row: [    <param>][padding][description] (indented by 2 spaces)
                   const paramSig = `    <${param.name}>`;
-                  const paramPadding = ' '.repeat(Math.max(1, signatureColumnWidth - paramSig.length + 2));
+                  const paramPadding = ' '.repeat(
+                    Math.max(1, signatureColumnWidth - paramSig.length + 2)
+                  );
                   const paramLine = paramSig + paramPadding + param.description;
                   const paramTruncated = truncateText(paramLine, maxWidth);
 
                   const paramDescStartIdx = paramSig.length + paramPadding.length;
-                  const paramSigPart = paramTruncated.substring(0, Math.min(paramDescStartIdx, paramTruncated.length));
-                  const paramDescPart = paramTruncated.substring(Math.min(paramDescStartIdx, paramTruncated.length));
+                  const paramSigPart = paramTruncated.substring(
+                    0,
+                    Math.min(paramDescStartIdx, paramTruncated.length)
+                  );
+                  const paramDescPart = paramTruncated.substring(
+                    Math.min(paramDescStartIdx, paramTruncated.length)
+                  );
                   const paramRowPadding = ' '.repeat(Math.max(0, maxWidth - paramTruncated.length));
 
                   return (
                     <Text key={`${actualIndex}-${command.name}-${param.name}`}>
                       {paramBg(
                         autocompleteText(chalk.dim(paramSigPart)) +
-                        autocompleteText(chalk.hex('#8b95a8')(paramDescPart)) +
-                        autocompleteText(paramRowPadding)
+                          autocompleteText(chalk.hex('#8b95a8')(paramDescPart)) +
+                          autocompleteText(paramRowPadding)
                       )}
                     </Text>
                   );
-                })
-              }
+                })}
             </React.Fragment>
           );
         });
       })()}
       {moreBelow && (
-        <Text>{bgLine(` ▼ ${moreBelowCount} more below `, maxWidth, autocompleteMoreIndicator)}</Text>
+        <Text>
+          {bgLine(` ▼ ${moreBelowCount} more below `, maxWidth, autocompleteMoreIndicator)}
+        </Text>
       )}
       <Text>{bgLine(footerText, maxWidth, autocompleteFooterText)}</Text>
     </Box>

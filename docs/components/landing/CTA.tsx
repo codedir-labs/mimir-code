@@ -8,7 +8,8 @@ export function CTA() {
         <div className="cta-content">
           <h2 className="cta-title">Ready to Get Started?</h2>
           <p className="cta-description">
-            Explore the documentation and learn how to use Mimir for your AI-powered development workflow.
+            Explore the documentation and learn how to use Mimir for your AI-powered development
+            workflow.
           </p>
           <div className="cta-buttons">
             <Link href="/getting-started/installation" className="cta-button-primary">

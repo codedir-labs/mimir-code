@@ -17,7 +17,11 @@ export interface SecurityWarningProps {
   keyBindings: KeyBindingsConfig;
 }
 
-export const SecurityWarning: React.FC<SecurityWarningProps> = ({ onAccept, onCancel, keyBindings }) => {
+export const SecurityWarning: React.FC<SecurityWarningProps> = ({
+  onAccept,
+  onCancel,
+  keyBindings,
+}) => {
   useInput((_input, key) => {
     if (key.return) {
       onAccept();
@@ -48,15 +52,11 @@ export const SecurityWarning: React.FC<SecurityWarningProps> = ({ onAccept, onCa
       </Box>
 
       <Box marginBottom={1}>
-        <Text>
-          Mimir Code can execute commands and modify files on your system.
-        </Text>
+        <Text>Mimir Code can execute commands and modify files on your system.</Text>
       </Box>
 
       <Box marginBottom={1}>
-        <Text dimColor>
-          You'll approve commands before execution via the permission system.
-        </Text>
+        <Text dimColor>You'll approve commands before execution via the permission system.</Text>
       </Box>
 
       <Box>

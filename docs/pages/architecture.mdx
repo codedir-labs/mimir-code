@@ -3,7 +3,7 @@ title: Architecture
 description: Deep dive into Mimir's architecture and design patterns
 ---
 
-import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+import { Callout, Steps, Tabs, Tab } from 'nextra/components';
 
 # Architecture
 
@@ -38,9 +38,7 @@ tests/
 
 ### Platform Abstraction Layer
 
-<Callout type="info">
-  **Purpose**: Cross-platform compatibility (Windows/Unix)
-</Callout>
+<Callout type="info">**Purpose**: Cross-platform compatibility (Windows/Unix)</Callout>
 
 ```typescript
 // IFileSystem - fs operations
@@ -68,15 +66,14 @@ interface IDockerClient {
 ```
 
 **Implementations**:
+
 - `FileSystemAdapter` - fs/promises + globby
 - `ProcessExecutor` - execa (handles Windows/Unix shells)
 - `DockerClient` - dockerode (handles Docker Desktop/daemon)
 
 ### LLM Provider Abstraction
 
-<Callout type="info">
-  **Purpose**: Support multiple LLM providers with unified interface
-</Callout>
+<Callout type="info">**Purpose**: Support multiple LLM providers with unified interface</Callout>
 
 ```typescript
 interface ILLMProvider {
@@ -96,6 +93,7 @@ abstract class BaseLLMProvider implements ILLMProvider {
 ```
 
 **Supported Providers** (all extend `BaseLLMProvider`):
+
 - **DeepSeek** - $0.14/$0.28 per 1M tokens
 - **Anthropic** - Claude models
 - **OpenAI** - GPT models
@@ -109,8 +107,10 @@ abstract class BaseLLMProvider implements ILLMProvider {
 class ProviderFactory {
   static create(config: ProviderConfig): ILLMProvider {
     switch (config.provider) {
-      case 'deepseek': return new DeepSeekProvider(config);
-      case 'anthropic': return new AnthropicProvider(config);
+      case 'deepseek':
+        return new DeepSeekProvider(config);
+      case 'anthropic':
+        return new AnthropicProvider(config);
       // ...
     }
   }
@@ -202,7 +202,7 @@ class Agent {
 
   private async act(action: Action): Promise<Observation> {
     // Check permissions before execution
-    if (!await this.checkPermission(action)) {
+    if (!(await this.checkPermission(action))) {
       return { type: 'permission_denied' };
     }
 
@@ -214,6 +214,7 @@ class Agent {
 ```
 
 **Components**:
+
 - `Agent` - main ReAct loop
 - `ToolRegistry` - manages available tools
 - `ConversationMemory` - stores history
@@ -221,9 +222,7 @@ class Agent {
 
 ### Tool System
 
-<Callout type="info">
-  All tools implement a unified interface with Zod schema validation.
-</Callout>
+<Callout type="info">All tools implement a unified interface with Zod schema validation.</Callout>
 
 **Base Interface**:
 
@@ -237,21 +236,21 @@ interface Tool {
 ```
 
 **Core Tools**:
+
 - `FileOperationsTool` - read/write/edit/list/delete
 - `FileSearchTool` - grep/glob/regex
 - `BashExecutionTool` - run commands (with permissions)
 - `GitTool` - git operations
 
 **MCP Integration**:
+
 - `MCPClient` - connects to MCP servers (stdio/HTTP)
 - `MCPToolRegistry` - dynamic tool registration
 - Tools namespaced as `server-name/tool-name`
 
 ### Permission System
 
-<Callout type="error">
-  All commands are assessed for risk before execution.
-</Callout>
+<Callout type="error">All commands are assessed for risk before execution.</Callout>
 
 **Risk Levels**: low, medium, high, critical
 
@@ -358,7 +357,7 @@ class AgentOrchestrator {
 
     // Execute (parallel where possible)
     const results = await Promise.all(
-      assignments.map(a => this.agents.get(a.agentId).run(a.task))
+      assignments.map((a) => this.agents.get(a.agentId).run(a.task))
     );
 
     // Merge results
@@ -396,15 +395,14 @@ class AgentOrchestrator {
 - `*.spec.ts` - integration tests
 - Arrange-Act-Assert pattern
 - Mock external dependencies (HTTP, filesystem, Docker)
-- >80% coverage target
+- > 80% coverage target
 
 ## Security
 
-<Callout type="error">
-  Security is a first-class concern in Mimir.
-</Callout>
+<Callout type="error">Security is a first-class concern in Mimir.</Callout>
 
 **Principles**:
+
 - Never commit secrets (use env vars)
 - All untrusted code in Docker
 - Validate all input (Zod schemas)
@@ -414,6 +412,7 @@ class AgentOrchestrator {
 - Risk assessment before execution
 
 **Docker Isolation**:
+
 - Read-only mounts where possible
 - Resource limits (CPU, memory, timeout)
 - Network isolation options
@@ -422,6 +421,7 @@ class AgentOrchestrator {
 ## Performance
 
 **Optimizations**:
+
 - Token caching (avoid re-counting)
 - Context window management (prune old messages)
 - Lazy loading of providers
@@ -429,6 +429,7 @@ class AgentOrchestrator {
 - Batch operations where possible
 
 **Monitoring**:
+
 - Token usage per request
 - Cost per operation
 - Response times
@@ -438,32 +439,19 @@ class AgentOrchestrator {
 ## Build & Distribution
 
 <Tabs items={['Development', 'Build', 'Binary']}>
-  <Tab>
-    ```bash
-    # Run in development mode
-    yarn dev
-    ```
-  </Tab>
-  <Tab>
-    ```bash
-    # Build TypeScript to dist/
-    yarn build
-    ```
-  </Tab>
-  <Tab>
-    ```bash
-    # Create platform-specific executables
-    yarn build:binary
-    ```
-  </Tab>
+  <Tab>```bash # Run in development mode yarn dev ```</Tab>
+  <Tab>```bash # Build TypeScript to dist/ yarn build ```</Tab>
+  <Tab>```bash # Create platform-specific executables yarn build:binary ```</Tab>
 </Tabs>
 
 **Supported Platforms**:
+
 - Windows x64 (exe)
 - macOS x64/arm64 (binary)
 - Linux x64/arm64 (binary)
 
 **Installation Options**:
+
 - npm/yarn package
 - Standalone binaries (no Node.js required)
 - Platform-specific installers (PowerShell/bash scripts)

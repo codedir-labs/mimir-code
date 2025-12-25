@@ -47,11 +47,7 @@ function calculatePaginationWindow(
 /**
  * Helper to check if selected item is within visible window
  */
-function isSelectedVisible(
-  selectedIndex: number,
-  startIndex: number,
-  endIndex: number
-): boolean {
+function isSelectedVisible(selectedIndex: number, startIndex: number, endIndex: number): boolean {
   return selectedIndex >= startIndex && selectedIndex < endIndex;
 }
 
@@ -277,11 +273,7 @@ describe('CommandAutocomplete Pagination', () => {
 
     it('should not indicate more above when at start', () => {
       const selectedIndex = 0;
-      const { startIndex } = calculatePaginationWindow(
-        totalItems,
-        selectedIndex,
-        maxVisible
-      );
+      const { startIndex } = calculatePaginationWindow(totalItems, selectedIndex, maxVisible);
 
       const moreAbove = startIndex > 0;
       expect(moreAbove).toBe(false);
@@ -289,11 +281,7 @@ describe('CommandAutocomplete Pagination', () => {
 
     it('should not indicate more below when at end', () => {
       const selectedIndex = totalItems - 1;
-      const { endIndex } = calculatePaginationWindow(
-        totalItems,
-        selectedIndex,
-        maxVisible
-      );
+      const { endIndex } = calculatePaginationWindow(totalItems, selectedIndex, maxVisible);
 
       const moreBelow = endIndex < totalItems;
       expect(moreBelow).toBe(false);

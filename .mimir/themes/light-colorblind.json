@@ -1,0 +1,20 @@
+{
+  "name": "light-colorblind",
+  "displayName": "Light (Colorblind)",
+  "description": "Light theme optimized for colorblind users",
+  "colors": {
+    "primary": "#1D4ED8",
+    "secondary": "#6D28D9",
+    "success": "#0369A1",
+    "warning": "#D97706",
+    "error": "#EA580C",
+    "info": "#0891B2",
+    "text": "#111827",
+    "textDim": "#374151",
+    "textMuted": "#9CA3AF",
+    "background": "#FFFFFF",
+    "backgroundLight": "#F9FAFB",
+    "border": "#E5E7EB",
+    "accent": "#9333EA"
+  }
+}

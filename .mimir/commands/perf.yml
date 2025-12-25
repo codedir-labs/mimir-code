@@ -1,0 +1,56 @@
+# Performance Analysis Command
+# Analyzes code for performance issues and optimizations
+# Usage: /perf [file-or-function]
+
+name: perf
+description: Analyze code for performance issues and optimizations
+usage: /perf [file-or-function]
+aliases: [performance, optimize]
+prompt: |
+  Analyze the specified code for performance issues and optimization opportunities:
+
+  **Algorithmic Complexity:**
+  - Identify O(n²) or worse algorithms
+  - Suggest more efficient data structures
+  - Spot unnecessary iterations
+  - Recommend parallelization opportunities
+
+  **Resource Usage:**
+  - Memory leaks and excessive allocations
+  - File handle/connection leaks
+  - Large object creation in hot paths
+  - Unnecessary cloning/copying
+
+  **I/O Operations:**
+  - N+1 query problems (database)
+  - Missing pagination/batching
+  - Synchronous I/O in async contexts
+  - Missing caching layers
+
+  **Frontend-Specific:**
+  - Unnecessary re-renders (React/Vue)
+  - Large bundle sizes
+  - Missing lazy loading
+  - Unoptimized images/assets
+  - Blocking JavaScript
+
+  **Backend-Specific:**
+  - Missing database indexes
+  - Inefficient ORM queries
+  - Missing connection pooling
+  - Blocking event loop (Node.js)
+
+  **Target:**
+  $ARGUMENTS
+
+  **Output:**
+  1. Performance hotspots ranked by impact
+  2. For each issue:
+     - Current implementation
+     - Optimized version
+     - Expected improvement (with reasoning)
+     - Complexity analysis (before/after)
+  3. Quick wins vs long-term refactors
+
+  If no target specified, analyze the current working directory.
+  Focus on high-impact optimizations. Include benchmark suggestions.

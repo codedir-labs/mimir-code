@@ -24,16 +24,17 @@ export const MimirHeader: React.FC<MimirHeaderProps> = ({
   model,
   workspace,
   theme,
-  mode
+  mode,
 }) => {
   const themeDefinition = getTheme(theme);
 
   // Logo color changes based on current mode
-  const logoColor = mode === 'plan'
-    ? themeDefinition.colors.modePlan
-    : mode === 'act'
-    ? themeDefinition.colors.modeAct
-    : themeDefinition.colors.modeDiscuss;
+  const logoColor =
+    mode === 'plan'
+      ? themeDefinition.colors.modePlan
+      : mode === 'act'
+        ? themeDefinition.colors.modeAct
+        : themeDefinition.colors.modeDiscuss;
 
   const versionColor = themeDefinition.colors.warning;
   const providerColor = themeDefinition.colors.success;

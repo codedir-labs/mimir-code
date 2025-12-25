@@ -95,33 +95,46 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [actualAutocompleteHeight, setActualAutocompleteHeight] = useState(0);
 
   // Auto-show autocomplete when suggestions available (unless manually closed)
-  const handleAutocompleteStateChange = useCallback((state: { itemCount: number; isParameterMode: boolean; shouldShow: boolean; actualHeight?: number }) => {
-    setAutocompleteItemCount(state.itemCount);
+  const handleAutocompleteStateChange = useCallback(
+    (state: {
+      itemCount: number;
+      isParameterMode: boolean;
+      shouldShow: boolean;
+      actualHeight?: number;
+    }) => {
+      setAutocompleteItemCount(state.itemCount);
 
-    // Update actual height if provided
-    if (state.actualHeight !== undefined) {
-      setActualAutocompleteHeight(state.actualHeight);
-    }
+      // Update actual height if provided
+      if (state.actualHeight !== undefined) {
+        setActualAutocompleteHeight(state.actualHeight);
+      }
 
-    // Auto-show autocomplete if:
-    // 1. Config flag is enabled (autocompleteAutoShow)
-    // 2. Should show (has suggestions)
-    // 3. User hasn't manually closed it
-    // 4. Item count > 0
-    if (config.ui.autocompleteAutoShow && state.shouldShow && !manuallyClosedAutocomplete && state.itemCount > 0) {
-      setIsAutocompleteShowing(prev => {
-        // Only reset selected index when first showing autocomplete
-        if (!prev) {
-          setAutocompleteSelectedIndex(0);
-        }
-        return true;
-      });
-    } else if (!state.shouldShow) {
-      // Hide if no suggestions
-      setIsAutocompleteShowing(false);
-      setActualAutocompleteHeight(0);
-    }
-  }, [manuallyClosedAutocomplete, config.ui.autocompleteAutoShow]);
+      // Auto-show autocomplete if:
+      // 1. Config flag is enabled (autocompleteAutoShow)
+      // 2. Should show (has suggestions)
+      // 3. User hasn't manually closed it
+      // 4. Item count > 0
+      if (
+        config.ui.autocompleteAutoShow &&
+        state.shouldShow &&
+        !manuallyClosedAutocomplete &&
+        state.itemCount > 0
+      ) {
+        setIsAutocompleteShowing((prev) => {
+          // Only reset selected index when first showing autocomplete
+          if (!prev) {
+            setAutocompleteSelectedIndex(0);
+          }
+          return true;
+        });
+      } else if (!state.shouldShow) {
+        // Hide if no suggestions
+        setIsAutocompleteShowing(false);
+        setActualAutocompleteHeight(0);
+      }
+    },
+    [manuallyClosedAutocomplete, config.ui.autocompleteAutoShow]
+  );
 
   // Reset manual close flag when input changes
   const handleInputChange = useCallback((newValue: string) => {
@@ -135,121 +148,144 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // KEYBOARD ACTIONS - Using centralized keyboard system
 
   // Navigate up in autocomplete (priority: 10 - child handler)
-  useKeyboardAction('navigateUp', (event) => {
-    if (!event.context.isAutocompleteVisible || autocompleteItemCount === 0) {
-      return false; // Not handled, let others try
-    }
+  useKeyboardAction(
+    'navigateUp',
+    (event) => {
+      if (!event.context.isAutocompleteVisible || autocompleteItemCount === 0) {
+        return false; // Not handled, let others try
+      }
 
-    setAutocompleteSelectedIndex(prev =>
-      prev > 0 ? prev - 1 : autocompleteItemCount - 1
-    );
-    return true; // Handled, stop propagation
-  }, { priority: 10 });
+      setAutocompleteSelectedIndex((prev) => (prev > 0 ? prev - 1 : autocompleteItemCount - 1));
+      return true; // Handled, stop propagation
+    },
+    { priority: 10 }
+  );
 
   // Navigate down in autocomplete (priority: 10 - child handler)
-  useKeyboardAction('navigateDown', (event) => {
-    if (!event.context.isAutocompleteVisible || autocompleteItemCount === 0) {
-      return false; // Not handled
-    }
+  useKeyboardAction(
+    'navigateDown',
+    (event) => {
+      if (!event.context.isAutocompleteVisible || autocompleteItemCount === 0) {
+        return false; // Not handled
+      }
 
-    setAutocompleteSelectedIndex(prev =>
-      prev < autocompleteItemCount - 1 ? prev + 1 : 0
-    );
-    return true; // Handled
-  }, { priority: 10 });
+      setAutocompleteSelectedIndex((prev) => (prev < autocompleteItemCount - 1 ? prev + 1 : 0));
+      return true; // Handled
+    },
+    { priority: 10 }
+  );
 
   // Accept autocomplete selection (Tab/Enter) (priority: 10 - child handler)
-  useKeyboardAction('accept', (event) => {
-    if (!event.context.isAutocompleteVisible || autocompleteItemCount === 0) {
-      return false; // Not handled
-    }
+  useKeyboardAction(
+    'accept',
+    (event) => {
+      if (!event.context.isAutocompleteVisible || autocompleteItemCount === 0) {
+        return false; // Not handled
+      }
 
-    if (acceptSelectionRef.current) {
-      acceptSelectionRef.current();
-    }
-    setAutocompleteSelectedIndex(0);
-    return true; // Handled
-  }, { priority: 10 });
-
-  // Show tooltip/autocomplete (Tab/Ctrl+Space) (priority: 0 - normal handler)
-  useKeyboardAction('showTooltip', (event) => {
-    if (event.context.isAutocompleteVisible && autocompleteItemCount > 0) {
-      // Autocomplete is showing - Tab should select item (same as Enter)
       if (acceptSelectionRef.current) {
         acceptSelectionRef.current();
       }
       setAutocompleteSelectedIndex(0);
       return true; // Handled
-    }
+    },
+    { priority: 10 }
+  );
 
-    // Not showing or no items - show autocomplete
-    setIsAutocompleteShowing(true);
-    setManuallyClosedAutocomplete(false);
-    setAutocompleteSelectedIndex(0);
-    return true; // Handled
-  }, { priority: 0 });
+  // Show tooltip/autocomplete (Tab/Ctrl+Space) (priority: 0 - normal handler)
+  useKeyboardAction(
+    'showTooltip',
+    (event) => {
+      if (event.context.isAutocompleteVisible && autocompleteItemCount > 0) {
+        // Autocomplete is showing - Tab should select item (same as Enter)
+        if (acceptSelectionRef.current) {
+          acceptSelectionRef.current();
+        }
+        setAutocompleteSelectedIndex(0);
+        return true; // Handled
+      }
+
+      // Not showing or no items - show autocomplete
+      setIsAutocompleteShowing(true);
+      setManuallyClosedAutocomplete(false);
+      setAutocompleteSelectedIndex(0);
+      return true; // Handled
+    },
+    { priority: 0 }
+  );
 
   // Interrupt (Ctrl+C and Escape) - Shared logic for both keys
   // Priority 10 ensures autocomplete close is handled before exit
-  useKeyboardAction('interrupt', (event) => {
-    // If autocomplete showing, close it first (priority handling)
-    if (event.context.isAutocompleteVisible) {
-      setIsAutocompleteShowing(false);
-      setManuallyClosedAutocomplete(true);
-      setAutocompleteSelectedIndex(0);
-      return true; // Handled, don't exit app
-    }
-
-    // Handle interrupt/exit logic
-    const newCount = interruptPressCount + 1;
-    setInterruptPressCount(newCount);
-
-    if (event.context.isAgentRunning) {
-      if (newCount === 1) {
-        // First press: interrupt agent (TODO: implement agent interruption)
-        // For now, just count it
-      } else if (newCount >= 2) {
-        // Second press: exit
-        onExit();
+  useKeyboardAction(
+    'interrupt',
+    (event) => {
+      // If autocomplete showing, close it first (priority handling)
+      if (event.context.isAutocompleteVisible) {
+        setIsAutocompleteShowing(false);
+        setManuallyClosedAutocomplete(true);
+        setAutocompleteSelectedIndex(0);
+        return true; // Handled, don't exit app
       }
-    } else {
-      if (newCount >= 2) {
-        // Not running and second press: exit
-        onExit();
-      }
-    }
 
-    return true; // Handled
-  }, { priority: 10 });
+      // Handle interrupt/exit logic
+      const newCount = interruptPressCount + 1;
+      setInterruptPressCount(newCount);
+
+      if (event.context.isAgentRunning) {
+        if (newCount === 1) {
+          // First press: interrupt agent (TODO: implement agent interruption)
+          // For now, just count it
+        } else if (newCount >= 2) {
+          // Second press: exit
+          onExit();
+        }
+      } else {
+        if (newCount >= 2) {
+          // Not running and second press: exit
+          onExit();
+        }
+      }
+
+      return true; // Handled
+    },
+    { priority: 10 }
+  );
 
   // Mode switch (Shift+Tab) (priority: 0 - normal handler)
-  useKeyboardAction('modeSwitch', (event) => {
-    if (event.context.isAutocompleteVisible) {
-      return false; // Don't switch modes while autocomplete showing
-    }
-
-    const modes: Array<'plan' | 'act' | 'discuss'> = ['plan', 'act', 'discuss'];
-    const currentIndex = modes.indexOf(mode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    const nextMode = modes[nextIndex];
-    if (nextMode) {
-      setMode(nextMode);
-      if (onModeSwitch) {
-        onModeSwitch(nextMode);
+  useKeyboardAction(
+    'modeSwitch',
+    (event) => {
+      if (event.context.isAutocompleteVisible) {
+        return false; // Don't switch modes while autocomplete showing
       }
-    }
-    return true; // Handled
-  }, { priority: 0 });
+
+      const modes: Array<'plan' | 'act' | 'discuss'> = ['plan', 'act', 'discuss'];
+      const currentIndex = modes.indexOf(mode);
+      const nextIndex = (currentIndex + 1) % modes.length;
+      const nextMode = modes[nextIndex];
+      if (nextMode) {
+        setMode(nextMode);
+        if (onModeSwitch) {
+          onModeSwitch(nextMode);
+        }
+      }
+      return true; // Handled
+    },
+    { priority: 0 }
+  );
 
   // Memoize submit handler to prevent InputBox from re-rendering unnecessarily
   // Accepts optional value parameter from autocomplete to avoid stale state issues
-  const handleSubmit = useCallback((value?: string) => {
-    const submittedValue = value !== undefined ? value : input;
-    if (submittedValue.trim()) {
-      onUserInput(submittedValue);
-      setInput('');
-    }
-  }, [input, onUserInput]);
+  const handleSubmit = useCallback(
+    (value?: string) => {
+      const submittedValue = value !== undefined ? value : input;
+      if (submittedValue.trim()) {
+        onUserInput(submittedValue);
+        setInput('');
+      }
+    },
+    [input, onUserInput]
+  );
 
   // Memoize divider content - only recalculate when width changes
   const dividerContent = useMemo(() => '─'.repeat(dividerWidth), [dividerWidth]);
@@ -280,7 +316,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Autocomplete structure: Header (1) + moreAbove (0-1) + items (N) + moreBelow (0-1) + Footer (1)
   const autocompleteOverhead = 4; // header + footer + max 2 pagination indicators
   const availableForAutocomplete = terminalHeight - fixedUIHeight - minMessageLines;
-  const availableForAutocompleteItems = Math.max(0, availableForAutocomplete - autocompleteOverhead);
+  const availableForAutocompleteItems = Math.max(
+    0,
+    availableForAutocomplete - autocompleteOverhead
+  );
 
   // maxVisible clamped between 5-10 items
   const maxVisibleItems = Math.max(5, Math.min(10, availableForAutocompleteItems));
@@ -290,10 +329,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Add generous buffer for potential parameter tooltips (worst case: up to 12 extra lines for params + padding)
   const parameterTooltipBuffer = 12;
   const estimatedAutocompleteHeight = isAutocompleteShowing
-    ? (actualAutocompleteHeight || (maxVisibleItems + autocompleteOverhead + parameterTooltipBuffer))
+    ? actualAutocompleteHeight || maxVisibleItems + autocompleteOverhead + parameterTooltipBuffer
     : 0;
 
-  const messageAreaHeight = Math.max(minMessageLines, terminalHeight - fixedUIHeight - estimatedAutocompleteHeight);
+  const messageAreaHeight = Math.max(
+    minMessageLines,
+    terminalHeight - fixedUIHeight - estimatedAutocompleteHeight
+  );
 
   return (
     <Box flexDirection="column" height={terminalHeight}>

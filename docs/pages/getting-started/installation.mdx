@@ -3,14 +3,15 @@ title: Installation
 description: Install Mimir on Windows, macOS, or Linux
 ---
 
-import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+import { Callout, Steps, Tabs, Tab } from 'nextra/components';
 
 # Installation
 
 Install Mimir on your system. Choose the method that works best for you.
 
 <Callout type="warning">
-  **Pre-release**: Mimir is currently in development. Installation instructions will be finalized for v1.0 release.
+  **Pre-release**: Mimir is currently in development. Installation instructions will be finalized
+  for v1.0 release.
 </Callout>
 
 ## Prerequisites
@@ -48,6 +49,7 @@ docker --version
     # Verify installation
     mimir --version
     ```
+
   </Tab>
 
   <Tab>
@@ -60,6 +62,7 @@ docker --version
     # Verify installation
     mimir --version
     ```
+
   </Tab>
 
   <Tab>
@@ -72,6 +75,7 @@ docker --version
     # Verify installation
     mimir --version
     ```
+
   </Tab>
 
   <Tab>
@@ -102,6 +106,7 @@ docker --version
     # Add to PATH or run directly
     .\mimir.exe --version
     ```
+
   </Tab>
 </Tabs>
 
@@ -119,6 +124,7 @@ mimir init
 ```
 
 This creates:
+
 - `.mimir/` directory
 - `config.yml` configuration file
 - `mimir.db` SQLite database
@@ -136,6 +142,7 @@ Edit `.mimir/config.yml` or use environment variables:
     # Or add to .env file
     echo "DEEPSEEK_API_KEY=your-api-key-here" >> .env
     ```
+
   </Tab>
 
   <Tab>
@@ -156,6 +163,7 @@ mimir
 ```
 
 You should see the interactive prompt. Try asking:
+
 - "Explain this project structure"
 - "Add error handling to functions"
 - "Write tests for the API client"
@@ -231,6 +239,7 @@ For sandboxed code execution, install Docker:
     ```bash
     docker run hello-world
     ```
+
   </Tab>
 
   <Tab>
@@ -242,6 +251,7 @@ For sandboxed code execution, install Docker:
     ```powershell
     docker run hello-world
     ```
+
   </Tab>
 
   <Tab>
@@ -267,6 +277,7 @@ For sandboxed code execution, install Docker:
     sudo usermod -aG docker $USER
     docker run hello-world
     ```
+
   </Tab>
 </Tabs>
 
@@ -283,17 +294,9 @@ For sandboxed code execution, install Docker:
     ```
   </Tab>
 
-  <Tab>
-    ```bash
-    yarn global upgrade mimir-code
-    ```
-  </Tab>
+<Tab>```bash yarn global upgrade mimir-code ```</Tab>
 
-  <Tab>
-    ```bash
-    pnpm update -g mimir-code
-    ```
-  </Tab>
+<Tab>```bash pnpm update -g mimir-code ```</Tab>
 
   <Tab>
     Download the latest binary from [GitHub Releases](https://github.com/codedir-labs/mimir-code/releases) and replace the existing binary.
@@ -309,17 +312,9 @@ For sandboxed code execution, install Docker:
     ```
   </Tab>
 
-  <Tab>
-    ```bash
-    yarn global remove mimir-code
-    ```
-  </Tab>
+<Tab>```bash yarn global remove mimir-code ```</Tab>
 
-  <Tab>
-    ```bash
-    pnpm remove -g mimir-code
-    ```
-  </Tab>
+<Tab>```bash pnpm remove -g mimir-code ```</Tab>
 
   <Tab>
     ```bash
@@ -329,6 +324,7 @@ For sandboxed code execution, install Docker:
     # Windows
     # Delete from Program Files and remove from PATH
     ```
+
   </Tab>
 </Tabs>
 

@@ -9,10 +9,7 @@ export default function LandingPage() {
     <>
       <Head>
         <title>Mimir Code – Open Source Model Agnostic CLI</title>
-        <meta
-          name="description"
-          content="Open source, model agnostic CLI tool for agentic work"
-        />
+        <meta name="description" content="Open source, model agnostic CLI tool for agentic work" />
         <meta property="og:title" content="Mimir Code – Open Source Model Agnostic CLI" />
         <meta
           property="og:description"

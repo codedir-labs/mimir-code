@@ -9,6 +9,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Core project structure, CI/CD, platform abstractions, infrastructure
 
 ### Project Setup
+
 - [x] Initialize TypeScript project with yarn
 - [x] Configure tsconfig.json (strict mode)
 - [x] Set up ESLint + Prettier
@@ -18,6 +19,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Initialize Git repository
 
 ### Core Infrastructure
+
 - [x] **Logging**: Winston/Pino, log rotation, `.mimir/logs/`, context-aware logging
 - [x] **Error Handling**: Custom error classes, global handler, Sentry integration
 - [x] **Monitoring**: Performance hooks, metrics collection, health checks
@@ -29,16 +31,19 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] **Development**: VSCode settings, debug configs, git hooks (pre-commit, pre-push)
 
 ### CI/CD Pipeline
+
 - [x] GitHub Actions: test.yml, build.yml, release.yml
 - [x] Code coverage (Codecov)
 - [x] Automated linting and type checking
 
 ### Installation Scripts
+
 - [x] `install.ps1` for Windows (PowerShell)
 - [x] `install.sh` for Unix (bash/zsh)
 - [x] Test on Windows 10/11, macOS, Linux (Ubuntu, Debian, Fedora) - via GitHub Actions test-installation.yml
 
 ### Platform Abstraction Layer
+
 - [x] `IFileSystem` interface + cross-platform implementation (fs/promises + globby)
 - [x] `IProcessExecutor` interface + cross-platform implementation (execa)
 - [x] `IDockerClient` interface skeleton
@@ -52,12 +57,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Robust configuration with permissions, security, keyboard shortcuts
 
 ### Configuration Schema
+
 - [x] Define Zod schemas for all config types
 - [x] Generate TypeScript types from schemas
 - [x] Default configuration values
 - [x] Configuration documentation
 
 ### Configuration Loader
+
 - [x] YAML parser for `.mimir/config.yml`
 - [x] Global config (`~/.mimir/config.yml`)
 - [x] Project config (`.mimir/config.yml`)
@@ -68,6 +75,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Zod validation
 
 ### Permission & Security Configuration
+
 - [x] **Command Allowlist**
   - Glob patterns and regex matching
   - Default allowlist (safe commands)
@@ -84,6 +92,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Auto-block above configured risk level
 
 ### Keyboard Shortcuts Configuration
+
 - [x] Define default keyboard shortcuts
 - [x] Allow customization in config (`keyBindings` section)
 - [x] Support for Ctrl, Alt, Shift combinations
@@ -98,6 +107,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Load custom shortcuts from CLAUDE.md (KeyBindingsManager)
 
 ### Configuration Storage
+
 - [x] Create `~/.mimir/` on first run
 - [x] Generate default `config.yml` template
 - [x] Create `.mimir/` on `mimir init`
@@ -106,6 +116,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Example custom commands (test-coverage.md, commit.md, doctor.md)
 
 ### Testing
+
 - [x] Test loading from all sources
 - [x] Test priority/override system
 - [x] Test validation with invalid configs
@@ -121,6 +132,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Provider-agnostic LLM integration (7+ providers + local models)
 
 ### Base Provider Architecture
+
 - [x] `ILLMProvider` interface (chat, streamChat, countTokens, calculateCost)
 - [x] `BaseLLMProvider` abstract class
 - [x] Common HTTP request logic (APIClient)
@@ -128,6 +140,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Error handling for API failures
 
 ### Provider Implementations
+
 - [x] **DeepSeek**: API integration, tiktoken, model selection, cost calc, streaming (OpenAI-compatible)
 - [x] **Anthropic**: API integration, tiktoken approximation, model selection, cost calc, streaming
 - [ ] **OpenAI**: Coming later (similar to DeepSeek, OpenAI-compatible)
@@ -136,18 +149,21 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] **Ollama (Local)**: Coming later (local API, no cost)
 
 ### Provider Factory
+
 - [x] `ProviderFactory.create()`
 - [x] API key loading from config/env
 - [x] Graceful handling of missing keys
 - [x] Provider-specific configurations
 
 ### Shared Utilities
+
 - [x] Pricing data (hybrid: API + static fallback, 24h cache)
 - [x] Tool formatters (OpenAI ↔ Anthropic format conversion)
 - [x] Stream parsers (SSE for OpenAI/Anthropic formats)
 - [x] API client wrapper (axios-based with error mapping)
 
 ### Testing
+
 - [ ] Mock HTTP requests (MSW)
 - [ ] Test DeepSeek provider (chat, streaming, tools, errors)
 - [ ] Test Anthropic provider (chat, streaming, tools, errors)
@@ -162,6 +178,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Essential tools (file, bash, git) + MCP integration
 
 ### Tool Architecture
+
 - [ ] `Tool` interface
 - [ ] `ToolRegistry` class
 - [ ] Tool discovery system
@@ -169,6 +186,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Tool result formatting
 
 ### Model Context Protocol (MCP) Support
+
 - [ ] **MCP Client**: stdio/HTTP transports, server lifecycle, tool parsing
 - [ ] **MCP Server Management**: Discovery, auto-start, health checks, failure handling
 - [ ] **MCP Configuration**: Config schema, server definitions (command, args, env)
@@ -176,12 +194,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] **Built-in MCP Servers**: Filesystem server, Git server (optional dependencies)
 
 ### File Operations Tool
+
 - [ ] Read, write (with backup), edit (find/replace, line-based)
 - [ ] List directory, create directories
 - [ ] Delete (with confirmation)
 - [ ] Check existence, get metadata
 
 ### File Search Tool
+
 - [ ] grep/ripgrep integration
 - [ ] Glob pattern matching
 - [ ] Regex search
@@ -189,6 +209,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Formatted results with line numbers
 
 ### Bash Execution Tool
+
 - [ ] Execute commands in project directory
 - [ ] Capture stdout/stderr
 - [ ] Timeout handling
@@ -202,16 +223,19 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Auto-accept for allowed commands
 
 ### Git Tool
+
 - [ ] git status, diff, log, branch, commit, checkout
 - [ ] Detect git repository
 - [ ] Parse git output
 
 ### Syntax Highlighting
+
 - [ ] Integrate highlighter (Shiki/highlight.js)
 - [ ] Support major languages (TS, JS, Python, Go, Rust, .NET, etc.)
 - [ ] Apply to file content and code blocks
 
 ### Testing
+
 - [ ] Unit tests per tool
 - [ ] Integration tests with real operations
 - [ ] Mock filesystem
@@ -226,18 +250,21 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Secure, isolated code execution
 
 ### Docker Client
+
 - [ ] Complete `DockerClient` class (dockerode)
 - [ ] Detect Docker installation
 - [ ] Handle Windows Docker Desktop and Unix daemon
 - [ ] Connection error handling
 
 ### Sandbox Images
+
 - [ ] `Dockerfile.base` (Alpine/Ubuntu)
 - [ ] `Dockerfile.node` (Node.js)
 - [ ] `Dockerfile.python` (Python)
 - [ ] Multi-arch builds (amd64, arm64)
 
 ### Container Management
+
 - [ ] Build custom images
 - [ ] Run containers with commands
 - [ ] Resource limits (CPU, memory, timeout)
@@ -247,6 +274,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Result caching
 
 ### Code Execution Tool
+
 - [ ] Integrate Docker sandbox
 - [ ] Execute in sandboxed environment
 - [ ] Multiple runtimes (Node, Python, etc.)
@@ -254,6 +282,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Error handling
 
 ### Testing
+
 - [ ] testcontainers for integration tests
 - [ ] Container creation/cleanup tests
 - [ ] Resource limits enforcement
@@ -267,6 +296,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Core agent reasoning, action loop, interrupt handling
 
 ### Agent Architecture
+
 - [ ] `Agent` class
 - [ ] ReAct loop (Reason -> Act -> Observe)
 - [ ] LLM provider integration
@@ -275,6 +305,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Early stopping conditions
 
 ### Interrupt & Control System
+
 - [ ] **Cancel/Interrupt**
   - Graceful SIGINT handling (Ctrl+C)
   - Save agent state before interruption
@@ -294,6 +325,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Show updated plan before proceeding
 
 ### Reasoning
+
 - [ ] Format messages for LLM (system prompt, history, tools)
 - [ ] Parse LLM response for actions
 - [ ] Handle tool calling format
@@ -301,6 +333,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Handle malformed responses
 
 ### Acting
+
 - [ ] Execute tool based on LLM action
 - [ ] Pass arguments to tool
 - [ ] Handle tool errors
@@ -313,12 +346,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Log all permission decisions
 
 ### Observing
+
 - [ ] Store tool results in history
 - [ ] Update agent state
 - [ ] Log actions and observations
 - [ ] Track token usage per iteration
 
 ### Error Handling
+
 - [ ] LLM API errors
 - [ ] Tool execution errors
 - [ ] Retry logic
@@ -326,6 +361,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Failure recovery
 
 ### Testing
+
 - [ ] Mock LLM responses
 - [ ] Test complete agent loops
 - [ ] Test error recovery
@@ -342,6 +378,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Persistent conversation storage
 
 ### Storage
+
 - [ ] SQLite schema (conversations, messages, tool_calls, permissions)
 - [ ] Database initialization
 - [ ] Conversation CRUD operations
@@ -349,6 +386,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Permission decision audit trail
 
 ### Memory Management
+
 - [ ] `ConversationMemory` class
 - [ ] Load history on resume
 - [ ] Append new messages
@@ -357,12 +395,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Export to JSON/Markdown
 
 ### History Management (CLI commands)
+
 - [ ] `mimir history list` - list recent conversations
 - [ ] `mimir history resume <id>` - continue conversation
 - [ ] `mimir history export <id>` - export to file
 - [ ] `mimir history clear` - delete conversation history
 
 ### Testing
+
 - [ ] SQLite operations
 - [ ] Conversation persistence
 - [ ] Resume functionality
@@ -375,6 +415,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Real-time token and cost tracking
 
 ### Token Counting
+
 - [ ] Integrate tiktoken
 - [ ] Count input tokens before LLM call
 - [ ] Extract output tokens from response
@@ -382,6 +423,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Track cumulative per session
 
 ### Cost Calculation
+
 - [ ] Pricing data structure (per provider/model)
 - [ ] Load pricing from config
 - [ ] Calculate cost per message
@@ -389,12 +431,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Store costs in database
 
 ### Real-Time Display
+
 - [ ] Show token count after each message
 - [ ] Show cost after each message
 - [ ] Show session total (tokens + cost)
 - [ ] Color-code warnings (80%, 90% of budget)
 
 ### Budget Management
+
 - [ ] Budget limit in config
 - [ ] Check budget before LLM calls
 - [ ] Warn when approaching limit
@@ -402,6 +446,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Allow override with flag
 
 ### Cost Analytics (CLI commands)
+
 - [ ] `mimir cost today` - today's spending
 - [ ] `mimir cost week` - weekly spending
 - [ ] `mimir cost month` - monthly spending
@@ -410,12 +455,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] In-chat display: show cost after each message
 
 ### Cost Comparison Dashboard
+
 - [ ] Comparison table (DeepSeek vs others)
 - [ ] Calculate savings
 - [ ] Show historical trends
 - [ ] Recommend cheaper alternatives
 
 ### Testing
+
 - [ ] Token counting accuracy
 - [ ] Cost calculations
 - [ ] Budget enforcement
@@ -430,6 +477,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 ### Command Structure
 
 **CLI Commands** (repo/session management):
+
 - [ ] `mimir` - start interactive chat (main command)
 - [ ] `mimir init` - initialize project (create .mimir/)
 - [ ] `mimir history list` - list conversations
@@ -450,6 +498,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] `mimir --help` - show help
 
 **Slash Commands** (in-chat, context-specific):
+
 - [ ] `/discuss <topic>` - switch to architect/discuss mode
 - [ ] `/plan <description>` - create execution plan
 - [ ] `/act` - switch to autonomous execution mode
@@ -463,6 +512,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Custom commands loaded from `.mimir/commands/`
 
 ### Interactive Chat UI (Ink)
+
 - [ ] Display user/assistant messages (streaming)
 - [ ] Display tool calls with spinners
 - [ ] Display tool results (formatted)
@@ -481,6 +531,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Customizable per user config
 
 ### Plan, Act, Discuss Modes
+
 - [ ] **Plan Mode**: Create task breakdown, get approval, allow editing
 - [ ] **Act Mode**: Execute autonomously, show progress, checkpoints, allow interruption
 - [ ] **Architect/Discuss Mode**: Interactive planning
@@ -494,6 +545,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Switch to Act mode after approval
 
 ### Mode Switching
+
 - [ ] Smooth transitions between modes
 - [ ] Mode indicator in UI
 - [ ] Commands: `/mode plan`, `/mode act`, `/mode discuss`
@@ -502,17 +554,20 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Cancel current operation with confirmation
 
 ### Task Display
+
 - [ ] Todo list (checkboxes)
 - [ ] Progress bars
 - [ ] Tree view for nested tasks
 - [ ] Status updates (pending, in-progress, done, failed)
 
 ### Syntax Highlighting
+
 - [ ] Code in chat messages
 - [ ] File diffs
 - [ ] Command output
 
 ### Logging
+
 - [ ] Structured logger (Winston/Pino)
 - [ ] Log levels (debug, info, warn, error)
 - [ ] Write to `.mimir/logs/`
@@ -520,6 +575,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] `--quiet` flag for minimal output
 
 ### Testing
+
 - [ ] CLI commands with mocked dependencies
 - [ ] Ink components (@testing-library/react)
 - [ ] User interactions
@@ -537,6 +593,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Dynamic model switching, intelligent context pruning
 
 ### Model Switching (slash commands in chat)
+
 - [ ] `/model <provider>` - switch provider mid-conversation
 - [ ] `/models` - list available models
 - [ ] Context transfer when switching
@@ -544,6 +601,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Adjust token limits per model
 
 ### Context Compaction
+
 - [ ] Context window monitoring
 - [ ] Detect approaching token limit
 - [ ] Summarize old messages
@@ -552,12 +610,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Manual compaction: `/compact` command
 
 ### Smart Context Management
+
 - [ ] Relevance scoring for messages
 - [ ] Keep important context (system prompts, recent)
 - [ ] Prune low-relevance old messages
 - [ ] Preserve critical info (file paths, decisions)
 
 ### Local Model Support
+
 - [ ] Detect Ollama installation
 - [ ] List available Ollama models
 - [ ] Pull models if missing
@@ -565,6 +625,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Optimize prompts for smaller models
 
 ### Testing
+
 - [ ] Model switching
 - [ ] Context compaction strategies
 - [ ] Various context sizes
@@ -576,6 +637,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: User extensibility, code safety
 
 ### Custom Slash Commands
+
 - [ ] Command file format (Markdown with frontmatter)
 - [ ] Load from `.mimir/commands/` and `~/.mimir/commands/`
 - [ ] Parse arguments (`$1`, `$2`, `$ARGUMENTS`)
@@ -589,6 +651,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Support `auto-accept: true` in frontmatter
 
 ### Checkpoint System
+
 - [ ] Auto-create before file changes
 - [ ] Store git diff and file backups in `.mimir/checkpoints/`
 - [ ] **CLI Commands**:
@@ -602,6 +665,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Auto cleanup (keep last N)
 
 ### Doctor Command (CLI)
+
 - [ ] `mimir doctor` - run full diagnostics
   - Node.js version check
   - Docker installation check
@@ -614,12 +678,14 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Auto-fix when possible
 
 ### MIMIR.md Support
+
 - [ ] Load context from `MIMIR.md` (or custom file via config)
 - [ ] Include in system prompt
 - [ ] Hierarchical MIMIR.md (global + project)
 - [ ] Template generation with `mimir init`
 
 ### Testing
+
 - [ ] Custom command loading
 - [ ] Checkpoint creation/restoration
 - [ ] Doctor diagnostics
@@ -632,35 +698,41 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Multiple agents working together
 
 ### Agent Orchestration
+
 - [ ] `AgentOrchestrator` class (use from start when multi-agent added)
 - [ ] Spawn multiple agent instances
 - [ ] Assign tasks to agents
 - [ ] Track agent states
 
 ### Task Distribution
+
 - [ ] Parse tasks into subtasks
 - [ ] Assign subtasks to agents
 - [ ] Define task dependencies
 - [ ] Execute in parallel when possible
 
 ### Inter-Agent Communication
+
 - [ ] Share results via orchestrator
 - [ ] Query other agents' progress
 - [ ] Request help from other agents
 - [ ] Merge results from multiple agents
 
 ### Agent Awareness
+
 - [ ] Know about other active agents
 - [ ] Display all activities in UI
 - [ ] Show task assignments and progress
 - [ ] Highlight conflicts/blockers
 
 ### Agent Roles
+
 - [ ] Define roles (reviewer, tester, implementer)
 - [ ] Route tasks to specialists
 - [ ] Configure expertise in config
 
 ### Testing
+
 - [ ] Multi-agent task distribution
 - [ ] Inter-agent communication
 - [ ] Parallel execution
@@ -673,6 +745,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **Goal**: Production-ready release
 
 ### Code Quality
+
 - [ ] 85%+ test coverage
 - [ ] Fix all linting errors
 - [ ] Address TypeScript strict mode issues
@@ -680,6 +753,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Memory leak detection and fixes
 
 ### Documentation
+
 - [ ] README with quickstart
 - [ ] Installation guide
 - [ ] Configuration guide
@@ -690,6 +764,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Example projects
 
 ### Examples
+
 - [ ] Simple task automation
 - [ ] Code review workflow
 - [ ] Multi-file refactoring
@@ -699,18 +774,21 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Permission templates
 
 ### Error Messages & UX
+
 - [ ] Review error messages for clarity
 - [ ] Add helpful suggestions
 - [ ] Improve onboarding
 - [ ] Interactive setup wizard
 
 ### Performance
+
 - [ ] Benchmark common operations
 - [ ] Optimize slow paths
 - [ ] Implement caching
 - [ ] Profile memory usage
 
 ### Security Audit
+
 - [ ] User input handling
 - [ ] Command injection vulnerabilities
 - [ ] Path traversal vulnerabilities
@@ -719,6 +797,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Dependency audit (npm audit)
 
 ### Release
+
 - [ ] Version 1.0.0
 - [ ] Build binaries (all platforms)
 - [ ] Publish to npm
@@ -729,6 +808,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 ## Success Metrics
 
 **MVP (Phase 1-10)**
+
 - [ ] CLI on Windows, macOS, Linux
 - [ ] 7+ LLM providers
 - [ ] MCP protocol integration
@@ -741,6 +821,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] 80%+ test coverage
 
 **v1.0 (Phase 1-13)**
+
 - [ ] All MVP features
 - [ ] Multi-agent collaboration
 - [ ] Custom commands

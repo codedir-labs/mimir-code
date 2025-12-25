@@ -48,7 +48,12 @@ export interface InputBoxProps {
   // Externally controlled autocomplete visibility (from parent keyboard handler)
   forceShowAutocomplete?: boolean;
   // Callback to report autocomplete state (item count for navigation, actual height for layout)
-  onAutocompleteStateChange?: (state: { itemCount: number; isParameterMode: boolean; shouldShow: boolean; actualHeight?: number }) => void;
+  onAutocompleteStateChange?: (state: {
+    itemCount: number;
+    isParameterMode: boolean;
+    shouldShow: boolean;
+    actualHeight?: number;
+  }) => void;
   // Maximum number of visible items in autocomplete (dynamically calculated from terminal height)
   maxVisible?: number;
   // Selected autocomplete index (controlled from parent)
@@ -123,7 +128,7 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
 
           // Split into word boundaries (like bash COMP_WORDS)
           // Filter out empty strings
-          const parts = currentInput.split(/\s+/).filter(a => a.length > 0);
+          const parts = currentInput.split(/\s+/).filter((a) => a.length > 0);
 
           // Detect if we're at a parameter boundary (trailing space after last param)
           // Pattern: "/command param " vs "/command param"
@@ -142,7 +147,11 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
 
             // Check if next parameter exists
             // Pass already-typed args so commands can provide context-aware suggestions
-            const nextParamSuggestions = command.getParameterSuggestions(paramIndex, context, parts);
+            const nextParamSuggestions = command.getParameterSuggestions(
+              paramIndex,
+              context,
+              parts
+            );
             if (nextParamSuggestions.length === 0) {
               // No next parameter - don't show autocomplete
               return { show: false, isParam: false, commands: [], params: [], paramName: '' };
@@ -168,11 +177,15 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
 
           // Pass completed args (all but the last partial one) for context-aware suggestions
           const completedArgs = paramIndex > 0 ? parts.slice(0, paramIndex) : [];
-          const allSuggestions = command.getParameterSuggestions(paramIndex, context, completedArgs);
+          const allSuggestions = command.getParameterSuggestions(
+            paramIndex,
+            context,
+            completedArgs
+          );
 
           // Filter suggestions based on partial value
           const filteredSuggestions = partialValue
-            ? allSuggestions.filter(s => s.toLowerCase().startsWith(partialValue))
+            ? allSuggestions.filter((s) => s.toLowerCase().startsWith(partialValue))
             : allSuggestions;
 
           if (filteredSuggestions.length > 0) {
@@ -224,13 +237,15 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
       setParameterName(suggestions.paramName);
 
       // Notify parent about autocomplete state (item count for navigation)
-      const itemCount = suggestions.isParam ? suggestions.params.length : suggestions.commands.length;
+      const itemCount = suggestions.isParam
+        ? suggestions.params.length
+        : suggestions.commands.length;
 
       if (onAutocompleteStateChange) {
         onAutocompleteStateChange({
           itemCount,
           isParameterMode: suggestions.isParam,
-          shouldShow: suggestions.show && itemCount > 0
+          shouldShow: suggestions.show && itemCount > 0,
         });
       }
     }, [calculateSuggestions, onAutocompleteStateChange]);
@@ -256,10 +271,17 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
           itemCount,
           isParameterMode,
           shouldShow: showAutocomplete && itemCount > 0,
-          actualHeight: showAutocomplete ? autocompleteHeight : 0
+          actualHeight: showAutocomplete ? autocompleteHeight : 0,
         });
       }
-    }, [autocompleteHeight, isParameterMode, parameterSuggestions.length, filteredCommands.length, showAutocomplete, onAutocompleteStateChange]);
+    }, [
+      autocompleteHeight,
+      isParameterMode,
+      parameterSuggestions.length,
+      filteredCommands.length,
+      showAutocomplete,
+      onAutocompleteStateChange,
+    ]);
 
     // Accept autocomplete selection (called by parent when Tab/Enter pressed)
     const acceptSelection = useCallback(() => {
@@ -274,7 +296,7 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
           const currentInput = parsed.rawArgs || '';
 
           // Split into word boundaries
-          const parts = currentInput.split(/\s+/).filter(a => a.length > 0);
+          const parts = currentInput.split(/\s+/).filter((a) => a.length > 0);
           const endsWithSpace = currentInput.length > 0 && /\s$/.test(currentInput);
 
           let completedArgs: string[];
@@ -294,9 +316,11 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
 
           // Check if there are more parameters expected
           const command = commandRegistry?.get(commandName);
-          const hasMoreParams = command?.getParameterSuggestions && context
-            ? command.getParameterSuggestions(completedArgs.length, context, completedArgs).length > 0
-            : false;
+          const hasMoreParams =
+            command?.getParameterSuggestions && context
+              ? command.getParameterSuggestions(completedArgs.length, context, completedArgs)
+                  .length > 0
+              : false;
 
           if (!hasMoreParams && autocompleteExecuteOnSelect) {
             // No more parameters - auto-execute (if enabled)
@@ -320,9 +344,10 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
           const newValue = `/${selectedCommand.name} `;
 
           // Check if command has parameters
-          const hasParams = selectedCommand.getParameterSuggestions && context
-            ? selectedCommand.getParameterSuggestions(0, context, []).length > 0
-            : false;
+          const hasParams =
+            selectedCommand.getParameterSuggestions && context
+              ? selectedCommand.getParameterSuggestions(0, context, []).length > 0
+              : false;
 
           if (!hasParams && autocompleteExecuteOnSelect) {
             // No parameters - auto-execute (if enabled)
@@ -340,7 +365,18 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
           }
         }
       }
-    }, [isParameterMode, parameterSuggestions, filteredCommands, selectedIndex, value, onChange, onSubmit, commandRegistry, context, autocompleteExecuteOnSelect]);
+    }, [
+      isParameterMode,
+      parameterSuggestions,
+      filteredCommands,
+      selectedIndex,
+      value,
+      onChange,
+      onSubmit,
+      commandRegistry,
+      context,
+      autocompleteExecuteOnSelect,
+    ]);
 
     // Expose accept selection function to parent via ref
     useEffect(() => {

@@ -26,7 +26,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:fishshell.com)",
       "WebFetch(domain:docs.continue.dev)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:nextra.site)"
     ]
   }
 }

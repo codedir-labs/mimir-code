@@ -340,7 +340,11 @@ table {
   margin: 0 auto;
   text-align: center;
   padding: 4rem 2rem;
-  background: linear-gradient(135deg, hsla(var(--nextra-primary-hue), 100%, 50%, 0.1), hsla(var(--nextra-primary-hue), 100%, 70%, 0.1));
+  background: linear-gradient(
+    135deg,
+    hsla(var(--nextra-primary-hue), 100%, 50%, 0.1),
+    hsla(var(--nextra-primary-hue), 100%, 70%, 0.1)
+  );
   border-radius: 16px;
   border: 1px solid hsla(var(--nextra-primary-hue), 100%, 50%, 0.2);
 }

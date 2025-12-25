@@ -9,7 +9,8 @@ const features = [
   {
     icon: '🔑',
     title: 'Bring Your Own Key',
-    description: 'Support for 7+ LLM providers: DeepSeek, Anthropic, OpenAI, Google/Gemini, Qwen, Ollama',
+    description:
+      'Support for 7+ LLM providers: DeepSeek, Anthropic, OpenAI, Google/Gemini, Qwen, Ollama',
   },
   {
     icon: '🔒',

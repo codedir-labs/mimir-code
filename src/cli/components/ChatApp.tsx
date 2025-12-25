@@ -53,11 +53,7 @@ function ChatInterfaceWithKeyboard(props: ChatInterfaceProps): React.JSX.Element
 /**
  * Top-level chat app with keyboard handling
  */
-export function ChatApp({
-  fs,
-  projectRoot,
-  ...chatProps
-}: ChatAppProps): JSX.Element {
+export function ChatApp({ fs, projectRoot, ...chatProps }: ChatAppProps): JSX.Element {
   return (
     <KeyboardProvider
       bindingsConfig={chatProps.config.keyBindings}

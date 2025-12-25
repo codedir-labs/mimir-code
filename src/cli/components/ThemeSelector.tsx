@@ -18,12 +18,16 @@ export interface ThemeSelectorProps {
   keyBindings: KeyBindingsConfig;
 }
 
-export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onSelect, onCancel: _onCancel, keyBindings }) => {
+export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
+  onSelect,
+  onCancel: _onCancel,
+  keyBindings,
+}) => {
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   // Get all available themes dynamically
   const availableThemes = getAllThemes();
-  const items = availableThemes.map(themeKey => {
+  const items = availableThemes.map((themeKey) => {
     const metadata = getThemeMetadata(themeKey);
     return {
       label: metadata.name,
@@ -60,7 +64,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onSelect, onCancel
           items={items}
           onSelect={(item) => onSelect(item.value)}
           onHighlight={(item) => {
-            const index = availableThemes.findIndex(t => t === item.value);
+            const index = availableThemes.findIndex((t) => t === item.value);
             if (index !== -1) setHighlightedIndex(index);
           }}
         />
@@ -72,7 +76,12 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onSelect, onCancel
         <Text key={idx}>
           {item.type === 'remove' && bg(themeColors.colors.diffRemoveLine(`- ${item.line}`))}
           {item.type === 'add' && bg(themeColors.colors.diffAddLine(`+ ${item.line}`))}
-          {item.type === 'normal' && bg(fg(`  ${themeColors.colors.keyword(item.line.match(/return/)?.[0] || '')}${item.line.replace(/return/, '')}`))}
+          {item.type === 'normal' &&
+            bg(
+              fg(
+                `  ${themeColors.colors.keyword(item.line.match(/return/)?.[0] || '')}${item.line.replace(/return/, '')}`
+              )
+            )}
         </Text>
       ))}
       <Text>{bg(' ')}</Text>

@@ -13,7 +13,12 @@ function simulateRendering(
   selectedIndex: number,
   maxVisible: number = 5
 ): {
-  renderedItems: Array<{ item: string; actualIndex: number; isSelected: boolean; visibleIdx: number }>;
+  renderedItems: Array<{
+    item: string;
+    actualIndex: number;
+    isSelected: boolean;
+    visibleIdx: number;
+  }>;
   startIndex: number;
   endIndex: number;
   totalItems: number;
@@ -45,18 +50,21 @@ function simulateRendering(
   const visibleSuggestions = items.slice(startIndex, endIndex);
 
   // Rendering logic - EXACTLY as in component
-  const renderedItems = visibleSuggestions.slice().reverse().map((suggestion, idx) => {
-    const visibleIdx = visibleSuggestions.length - 1 - idx;
-    const actualIndex = startIndex + visibleIdx;
-    const isSelected = actualIndex === selectedIndex;
+  const renderedItems = visibleSuggestions
+    .slice()
+    .reverse()
+    .map((suggestion, idx) => {
+      const visibleIdx = visibleSuggestions.length - 1 - idx;
+      const actualIndex = startIndex + visibleIdx;
+      const isSelected = actualIndex === selectedIndex;
 
-    return {
-      item: suggestion,
-      actualIndex,
-      isSelected,
-      visibleIdx,
-    };
-  });
+      return {
+        item: suggestion,
+        actualIndex,
+        isSelected,
+        visibleIdx,
+      };
+    });
 
   return {
     renderedItems,
@@ -79,20 +87,26 @@ describe('Autocomplete UI Rendering', () => {
         startIndex: result.startIndex,
         endIndex: result.endIndex,
         renderedCount: result.renderedItems.length,
-        renderedItems: result.renderedItems.map(r => r.item),
+        renderedItems: result.renderedItems.map((r) => r.item),
       });
 
       expect(result.totalItems).toBe(5);
       expect(result.visibleCount).toBe(5);
       expect(result.renderedItems).toHaveLength(5);
-      expect(result.renderedItems.map(r => r.item)).toEqual(['help', 'theme', 'mode', 'model', 'new']);
+      expect(result.renderedItems.map((r) => r.item)).toEqual([
+        'help',
+        'theme',
+        'mode',
+        'model',
+        'new',
+      ]);
     });
 
     it('should have exactly one selected item', () => {
       const commands = ['new', 'model', 'mode', 'theme', 'help'];
       const result = simulateRendering(commands, 0, 5);
 
-      const selectedItems = result.renderedItems.filter(r => r.isSelected);
+      const selectedItems = result.renderedItems.filter((r) => r.isSelected);
       expect(selectedItems).toHaveLength(1);
       expect(selectedItems[0].actualIndex).toBe(0);
       expect(selectedItems[0].item).toBe('new'); // first item in original array
@@ -105,7 +119,7 @@ describe('Autocomplete UI Rendering', () => {
         const result = simulateRendering(commands, i, 5);
 
         expect(result.renderedItems).toHaveLength(5);
-        const selectedItems = result.renderedItems.filter(r => r.isSelected);
+        const selectedItems = result.renderedItems.filter((r) => r.isSelected);
         expect(selectedItems).toHaveLength(1);
         expect(selectedItems[0].item).toBe(commands[i]);
       }
@@ -139,9 +153,13 @@ describe('Autocomplete UI Rendering', () => {
       const result = simulateRendering(filtered, 0, 5);
 
       expect(result.renderedItems).toHaveLength(3);
-      expect(result.renderedItems.map(r => r.item)).toEqual(['dark-ansi', 'dark-colorblind', 'dark']);
+      expect(result.renderedItems.map((r) => r.item)).toEqual([
+        'dark-ansi',
+        'dark-colorblind',
+        'dark',
+      ]);
 
-      const selected = result.renderedItems.find(r => r.isSelected);
+      const selected = result.renderedItems.find((r) => r.isSelected);
       expect(selected).toBeDefined();
       expect(selected!.item).toBe('dark');
     });
@@ -151,9 +169,9 @@ describe('Autocomplete UI Rendering', () => {
       const result = simulateRendering(filtered, 1, 5);
 
       expect(result.renderedItems).toHaveLength(2);
-      expect(result.renderedItems.map(r => r.item)).toEqual(['another', 'act']);
+      expect(result.renderedItems.map((r) => r.item)).toEqual(['another', 'act']);
 
-      const selected = result.renderedItems.find(r => r.isSelected);
+      const selected = result.renderedItems.find((r) => r.isSelected);
       expect(selected!.item).toBe('another');
       expect(selected!.actualIndex).toBe(1);
     });
@@ -167,7 +185,10 @@ describe('Autocomplete UI Rendering', () => {
         const result = simulateRendering(items, selectedIndex, 5);
 
         result.renderedItems.forEach((rendered, idx) => {
-          expect(rendered.item, `Item at render index ${idx} should not be undefined`).toBeDefined();
+          expect(
+            rendered.item,
+            `Item at render index ${idx} should not be undefined`
+          ).toBeDefined();
           expect(rendered.item, `Item at render index ${idx} should not be null`).not.toBeNull();
           expect(rendered.item, `Item at render index ${idx} should not be empty`).not.toBe('');
         });
@@ -179,7 +200,7 @@ describe('Autocomplete UI Rendering', () => {
       const result = simulateRendering(items, 3, 5);
 
       // Collect all actualIndex values
-      const actualIndexes = result.renderedItems.map(r => r.actualIndex);
+      const actualIndexes = result.renderedItems.map((r) => r.actualIndex);
 
       // Should be consecutive
       const min = Math.min(...actualIndexes);
@@ -187,7 +208,7 @@ describe('Autocomplete UI Rendering', () => {
       expect(max - min).toBe(result.renderedItems.length - 1);
 
       // Should be in range [0, items.length)
-      actualIndexes.forEach(idx => {
+      actualIndexes.forEach((idx) => {
         expect(idx).toBeGreaterThanOrEqual(0);
         expect(idx).toBeLessThan(items.length);
       });
@@ -197,7 +218,7 @@ describe('Autocomplete UI Rendering', () => {
       const items = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
       const result = simulateRendering(items, 3, 5);
 
-      result.renderedItems.forEach(rendered => {
+      result.renderedItems.forEach((rendered) => {
         // Verify that the rendered item matches the item at actualIndex in original array
         expect(rendered.item).toBe(items[rendered.actualIndex]);
       });
@@ -233,7 +254,7 @@ describe('Autocomplete UI Rendering', () => {
       const result = simulateRendering(items, 4, 5);
 
       expect(result.renderedItems).toHaveLength(5);
-      const selected = result.renderedItems.find(r => r.isSelected);
+      const selected = result.renderedItems.find((r) => r.isSelected);
       expect(selected!.item).toBe('e');
     });
   });
@@ -244,7 +265,7 @@ describe('Autocomplete UI Rendering', () => {
       const result = simulateRendering(items, 2, 5);
 
       // Simulate key generation: `${actualIndex}-${item}`
-      const keys = result.renderedItems.map(r => `${r.actualIndex}-${r.item}`);
+      const keys = result.renderedItems.map((r) => `${r.actualIndex}-${r.item}`);
       const uniqueKeys = new Set(keys);
 
       expect(uniqueKeys.size).toBe(keys.length); // All keys should be unique
@@ -255,7 +276,7 @@ describe('Autocomplete UI Rendering', () => {
       const items = ['plan', 'plan', 'act'];
       const result = simulateRendering(items, 0, 5);
 
-      const keys = result.renderedItems.map(r => `${r.actualIndex}-${r.item}`);
+      const keys = result.renderedItems.map((r) => `${r.actualIndex}-${r.item}`);
       const uniqueKeys = new Set(keys);
 
       // Even with duplicate names, actualIndex makes keys unique
@@ -277,27 +298,27 @@ describe('Autocomplete UI Rendering', () => {
       for (let i = 0; i < items.length; i++) {
         const result = simulateRendering(items, i, 5);
 
-        const selectedItem = result.renderedItems.find(r => r.isSelected);
+        const selectedItem = result.renderedItems.find((r) => r.isSelected);
 
         navigationLog.push({
           selectedIndex: i,
           selectedItem: selectedItem?.item || 'NONE',
           renderedCount: result.renderedItems.length,
-          allItemsPresent: result.renderedItems.every(r => r.item !== undefined),
+          allItemsPresent: result.renderedItems.every((r) => r.item !== undefined),
         });
 
         // Assertions at each step
         expect(result.renderedItems).toHaveLength(5);
         expect(selectedItem).toBeDefined();
         expect(selectedItem!.item).toBe(items[i]);
-        expect(result.renderedItems.every(r => r.item !== undefined)).toBe(true);
+        expect(result.renderedItems.every((r) => r.item !== undefined)).toBe(true);
       }
 
       console.log('Navigation log:', navigationLog);
 
       // Verify all steps rendered correctly
-      expect(navigationLog.every(log => log.renderedCount === 5)).toBe(true);
-      expect(navigationLog.every(log => log.allItemsPresent)).toBe(true);
+      expect(navigationLog.every((log) => log.renderedCount === 5)).toBe(true);
+      expect(navigationLog.every((log) => log.allItemsPresent)).toBe(true);
     });
   });
 });

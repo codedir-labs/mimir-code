@@ -1,0 +1,26 @@
+# Mimir workspace-specific ignores
+# Ignore sensitive data and logs
+
+# Databases and backups
+*.db
+*.db-shm
+*.db-wal
+*.db.backup
+
+# Logs
+logs/
+*.log
+
+# Checkpoints (may contain code snapshots)
+checkpoints/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Keep config.yml tracked (share with team)
+!config.yml
+!config.example.yml
+
+# Keep custom commands tracked
+!commands/

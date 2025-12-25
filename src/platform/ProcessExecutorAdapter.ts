@@ -29,7 +29,7 @@ export class ProcessExecutorAdapter implements IProcessExecutor {
       return {
         stdout: result.stdout,
         stderr: result.stderr,
-        exitCode: result.exitCode ?? 0,
+        exitCode: result.exitCode ?? (result.failed ? 1 : 0),
         command: result.command,
         timedOut: result.timedOut ?? false,
       };
@@ -89,7 +89,7 @@ export class ProcessExecutorAdapter implements IProcessExecutor {
       return {
         stdout: result.stdout,
         stderr: result.stderr,
-        exitCode: result.exitCode ?? 0,
+        exitCode: result.exitCode ?? (result.failed ? 1 : 0),
         command: result.command,
         timedOut: result.timedOut ?? false,
       };

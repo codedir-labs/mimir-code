@@ -3,7 +3,7 @@ title: Documentation Best Practices
 description: Guidelines for writing and maintaining Mimir documentation with Nextra
 ---
 
-import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+import { Callout, Steps, Tabs, Tab } from 'nextra/components';
 
 # Documentation Best Practices
 
@@ -59,10 +59,11 @@ docs/
 - **Meta files**: Always name as `_meta.json` for navigation configuration
 
 <Callout type="info">
-  Files starting with underscore (`_`) are special Next.js/Nextra files and won't be rendered as pages.
+  Files starting with underscore (`_`) are special Next.js/Nextra files and won't be rendered as
+  pages.
 </Callout>
 
-## Navigation with _meta.json
+## Navigation with \_meta.json
 
 The `_meta.json` file controls sidebar navigation order and configuration.
 
@@ -92,21 +93,21 @@ The `_meta.json` file controls sidebar navigation order and configuration.
   "index": {
     "title": "Home",
     "type": "page",
-    "display": "hidden",          // Hide from sidebar
+    "display": "hidden", // Hide from sidebar
     "theme": {
-      "breadcrumb": false,        // Disable breadcrumbs
-      "sidebar": false,           // Hide sidebar
-      "toc": false               // Hide table of contents
+      "breadcrumb": false, // Disable breadcrumbs
+      "sidebar": false, // Hide sidebar
+      "toc": false // Hide table of contents
     }
   },
   "advanced": {
     "title": "Advanced Topics",
-    "type": "separator"           // Section separator
+    "type": "separator" // Section separator
   },
   "api-reference": {
     "title": "API Reference ↗",
-    "href": "/api",              // Custom URL
-    "newWindow": true            // Open in new tab
+    "href": "/api", // Custom URL
+    "newWindow": true // Open in new tab
   }
 }
 ```
@@ -165,7 +166,7 @@ interface Config {
 ```typescript filename="src/config.ts"
 export const config: Config = {
   provider: 'deepseek',
-  apiKey: process.env.API_KEY
+  apiKey: process.env.API_KEY,
 };
 ```
 ````
@@ -175,11 +176,11 @@ export const config: Config = {
 ````mdx
 ```typescript {2,4-6}
 interface Config {
-  provider: string;  // Highlighted
+  provider: string; // Highlighted
   apiKey: string;
-  temperature: number;  // Highlighted
-  maxTokens: number;    // Highlighted
-  timeout: number;      // Highlighted
+  temperature: number; // Highlighted
+  maxTokens: number; // Highlighted
+  timeout: number; // Highlighted
 }
 ```
 ````
@@ -200,23 +201,15 @@ rm -rf /
 Use Nextra's built-in Callout component:
 
 ```mdx
-import { Callout } from 'nextra/components'
+import { Callout } from 'nextra/components';
 
-<Callout type="info">
-  Informational message
-</Callout>
+<Callout type="info">Informational message</Callout>
 
-<Callout type="warning">
-  Warning message
-</Callout>
+<Callout type="warning">Warning message</Callout>
 
-<Callout type="error">
-  Error or danger message
-</Callout>
+<Callout type="error">Error or danger message</Callout>
 
-<Callout emoji="🎉">
-  Custom emoji callout
-</Callout>
+<Callout emoji="🎉">Custom emoji callout</Callout>
 ```
 
 ### Steps Component
@@ -224,7 +217,7 @@ import { Callout } from 'nextra/components'
 For sequential instructions:
 
 ```mdx
-import { Steps } from 'nextra/components'
+import { Steps } from 'nextra/components';
 
 <Steps>
 
@@ -247,27 +240,15 @@ Run `mimir` to begin
 
 For alternative content:
 
-```mdx
-import { Tabs, Tab } from 'nextra/components'
+````mdx
+import { Tabs, Tab } from 'nextra/components';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
-  <Tab>
-    ```bash
-    npm install mimir-code
-    ```
-  </Tab>
-  <Tab>
-    ```bash
-    yarn add mimir-code
-    ```
-  </Tab>
-  <Tab>
-    ```bash
-    pnpm add mimir-code
-    ```
-  </Tab>
+  <Tab>```bash npm install mimir-code ```</Tab>
+  <Tab>```bash yarn add mimir-code ```</Tab>
+  <Tab>```bash pnpm add mimir-code ```</Tab>
 </Tabs>
-```
+````
 
 ### Cards for Features
 
@@ -295,14 +276,14 @@ Themes are configured in `theme.config.tsx`:
 
 ```typescript
 export default {
-  darkMode: true,                    // Enable dark mode toggle
+  darkMode: true, // Enable dark mode toggle
   nextThemes: {
-    defaultTheme: 'system',          // Use system preference
-    storageKey: 'mimir-theme',       // LocalStorage key
+    defaultTheme: 'system', // Use system preference
+    storageKey: 'mimir-theme', // LocalStorage key
   },
-  primaryHue: 212,                   // Primary color hue
-  primarySaturation: 100,            // Primary color saturation
-}
+  primaryHue: 212, // Primary color hue
+  primarySaturation: 100, // Primary color saturation
+};
 ```
 
 ### Theme-Aware Styling
@@ -360,7 +341,7 @@ export default {
     { locale: 'zh', text: '中文' },
     { locale: 'ja', text: '日本語' },
   ],
-}
+};
 ```
 
 ### Translating Content
@@ -424,7 +405,7 @@ const withNextra = nextra({
   theme: 'nextra-theme-docs',
   themeConfig: './theme.config.tsx',
   search: {
-    codeblocks: true,        // Search inside code blocks
+    codeblocks: true, // Search inside code blocks
   },
 });
 ```
@@ -445,9 +426,7 @@ const withNextra = nextra({
 
 You can install Mimir using npm, yarn, or pnpm.
 
-<Callout>
-  Also known as: setup, getting started, download
-</Callout>
+<Callout>Also known as: setup, getting started, download</Callout>
 ```
 
 ### Improving Search Results
@@ -512,6 +491,7 @@ docs.mimir-code.dev
 ### Configure DNS
 
 Add DNS records:
+
 ```
 Type: CNAME
 Name: docs
@@ -652,6 +632,7 @@ docs: <summary>
 ```
 
 **Examples**:
+
 ```
 docs: add keyboard shortcuts guide
 docs: update API reference for v2.0
@@ -677,18 +658,21 @@ Before submitting documentation changes:
 ### Regular Tasks
 
 **Monthly**:
+
 - Check for broken links
 - Update dependencies (`npm outdated`)
 - Review and update screenshots
 - Check analytics for popular pages
 
 **Quarterly**:
+
 - Review all content for accuracy
 - Update code examples for latest version
 - Check translation status
 - Optimize slow-loading pages
 
 **Annually**:
+
 - Major content audit
 - Restructure navigation if needed
 - Update style guide
@@ -704,6 +688,7 @@ Track documentation usage with:
 - **Feedback**: Issue reports, PR comments
 
 Use insights to:
+
 - Prioritize improvements
 - Identify confusing sections
 - Guide translation efforts
@@ -714,6 +699,7 @@ Use insights to:
 ### Common Issues
 
 **Build fails**:
+
 ```bash
 # Clear cache and rebuild
 rm -rf .next out node_modules
@@ -722,17 +708,20 @@ npm run build
 ```
 
 **Search not working**:
+
 - Ensure `search.codeblocks: true` in next.config.mjs
 - Rebuild to regenerate search index
 - Check browser console for errors
 
 **Styles not applying**:
+
 - Check CSS syntax in globals.css
 - Verify class names don't conflict
 - Clear browser cache
 - Check theme variables are defined
 
 **i18n not showing**:
+
 - Verify `i18n` array in theme.config.tsx
 - Check locale file naming (`.es.mdx` not `.es-ES.mdx`)
 - Ensure `_meta.json` exists for translated folders

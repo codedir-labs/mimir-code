@@ -1,0 +1,58 @@
+llm:
+  provider: deepseek
+  model: deepseek-chat
+  temperature: 0.7
+  maxTokens: 4096
+permissions:
+  autoAccept: false
+  acceptRiskLevel: medium
+  alwaysAcceptCommands: []
+keyBindings:
+  interrupt:
+    - Ctrl+C
+    - Escape
+  accept:
+    - Enter
+  modeSwitch:
+    - Shift+Tab
+  editCommand:
+    - Ctrl+E
+  showTooltip:
+    - Tab
+  navigateUp:
+    - ArrowUp
+  navigateDown:
+    - ArrowDown
+  help:
+    - "?"
+  clearScreen:
+    - Ctrl+L
+  undo:
+    - Ctrl+Z
+  redo:
+    - Ctrl+Y
+docker:
+  enabled: true
+  baseImage: alpine:latest
+ui:
+  theme: mimir
+  syntaxHighlighting: true
+  showLineNumbers: true
+  compactMode: false
+  autocompleteAutoShow: true
+  autocompleteExecuteOnSelect: true
+monitoring:
+  metricsRetentionDays: 90
+  enableHealthChecks: true
+  healthCheckIntervalSeconds: 300
+  slowOperationThresholdMs: 5000
+  batchWriteIntervalSeconds: 10
+budget:
+  enabled: false
+  warningThreshold: 0.8
+rateLimit:
+  enabled: true
+  commandsPerMinute: 60
+  toolExecutionsPerMinute: 30
+  llmCallsPerMinute: 20
+  maxFileSizeMB: 100
