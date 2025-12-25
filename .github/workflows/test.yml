@@ -13,24 +13,23 @@ concurrency:
 
 jobs:
   test:
-    name: Test on ${{ matrix.os }} with Node ${{ matrix.node-version }}
+    name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ['20', '22']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          # cache: 'yarn' - Disabled until yarn.lock is committed
+          node-version: '22'
+          cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -52,7 +51,7 @@ jobs:
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '22'
+        if: matrix.os == 'ubuntu-latest'
         with:
           files: ./coverage/lcov.info
           flags: unittests

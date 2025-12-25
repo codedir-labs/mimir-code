@@ -26,7 +26,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
   };
 
   const handleThemeSelect = (theme: Theme) => {
-    onComplete(theme);
+    void onComplete(theme);
   };
 
   return (

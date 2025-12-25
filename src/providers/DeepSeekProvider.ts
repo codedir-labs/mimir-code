@@ -76,7 +76,7 @@ export class DeepSeekProvider extends BaseLLMProvider implements ILLMProvider {
       stream: true,
     };
 
-    const stream = await this.apiClient.stream('/chat/completions', requestBody);
+    const stream = this.apiClient.stream('/chat/completions', requestBody);
 
     for await (const chunk of parseOpenAIStream(stream)) {
       yield chunk;

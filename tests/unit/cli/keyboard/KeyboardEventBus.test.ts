@@ -7,6 +7,7 @@ import { KeyboardEventBus } from '../../../../src/cli/keyboard/KeyboardEventBus.
 import { KeyBindingsManager } from '../../../../src/utils/KeyBindings.js';
 import { KeyBindingsConfig } from '../../../../src/config/schemas.js';
 import { IFileSystem } from '../../../../src/platform/IFileSystem.js';
+import { getPlatformKey } from '../../../helpers/platformHelpers.js';
 
 describe('KeyboardEventBus', () => {
   let eventBus: KeyboardEventBus;
@@ -138,15 +139,16 @@ describe('KeyboardEventBus', () => {
   describe('Event Dispatching', () => {
     it('should dispatch action to handlers', () => {
       const handler = vi.fn();
+      const interruptKey = getPlatformKey('Ctrl+C');
 
       eventBus.subscribe('interrupt', handler);
-      eventBus.dispatchAction('interrupt', 'Ctrl+C');
+      eventBus.dispatchAction('interrupt', interruptKey);
 
       expect(handler).toHaveBeenCalledTimes(1);
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'interrupt',
-          rawKey: 'Ctrl+C',
+          rawKey: interruptKey,
         })
       );
     });
@@ -307,7 +309,8 @@ describe('KeyboardEventBus', () => {
       const handler = vi.fn();
       eventBus.subscribe('interrupt', handler);
 
-      const result = eventBus.dispatch('Ctrl+C');
+      const interruptKey = getPlatformKey('Ctrl+C');
+      const result = eventBus.dispatch(interruptKey);
 
       expect(result).toBe(true);
       expect(handler).toHaveBeenCalled();
@@ -317,8 +320,10 @@ describe('KeyboardEventBus', () => {
       const handler = vi.fn();
       eventBus.subscribe('interrupt', handler);
 
-      // Both Ctrl+C and Escape map to 'interrupt'
-      eventBus.dispatch('Ctrl+C');
+      const interruptKey = getPlatformKey('Ctrl+C');
+
+      // Both Ctrl+C (or Cmd+C on Mac) and Escape map to 'interrupt'
+      eventBus.dispatch(interruptKey);
       eventBus.dispatch('Escape');
 
       expect(handler).toHaveBeenCalledTimes(2);

@@ -34,11 +34,15 @@ export class ProcessExecutorAdapter implements IProcessExecutor {
         timedOut: result.timedOut ?? false,
       };
     } catch (error: any) {
-      // Handle execution errors
+      // Handle execution errors (spawn failures, etc.)
+      // For ENOENT errors (command not found), use exit code 127 (standard shell convention)
+      // For other errors, use exitCode from error or default to 1
+      const exitCode = error.code === 'ENOENT' ? 127 : error.exitCode || 1;
+
       return {
         stdout: error.stdout || '',
         stderr: error.stderr || error.message || String(error),
-        exitCode: error.exitCode ?? 1,
+        exitCode,
         command: error.command || `${command} ${args.join(' ')}`,
         timedOut: error.timedOut ?? false,
       };
@@ -90,11 +94,15 @@ export class ProcessExecutorAdapter implements IProcessExecutor {
         timedOut: result.timedOut ?? false,
       };
     } catch (error: any) {
-      // Handle execution errors
+      // Handle execution errors (spawn failures, etc.)
+      // For ENOENT errors (command not found), use exit code 127 (standard shell convention)
+      // For other errors, use exitCode from error or default to 1
+      const exitCode = error.code === 'ENOENT' ? 127 : error.exitCode || 1;
+
       return {
         stdout: error.stdout || '',
         stderr: error.stderr || error.message || String(error),
-        exitCode: error.exitCode ?? 1,
+        exitCode,
         command: error.command || command,
         timedOut: error.timedOut ?? false,
       };

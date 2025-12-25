@@ -1,1 +1,15 @@
 yarn lint-staged
+
+# Run security audit (fail on high/critical vulnerabilities)
+echo "🔒 Running security audit..."
+yarn audit --level high || {
+  AUDIT_EXIT_CODE=$?
+  if [ $AUDIT_EXIT_CODE -ge 16 ]; then
+    echo "❌ Audit failed with error"
+    exit 1
+  elif [ $AUDIT_EXIT_CODE -gt 0 ]; then
+    echo "❌ High/Critical vulnerabilities found - commit blocked"
+    exit 1
+  fi
+}
+echo "✅ Security audit passed"

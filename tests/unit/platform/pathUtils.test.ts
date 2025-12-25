@@ -87,7 +87,7 @@ describe('pathUtils', () => {
       expect(result).toContain('bar');
     });
 
-    it('should handle Windows paths', () => {
+    it.skipIf(platform() !== 'win32')('should handle Windows paths', () => {
       const result = dirname('C:\\foo\\bar\\baz.txt');
       expect(result).toContain('bar');
     });
@@ -128,7 +128,7 @@ describe('pathUtils', () => {
       expect(result).toBe(true);
     });
 
-    it('should detect absolute Windows path', () => {
+    it.skipIf(platform() !== 'win32')('should detect absolute Windows path', () => {
       const result = isAbsolute('C:\\foo\\bar');
       expect(result).toBe(true);
     });
@@ -199,7 +199,7 @@ describe('pathUtils', () => {
       expect(result.ext).toBe('.txt');
     });
 
-    it('should parse Windows path', () => {
+    it.skipIf(platform() !== 'win32')('should parse Windows path', () => {
       const result = parsePath('C:\\foo\\bar\\baz.txt');
 
       expect(result.base).toBe('baz.txt');

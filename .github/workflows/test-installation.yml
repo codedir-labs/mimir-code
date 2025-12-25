@@ -26,23 +26,22 @@ concurrency:
 
 jobs:
   test-unix-installation:
-    name: Test on ${{ matrix.os }} with Node ${{ matrix.node }}
+    name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest, macos-13, macos-latest]
-        node: ['20', '22']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '22'
 
       - name: Make install script executable
         run: chmod +x scripts/install.sh
@@ -89,22 +88,18 @@ jobs:
           fi
 
   test-windows-installation:
-    name: Test on Windows with Node ${{ matrix.node }}
+    name: Test on Windows
     runs-on: windows-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['20', '22']
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '22'
 
       - name: Test PowerShell installation
         shell: pwsh
@@ -149,7 +144,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # cache: 'yarn' - Disabled until yarn.lock is committed
+          cache: 'yarn'
 
       - name: Install version 0.1.0 (simulated)
         run: |
@@ -193,7 +188,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # cache: 'yarn' - Disabled until yarn.lock is committed
+          cache: 'yarn'
 
       - name: Install mimir
         run: |
@@ -298,7 +293,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # cache: 'yarn' - Disabled until yarn.lock is committed
+          cache: 'yarn'
 
       - name: Test with Docker available
         run: |
@@ -323,7 +318,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # cache: 'yarn' - Disabled until yarn.lock is committed
+          cache: 'yarn'
 
       - name: Create .bashrc if not exists
         run: touch ~/.bashrc

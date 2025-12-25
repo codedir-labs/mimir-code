@@ -170,7 +170,7 @@ describe('DatabaseManager', () => {
 
       // Test transaction
       expect(() => {
-        db.transaction((tx) => {
+        db.transaction((_tx) => {
           // Transaction operations would go here
           return true;
         });

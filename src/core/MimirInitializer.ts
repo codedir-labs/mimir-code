@@ -590,6 +590,7 @@ See the theme documentation for creating custom themes.
    * Print initialization summary
    */
   printSummary(result: InitializationResult, workspaceRoot: string): void {
+    /* eslint-disable no-console */
     console.log('\n🚀 Mimir Workspace Initialized!\n');
 
     if (result.created.length > 0) {
@@ -634,5 +635,6 @@ See the theme documentation for creating custom themes.
     console.log('\n  Edit .mimir/commands/*.yml to customize or create your own!');
 
     console.log('\n✨ Ready to use! Run "mimir" to start an interactive chat session.\n');
+    /* eslint-enable no-console */
   }
 }

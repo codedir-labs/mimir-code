@@ -96,7 +96,7 @@ export class AnthropicProvider extends BaseLLMProvider implements ILLMProvider {
       requestBody.tools = toAnthropicTools(tools);
     }
 
-    const stream = await this.apiClient.stream('/v1/messages', requestBody);
+    const stream = this.apiClient.stream('/v1/messages', requestBody);
 
     for await (const chunk of parseAnthropicStream(stream)) {
       yield chunk;
