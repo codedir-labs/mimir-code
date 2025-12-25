@@ -1,0 +1,255 @@
+# Contributing to Mimir
+
+Thank you for your interest in contributing to Mimir!
+
+## Development Setup
+
+1. **Fork and clone the repository**
+
+```bash
+git clone https://github.com/sebastianstupak/mimir.git
+cd mimir
+```
+
+2. **Install dependencies**
+
+```bash
+yarn install
+```
+
+3. **Set up environment**
+
+```bash
+cp .env.example .env
+# Add your API keys to .env
+```
+
+4. **Run tests to verify setup**
+
+```bash
+yarn test
+```
+
+## Development Workflow
+
+### 1. Read the Documentation First
+
+- **CLAUDE.md**: Guidelines for Claude Code and development practices
+- **docs/architecture.md**: System architecture and design patterns
+- **docs/roadmap.md**: Planned features and implementation order
+
+### 2. Follow Test-Driven Development
+
+1. Write tests first (*.test.ts for unit, *.spec.ts for integration)
+2. Run tests to see them fail
+3. Implement the feature
+4. Run tests to see them pass
+5. Refactor if needed
+
+Example:
+
+```bash
+# Create test file first
+touch tests/unit/core/MyFeature.test.ts
+
+# Write your tests
+# ...
+
+# Run tests (should fail)
+yarn test:unit
+
+# Implement feature
+touch src/core/MyFeature.ts
+
+# Run tests again (should pass)
+yarn test:unit
+```
+
+### 3. Use Platform Abstractions
+
+Never use Node.js APIs directly. Always use our platform abstractions:
+
+```typescript
+// ❌ Don't do this
+import fs from 'fs';
+const content = await fs.promises.readFile('file.txt', 'utf-8');
+
+// ✅ Do this instead
+import { IFileSystem } from './platform/IFileSystem';
+const content = await fileSystem.readFile('file.txt');
+```
+
+### 4. Validate Input with Zod
+
+All configuration and user input must be validated:
+
+```typescript
+import { z } from 'zod';
+
+const MySchema = z.object({
+  name: z.string().min(1),
+  count: z.number().int().positive(),
+});
+
+type MyType = z.infer<typeof MySchema>;
+
+function processData(input: unknown): MyType {
+  return MySchema.parse(input); // Throws if invalid
+}
+```
+
+### 5. Handle Errors Properly
+
+Use Result types instead of throwing:
+
+```typescript
+import { Result, createOk, createErr } from './types';
+
+function doSomething(): Result<string> {
+  try {
+    const result = riskyOperation();
+    return createOk(result);
+  } catch (error) {
+    return createErr(new MyError('Operation failed'));
+  }
+}
+```
+
+## Code Style Guidelines
+
+### Naming Conventions
+
+- **camelCase**: variables, functions
+- **PascalCase**: classes, types, interfaces
+- **UPPER_SNAKE_CASE**: constants
+- **I prefix**: interfaces (ILLMProvider, IFileSystem)
+
+### TypeScript
+
+- Strict mode enabled
+- Avoid `any`, use `unknown` if needed
+- Prefer `async/await` over raw promises
+- Use interfaces for abstractions
+- Use factory pattern for creating instances
+
+### File Organization
+
+```
+src/module/
+├── index.ts           # Public exports
+├── IService.ts        # Interface definition
+├── ServiceImpl.ts     # Implementation
+└── ServiceFactory.ts  # Factory for creating instances
+```
+
+## Testing Guidelines
+
+### Unit Tests
+
+- File: `tests/unit/**/*.test.ts`
+- Mock external dependencies
+- Test one unit of code in isolation
+- Follow Arrange-Act-Assert pattern
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+
+describe('MyClass', () => {
+  let instance: MyClass;
+
+  beforeEach(() => {
+    instance = new MyClass();
+  });
+
+  it('should do something', () => {
+    // Arrange
+    const input = 'test';
+
+    // Act
+    const result = instance.doSomething(input);
+
+    // Assert
+    expect(result).toBe('expected');
+  });
+});
+```
+
+### Integration Tests
+
+- File: `tests/integration/**/*.spec.ts`
+- Use real dependencies where possible
+- Use testcontainers for Docker
+- Test multiple components together
+
+## Pull Request Process
+
+1. **Create a feature branch**
+
+```bash
+git checkout -b feature/my-feature
+```
+
+2. **Make your changes**
+
+- Write tests first
+- Implement feature
+- Ensure all tests pass
+- Run linting and formatting
+
+```bash
+yarn test
+yarn lint
+yarn format
+```
+
+3. **Commit your changes**
+
+```bash
+git add .
+git commit -m "feat: add my feature"
+```
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `test:` - Test changes
+- `refactor:` - Code refactoring
+- `chore:` - Build/tooling changes
+
+4. **Push and create PR**
+
+```bash
+git push origin feature/my-feature
+```
+
+Then create a pull request on GitHub.
+
+5. **PR Requirements**
+
+- All tests must pass
+- Code coverage should not decrease
+- Linting should pass
+- At least one approval from maintainers
+
+## Security Considerations
+
+When implementing features:
+
+1. **Input Validation**: Always use Zod schemas
+2. **Path Sanitization**: Prevent `../` traversal attacks
+3. **Command Execution**: Use parameterized execution, never string interpolation
+4. **Docker Isolation**: Run untrusted code in containers
+5. **Secret Management**: Never commit API keys
+6. **Audit Trail**: Log all command executions
+
+## Getting Help
+
+- Check existing issues on GitHub
+- Read the architecture documentation
+- Ask questions in discussions
+
+## Code of Conduct
+
+Be respectful and constructive. We're all here to build something great together.

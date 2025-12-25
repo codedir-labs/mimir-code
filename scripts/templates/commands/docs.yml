@@ -1,0 +1,53 @@
+# Documentation Generation Command
+# Generates or improves code documentation
+# Usage: /docs [file-or-symbol]
+
+name: docs
+description: Generate or improve code documentation
+usage: /docs [file-or-symbol]
+aliases: [doc, document]
+prompt: |
+  Generate or improve documentation for the specified code. Include:
+
+  **Code Documentation:**
+  - JSDoc/TSDoc comments for functions and classes
+  - Parameter descriptions (type, purpose, constraints)
+  - Return value descriptions
+  - Thrown exceptions/errors
+  - Usage examples for complex APIs
+  - @deprecated tags for legacy code
+
+  **Module Documentation:**
+  - Module/file-level overview
+  - Exported APIs and their relationships
+  - Architecture decisions and design rationale
+  - Dependencies and integration points
+
+  **Best Practices:**
+  - Explain "why" not "what" (code shows what)
+  - Document non-obvious behavior and edge cases
+  - Include examples for public APIs
+  - Link to related functions/classes
+  - Note performance characteristics for critical paths
+  - Document thread-safety/concurrency assumptions
+
+  **README/User Docs:**
+  - Installation and setup
+  - Quick start guide
+  - Common use cases with examples
+  - Configuration options
+  - Troubleshooting section
+  - API reference (if library/framework)
+
+  **Target:**
+  $ARGUMENTS
+
+  **Output:**
+  1. Inline code comments (JSDoc/TSDoc format)
+  2. Updated README sections (if applicable)
+  3. Missing documentation gaps identified
+  4. Examples and usage snippets
+
+  If no target specified, document recently modified public APIs.
+  Follow the project's existing documentation style.
+  Prioritize user-facing APIs and complex internal logic.

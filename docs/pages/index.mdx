@@ -1,0 +1,108 @@
+---
+title: Mimir
+description: Platform-agnostic, BYOK AI coding agent CLI
+---
+
+import { Callout } from 'nextra/components'
+
+# Mimir
+
+**Platform-agnostic, BYOK (Bring Your Own Key) AI coding agent CLI built with TypeScript.**
+
+<Callout type="warning" emoji="⚠️">
+  **Work in Progress** - Mimir is currently under active development. Documentation and architecture are complete, implementation is in progress.
+</Callout>
+
+## Features
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+  <div className="feature-card">
+    ### 🌍 Cross-Platform
+    Full Windows, macOS, and Linux support with platform abstraction layer
+  </div>
+
+  <div className="feature-card">
+    ### 🔑 Bring Your Own Key
+    Support for 7+ LLM providers: DeepSeek, Anthropic, OpenAI, Google/Gemini, Qwen, Ollama
+  </div>
+
+  <div className="feature-card">
+    ### 🔒 Security First
+    Permission system, Docker sandboxing, and comprehensive audit trails
+  </div>
+
+  <div className="feature-card">
+    ### 🧪 Test-Driven
+    Built with Vitest, 80%+ test coverage target
+  </div>
+
+  <div className="feature-card">
+    ### 🔌 MCP Integration
+    Model Context Protocol support for dynamic tool loading
+  </div>
+
+  <div className="feature-card">
+    ### 🎨 Modern UI
+    Beautiful terminal UI built with Ink and React
+  </div>
+</div>
+
+## Quick Start
+
+```bash
+# Install Mimir (coming soon)
+npm install -g mimir-code
+
+# Initialize a project
+mimir init
+
+# Start interactive chat
+mimir
+
+# Get help
+mimir --help
+```
+
+## Why Mimir?
+
+Mimir is designed for developers who want:
+
+- **Control**: Use your own API keys and choose your preferred LLM provider
+- **Security**: Run untrusted code in Docker containers with resource limits
+- **Transparency**: Full audit trail of all commands and decisions
+- **Flexibility**: Work with multiple providers, models, and tools
+- **Quality**: Test-driven development with high code coverage
+
+## Architecture
+
+Mimir follows a layered architecture with clear separation of concerns:
+
+```
+┌─────────────────────────────────────┐
+│         CLI & UI Layer              │
+│    (Commander, Ink Components)      │
+├─────────────────────────────────────┤
+│         Core Agent Layer            │
+│   (ReAct Loop, Tools, Memory)       │
+├─────────────────────────────────────┤
+│        Provider Layer               │
+│  (LLM Providers, MCP Clients)       │
+├─────────────────────────────────────┤
+│     Platform Abstraction Layer      │
+│ (IFileSystem, IProcessExecutor)     │
+└─────────────────────────────────────┘
+```
+
+Learn more in the [Architecture](/architecture) documentation.
+
+## Get Started
+
+<Callout type="info">
+  New to Mimir? Start with the [Getting Started](/getting-started) guide.
+</Callout>
+
+- [Installation](/getting-started/installation) - Install and set up Mimir
+- [Configuration](/getting-started/configuration) - Configure providers and settings
+- [First Project](/getting-started/first-project) - Create your first Mimir project
+- [Architecture](/architecture) - Understand the system design
+- [API Reference](/api) - Explore the API documentation

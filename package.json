@@ -1,0 +1,107 @@
+{
+  "name": "mimir-code",
+  "version": "0.1.0",
+  "description": "Platform-agnostic, BYOK AI coding agent CLI",
+  "main": "dist/index.js",
+  "bin": {
+    "mimir": "dist/cli.js"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "scripts/templates",
+    "src/cli/themes"
+  ],
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsup",
+    "build:binary": "npm run build && pkg dist/cli.js --targets node18-win-x64,node18-macos-x64,node18-macos-arm64,node18-linux-x64,node18-linux-arm64 --output build/mimir",
+    "test": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src tests --ext .ts",
+    "lint:fix": "eslint src tests --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "coding-agent",
+    "llm",
+    "typescript",
+    "cross-platform"
+  ],
+  "author": "",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "boxen": "^8.0.1",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "dockerode": "^4.0.2",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.1",
+    "execa": "^9.5.2",
+    "fast-glob": "^3.3.3",
+    "figures": "^6.1.0",
+    "globby": "^14.0.2",
+    "ink": "^5.1.0",
+    "ink-select-input": "^6.0.0",
+    "ink-spinner": "^5.0.0",
+    "ink-table": "^3.1.0",
+    "ink-text-input": "^6.0.0",
+    "ora": "^8.2.0",
+    "p-retry": "^6.2.1",
+    "react": "^18.3.1",
+    "tiktoken": "^1.0.18",
+    "uuid": "^13.0.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.1.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/dockerode": "^3.3.33",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/uuid": "^11.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "@vitest/coverage-v8": "^2.1.8",
+    "drizzle-kit": "^0.31.8",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "ink-testing-library": "^4.0.0",
+    "lint-staged": "^15.2.11",
+    "msw": "^2.7.0",
+    "pkg": "^5.8.1",
+    "prettier": "^3.4.2",
+    "react-dom": "^18.3.1",
+    "testcontainers": "^10.17.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix --max-warnings=-1",
+      "prettier --write"
+    ]
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

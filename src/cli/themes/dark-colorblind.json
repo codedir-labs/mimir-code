@@ -1,0 +1,20 @@
+{
+  "name": "dark-colorblind",
+  "displayName": "Dark (Colorblind)",
+  "description": "Dark theme optimized for colorblind users",
+  "colors": {
+    "primary": "#3B82F6",
+    "secondary": "#8B5CF6",
+    "success": "#0EA5E9",
+    "warning": "#F59E0B",
+    "error": "#F97316",
+    "info": "#06B6D4",
+    "text": "#F3F4F6",
+    "textDim": "#D1D5DB",
+    "textMuted": "#6B7280",
+    "background": "#111827",
+    "backgroundLight": "#1F2937",
+    "border": "#374151",
+    "accent": "#A855F7"
+  }
+}

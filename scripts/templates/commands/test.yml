@@ -1,0 +1,50 @@
+# Test Generation Command
+# Generates comprehensive test cases for code
+# Usage: /test [file-or-function]
+
+name: test
+description: Generate comprehensive test cases
+usage: /test [file-or-function]
+aliases: [tests, spec]
+prompt: |
+  Generate comprehensive test cases for the specified code. Cover:
+
+  **Test Types:**
+  - Unit tests (isolated function/class behavior)
+  - Integration tests (component interaction)
+  - Edge cases and boundary conditions
+  - Error handling and exceptions
+  - Async/concurrent behavior (if applicable)
+
+  **Coverage Areas:**
+  - Happy path (normal expected inputs)
+  - Invalid inputs (type errors, null/undefined, empty values)
+  - Boundary values (min/max, empty collections, single item)
+  - Error conditions (network failures, timeouts, rejected promises)
+  - State transitions (if stateful)
+  - Side effects (file I/O, database, external APIs)
+
+  **Test Quality:**
+  - Arrange-Act-Assert pattern
+  - Clear test names describing behavior
+  - Minimal mocking (use real objects when possible)
+  - One assertion per test (where logical)
+  - Setup/teardown for resource cleanup
+
+  **Target:**
+  $ARGUMENTS
+
+  **Output:**
+  1. Test file structure (describe/it blocks or equivalent)
+  2. Test cases with:
+     - Descriptive test name
+     - Setup code (arrange)
+     - Invocation (act)
+     - Assertions (assert)
+     - Mock/stub setup if needed
+  3. Coverage estimate (% of code paths tested)
+  4. Missing test scenarios (if any)
+
+  Use the project's testing framework (detect from package.json/imports).
+  If no target specified, analyze the most recently modified files.
+  Prioritize high-value tests over exhaustive coverage.

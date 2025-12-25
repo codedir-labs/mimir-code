@@ -1,0 +1,108 @@
+---
+title: Getting Started with Mimir
+description: Learn how to install and use Mimir
+---
+
+import { Steps, Callout } from 'nextra/components'
+
+# Getting Started
+
+Welcome to Mimir! This guide will help you get up and running quickly.
+
+<Callout type="warning">
+  Mimir is currently in active development. Some features may not be fully implemented yet.
+</Callout>
+
+## What is Mimir?
+
+Mimir is a platform-agnostic AI coding agent CLI that:
+
+- Works on **Windows, macOS, and Linux**
+- Supports **multiple LLM providers** (DeepSeek, Anthropic, OpenAI, Google, Qwen, Ollama)
+- Uses **your own API keys** (BYOK)
+- Provides **Docker sandboxing** for safe code execution
+- Includes a **permission system** for security
+- Built with **TypeScript** and comprehensive tests
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js 18+** installed
+- **npm** or **yarn** package manager
+- **(Optional)** Docker Desktop for sandboxed execution
+- API keys for your preferred LLM provider(s)
+
+## Quick Start
+
+<Steps>
+
+### Install Mimir
+
+```bash
+npm install -g mimir-code
+```
+
+Or use with npx (no installation required):
+
+```bash
+npx mimir-code
+```
+
+### Initialize a Project
+
+Navigate to your project directory and initialize Mimir:
+
+```bash
+cd your-project
+mimir init
+```
+
+This creates a `.mimir/` directory with:
+- `config.yml` - Configuration file
+- `mimir.db` - SQLite database for conversation history
+
+### Configure Your Provider
+
+Edit `.mimir/config.yml` to add your API key:
+
+```yaml
+llm:
+  provider: deepseek
+  apiKey: ${DEEPSEEK_API_KEY}  # Or set directly (not recommended)
+  model: deepseek-chat
+  temperature: 0.7
+  maxTokens: 4000
+```
+
+Or set via environment variable:
+
+```bash
+export DEEPSEEK_API_KEY="your-api-key-here"
+```
+
+### Start Chatting
+
+```bash
+mimir
+```
+
+You're ready to go! Try asking:
+- "Explain the project structure"
+- "Add error handling to the login function"
+- "Write unit tests for the API client"
+
+</Steps>
+
+## Next Steps
+
+- [Configuration](/getting-started/configuration) - Learn about all configuration options
+- [Keyboard Shortcuts](/getting-started/keyboard-shortcuts) - Master productivity shortcuts
+- [First Project](/getting-started/first-project) - Build your first project with Mimir
+- [Architecture](/architecture) - Understand how Mimir works
+
+## Need Help?
+
+- Check the [Guides](/guides) for common tasks
+- Read the [API Reference](/api) for detailed documentation
+- Visit [GitHub Issues](https://github.com/sebastianstupak/mimir/issues) for support

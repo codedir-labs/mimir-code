@@ -1,0 +1,52 @@
+# Code Refactoring Command
+# Suggests refactoring improvements for better code quality
+# Usage: /refactor [file-or-pattern]
+
+name: refactor
+description: Suggest refactoring improvements for code quality
+usage: /refactor [file-or-pattern]
+aliases: [ref, improve]
+prompt: |
+  Analyze the specified code and suggest refactoring improvements. Focus on:
+
+  **Code Smells:**
+  - Long methods/functions (>50 lines)
+  - Large classes (>300 lines)
+  - Duplicate code (DRY violations)
+  - Dead code and unused variables
+  - Magic numbers and hardcoded values
+  - Deeply nested conditionals (>3 levels)
+  - Feature envy (accessing other objects' data excessively)
+
+  **Design Patterns:**
+  - Missing abstractions or interfaces
+  - Inappropriate coupling (tight coupling where loose is better)
+  - Single Responsibility Principle violations
+  - Open/Closed Principle violations
+  - Dependency injection opportunities
+
+  **Performance:**
+  - Inefficient algorithms (O(n²) where O(n log n) possible)
+  - Unnecessary computations in loops
+  - Memory leaks or excessive allocations
+  - Missing caching opportunities
+
+  **Readability:**
+  - Poor naming (unclear variable/function names)
+  - Missing documentation for complex logic
+  - Inconsistent code style
+  - Complex boolean expressions
+
+  **Target:**
+  $ARGUMENTS
+
+  **Output:**
+  1. Priority-ranked list of refactorings (high/medium/low impact)
+  2. For each suggestion:
+     - Before/after code comparison
+     - Rationale (why this improves the code)
+     - Estimated effort (quick win / medium / large refactor)
+  3. No-regret moves (safe refactorings with minimal risk)
+
+  If no target specified, analyze files changed in the last commit.
+  Provide actionable, specific suggestions with code examples.

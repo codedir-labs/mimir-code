@@ -1,0 +1,43 @@
+{
+  "name": "Dark ANSI",
+  "supportsFullColor": false,
+  "colors": {
+    "headerBg": { "bg": "#000000", "fg": "#FFFFFF" },
+    "headerText": { "fg": "#FFFFFF" },
+    "footerBg": { "bg": "#000000" },
+    "footerText": { "fg": "#808080" },
+    "inputPrompt": { "fg": "#00FFFF" },
+    "inputText": { "fg": "#FFFFFF" },
+    "autocompleteBg": { "bg": "#000000" },
+
+    "autocompleteText": { "fg": "#FFFFFF" },
+    "autocompleteSelectedBg": { "bg": "#00FFFF", "fg": "#000000" },
+    "autocompleteSelectedText": { "fg": "#000000" },
+    "autocompleteHeaderText": { "fg": "#00FFFF", "bold": true },
+    "autocompleteFooterText": { "fg": "#808080" },
+    "autocompleteMoreIndicator": { "fg": "#808080" },
+
+    "modePlan": { "fg": "#0000FF" },
+    "modeAct": { "fg": "#00FF00" },
+    "modeDiscuss": { "fg": "#FF00FF" },
+
+    "userMessage": { "fg": "#00FF00" },
+    "assistantMessage": { "fg": "#0000FF" },
+    "systemMessage": { "fg": "#FFFF00" },
+
+    "keyword": { "fg": "#FF00FF" },
+    "string": { "fg": "#00FF00" },
+    "number": { "fg": "#FF0000" },
+    "comment": { "fg": "#808080" },
+    "function": { "fg": "#0000FF" },
+    "variable": { "fg": "#FFFFFF" },
+
+    "success": { "fg": "#00FF00" },
+    "warning": { "fg": "#FFFF00" },
+    "error": { "fg": "#FF0000" },
+    "info": { "fg": "#0000FF" },
+
+    "diffAddLine": { "bg": "#008000", "fg": "#FFFFFF" },
+    "diffRemoveLine": { "bg": "#800000", "fg": "#FFFFFF" }
+  }
+}

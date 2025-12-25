@@ -1,0 +1,160 @@
+name: Security
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security checks weekly on Monday at 9am UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    name: NPM Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run npm audit
+        run: |
+          # Run audit and capture exit code
+          yarn audit --level moderate || AUDIT_EXIT_CODE=$?
+
+          # Exit codes:
+          # 0 - No vulnerabilities
+          # 2-15 - Vulnerabilities found at specified level or higher
+          # 16+ - Other errors
+
+          if [ "${AUDIT_EXIT_CODE:-0}" -ge 16 ]; then
+            echo "❌ npm audit failed with error"
+            exit 1
+          elif [ "${AUDIT_EXIT_CODE:-0}" -gt 0 ]; then
+            echo "⚠️  Vulnerabilities found - review required"
+            yarn audit --level moderate --json > audit-report.json || true
+            exit 1
+          else
+            echo "✅ No vulnerabilities found"
+          fi
+
+      - name: Upload audit report
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: npm-audit-report
+          path: audit-report.json
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    # Only run on pull requests
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  secret-scanning:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Check licenses
+        run: |
+          # Install license-checker
+          yarn global add license-checker
+
+          # Check for problematic licenses
+          license-checker --summary --production --excludePrivatePackages --failOn "GPL;AGPL;LGPL" || {
+            echo "⚠️  Warning: Restrictive licenses detected"
+            license-checker --production --excludePrivatePackages
+          }
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [npm-audit, codeql-analysis, secret-scanning, license-check]
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "## Security Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- NPM Audit: ${{ needs.npm-audit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- CodeQL: ${{ needs.codeql-analysis.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Secret Scanning: ${{ needs.secret-scanning.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- License Check: ${{ needs.license-check.result }}" >> $GITHUB_STEP_SUMMARY
+
+          # Fail if any critical check failed
+          if [[ "${{ needs.npm-audit.result }}" == "failure" ]] || [[ "${{ needs.codeql-analysis.result }}" == "failure" ]] || [[ "${{ needs.secret-scanning.result }}" == "failure" ]]; then
+            echo "❌ Security checks failed"
+            exit 1
+          else
+            echo "✅ All security checks passed"
+          fi

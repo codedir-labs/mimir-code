@@ -1,0 +1,22 @@
+{
+  "index": {
+    "title": "Overview",
+    "type": "page"
+  },
+  "custom-commands": {
+    "title": "Custom Commands",
+    "type": "page"
+  },
+  "mcp-integration": {
+    "title": "MCP Integration",
+    "type": "page"
+  },
+  "docker-sandbox": {
+    "title": "Docker Sandbox",
+    "type": "page"
+  },
+  "multi-agent": {
+    "title": "Multi-Agent Collaboration",
+    "type": "page"
+  }
+}

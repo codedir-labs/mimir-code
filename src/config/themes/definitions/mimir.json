@@ -1,0 +1,43 @@
+{
+  "name": "Mimir",
+  "supportsFullColor": true,
+  "colors": {
+    "headerBg": { "bg": "#2E3440", "fg": "#ECEFF4" },
+    "headerText": { "fg": "#D8DEE9" },
+    "footerBg": { "bg": "#3B4252" },
+    "footerText": { "fg": "#4C566A" },
+    "inputPrompt": { "fg": "#88C0D0" },
+    "inputText": { "fg": "#ECEFF4" },
+    "autocompleteBg": { "bg": "#3B4252" },
+
+    "autocompleteText": { "fg": "#ECEFF4" },
+    "autocompleteSelectedBg": { "bg": "#88C0D0", "fg": "#2E3440" },
+    "autocompleteSelectedText": { "fg": "#2E3440" },
+    "autocompleteHeaderText": { "fg": "#88C0D0", "bold": true },
+    "autocompleteFooterText": { "fg": "#616E88" },
+    "autocompleteMoreIndicator": { "fg": "#616E88" },
+
+    "modePlan": { "fg": "#5E81AC" },
+    "modeAct": { "fg": "#A3BE8C" },
+    "modeDiscuss": { "fg": "#B48EAD" },
+
+    "userMessage": { "fg": "#8FBCBB" },
+    "assistantMessage": { "fg": "#81A1C1" },
+    "systemMessage": { "fg": "#5E81AC" },
+
+    "keyword": { "fg": "#81A1C1" },
+    "string": { "fg": "#A3BE8C" },
+    "number": { "fg": "#B48EAD" },
+    "comment": { "fg": "#616E88" },
+    "function": { "fg": "#88C0D0" },
+    "variable": { "fg": "#D8DEE9" },
+
+    "success": { "fg": "#A3BE8C" },
+    "warning": { "fg": "#EBCB8B" },
+    "error": { "fg": "#BF616A" },
+    "info": { "fg": "#88C0D0" },
+
+    "diffAddLine": { "bg": "#A3BE8C", "fg": "#FFFFFF" },
+    "diffRemoveLine": { "bg": "#D08770", "fg": "#FFFFFF" }
+  }
+}

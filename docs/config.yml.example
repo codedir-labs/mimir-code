@@ -1,0 +1,29 @@
+# Mimir Configuration Example
+# Place at .mimir/config.yml (project) or ~/.mimir/config.yml (global)
+
+llm:
+  provider: deepseek
+  model: deepseek-chat
+  temperature: 0.7
+  maxTokens: 4096
+
+# Keyboard Shortcuts - Supports both formats:
+#   interrupt: Ctrl+C              (single)
+#   interrupt: [Ctrl+C, Escape]    (multiple)
+keyBindings:
+  # Ctrl+C and Escape share the same interrupt logic
+  interrupt: [Ctrl+C, Escape]
+  accept: Enter
+  modeSwitch: Shift+Tab
+  editCommand: Ctrl+E
+  showTooltip: [Ctrl+Space, Tab]
+  navigateUp: ArrowUp
+  navigateDown: ArrowDown
+  help: "?"
+  clearScreen: Ctrl+L
+  undo: Ctrl+Z
+  redo: Ctrl+Y
+
+ui:
+  theme: mimir
+  syntaxHighlighting: true

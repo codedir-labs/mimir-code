@@ -1,0 +1,43 @@
+{
+  "name": "Dark",
+  "supportsFullColor": true,
+  "colors": {
+    "headerBg": { "bg": "#1a1a1a", "fg": "#ffffff" },
+    "headerText": { "fg": "#e0e0e0" },
+    "footerBg": { "bg": "#2d2d2d" },
+    "footerText": { "fg": "#888888" },
+    "inputPrompt": { "fg": "#00d4ff" },
+    "inputText": { "fg": "#ffffff" },
+    "autocompleteBg": { "bg": "#2d2d2d" },
+
+    "autocompleteText": { "fg": "#ffffff" },
+    "autocompleteSelectedBg": { "bg": "#00d4ff", "fg": "#000000" },
+    "autocompleteSelectedText": { "fg": "#000000" },
+    "autocompleteHeaderText": { "fg": "#00d4ff", "bold": true },
+    "autocompleteFooterText": { "fg": "#666666" },
+    "autocompleteMoreIndicator": { "fg": "#666666" },
+
+    "modePlan": { "fg": "#2196F3" },
+    "modeAct": { "fg": "#4CAF50" },
+    "modeDiscuss": { "fg": "#C792EA" },
+
+    "userMessage": { "fg": "#4CAF50" },
+    "assistantMessage": { "fg": "#2196F3" },
+    "systemMessage": { "fg": "#FF9800" },
+
+    "keyword": { "fg": "#C792EA" },
+    "string": { "fg": "#C3E88D" },
+    "number": { "fg": "#F78C6C" },
+    "comment": { "fg": "#546E7A" },
+    "function": { "fg": "#82AAFF" },
+    "variable": { "fg": "#EEFFFF" },
+
+    "success": { "fg": "#4CAF50" },
+    "warning": { "fg": "#FFC107" },
+    "error": { "fg": "#F44336" },
+    "info": { "fg": "#2196F3" },
+
+    "diffAddLine": { "bg": "#22863a", "fg": "#ffffff" },
+    "diffRemoveLine": { "bg": "#cb2431", "fg": "#ffffff" }
+  }
+}

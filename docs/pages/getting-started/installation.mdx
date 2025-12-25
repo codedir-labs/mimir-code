@@ -1,0 +1,412 @@
+---
+title: Installation
+description: Install Mimir on Windows, macOS, or Linux
+---
+
+import { Callout, Steps, Tabs, Tab } from 'nextra/components'
+
+# Installation
+
+Install Mimir on your system. Choose the method that works best for you.
+
+<Callout type="warning">
+  **Pre-release**: Mimir is currently in development. Installation instructions will be finalized for v1.0 release.
+</Callout>
+
+## Prerequisites
+
+Before installing Mimir, ensure you have:
+
+- **Node.js 18 or later** - [Download Node.js](https://nodejs.org)
+- **npm, yarn, or pnpm** - Comes with Node.js
+- **(Optional) Docker Desktop** - For sandboxed code execution
+- **API key** for your preferred LLM provider
+
+### Verify Prerequisites
+
+```bash
+# Check Node.js version
+node --version  # Should be v18.0.0 or higher
+
+# Check npm version
+npm --version
+
+# Check Docker (optional)
+docker --version
+```
+
+## Installation Methods
+
+<Tabs items={['npm', 'yarn', 'pnpm', 'Binary']}>
+  <Tab>
+    ### Install via npm
+
+    ```bash
+    # Install globally
+    npm install -g mimir-code
+
+    # Verify installation
+    mimir --version
+    ```
+  </Tab>
+
+  <Tab>
+    ### Install via yarn
+
+    ```bash
+    # Install globally
+    yarn global add mimir-code
+
+    # Verify installation
+    mimir --version
+    ```
+  </Tab>
+
+  <Tab>
+    ### Install via pnpm
+
+    ```bash
+    # Install globally
+    pnpm add -g mimir-code
+
+    # Verify installation
+    mimir --version
+    ```
+  </Tab>
+
+  <Tab>
+    ### Install Binary
+
+    Download platform-specific binaries from [GitHub Releases](https://github.com/sebastianstupak/mimir/releases).
+
+    **macOS / Linux:**
+    ```bash
+    # Download and extract
+    curl -L https://github.com/sebastianstupak/mimir/releases/latest/download/mimir-macos.tar.gz | tar xz
+
+    # Make executable
+    chmod +x mimir
+
+    # Move to PATH
+    sudo mv mimir /usr/local/bin/
+
+    # Verify
+    mimir --version
+    ```
+
+    **Windows (PowerShell):**
+    ```powershell
+    # Download binary
+    Invoke-WebRequest -Uri "https://github.com/sebastianstupak/mimir/releases/latest/download/mimir-windows.exe" -OutFile "mimir.exe"
+
+    # Add to PATH or run directly
+    .\mimir.exe --version
+    ```
+  </Tab>
+</Tabs>
+
+## Quick Setup
+
+<Steps>
+
+### Initialize Mimir
+
+Navigate to your project and initialize:
+
+```bash
+cd your-project
+mimir init
+```
+
+This creates:
+- `.mimir/` directory
+- `config.yml` configuration file
+- `mimir.db` SQLite database
+
+### Configure API Key
+
+Edit `.mimir/config.yml` or use environment variables:
+
+<Tabs items={['Environment Variable', 'Config File']}>
+  <Tab>
+    ```bash
+    # Set environment variable
+    export DEEPSEEK_API_KEY="your-api-key-here"
+
+    # Or add to .env file
+    echo "DEEPSEEK_API_KEY=your-api-key-here" >> .env
+    ```
+  </Tab>
+
+  <Tab>
+    ```yaml filename=".mimir/config.yml"
+    llm:
+      provider: deepseek
+      apiKey: ${DEEPSEEK_API_KEY}  # Recommended
+      # apiKey: sk-xxxxx            # Or directly (not recommended)
+      model: deepseek-chat
+    ```
+  </Tab>
+</Tabs>
+
+### Start Mimir
+
+```bash
+mimir
+```
+
+You should see the interactive prompt. Try asking:
+- "Explain this project structure"
+- "Add error handling to functions"
+- "Write tests for the API client"
+
+</Steps>
+
+## Platform-Specific Notes
+
+### macOS
+
+<Callout type="info">
+  On first run, you may need to allow the binary in System Preferences → Security & Privacy.
+</Callout>
+
+If you encounter "command not found", add to PATH:
+
+```bash
+# For bash
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bash_profile
+source ~/.bash_profile
+
+# For zsh (macOS default)
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### Linux
+
+Most Linux distributions work out of the box. For older systems, you may need to install:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install -y ca-certificates curl gnupg
+
+# Fedora/RHEL
+sudo dnf install -y ca-certificates curl
+```
+
+### Windows
+
+<Callout type="warning">
+  Windows users should use PowerShell or Windows Terminal, not Command Prompt.
+</Callout>
+
+**Install via PowerShell script** (coming soon):
+
+```powershell
+# Run as Administrator
+irm https://github.com/sebastianstupak/mimir/releases/latest/download/install.ps1 | iex
+```
+
+**Manual installation**:
+
+1. Download `mimir-windows.exe`
+2. Move to a directory in your PATH (e.g., `C:\Program Files\Mimir\`)
+3. Add to PATH:
+   - System Properties → Advanced → Environment Variables
+   - Add directory to PATH variable
+
+**Docker on Windows**:
+
+Install Docker Desktop and ensure WSL 2 backend is enabled.
+
+## Docker Setup (Optional)
+
+For sandboxed code execution, install Docker:
+
+<Tabs items={['macOS', 'Windows', 'Linux']}>
+  <Tab>
+    Download and install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop).
+
+    Verify installation:
+    ```bash
+    docker run hello-world
+    ```
+  </Tab>
+
+  <Tab>
+    Download and install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop).
+
+    Enable WSL 2 integration in Docker Desktop settings.
+
+    Verify installation:
+    ```powershell
+    docker run hello-world
+    ```
+  </Tab>
+
+  <Tab>
+    ### Ubuntu/Debian
+
+    ```bash
+    # Install Docker Engine
+    sudo apt-get update
+    sudo apt-get install docker.io
+
+    # Add user to docker group
+    sudo usermod -aG docker $USER
+
+    # Restart session, then verify
+    docker run hello-world
+    ```
+
+    ### Fedora/RHEL
+
+    ```bash
+    sudo dnf install docker
+    sudo systemctl start docker
+    sudo usermod -aG docker $USER
+    docker run hello-world
+    ```
+  </Tab>
+</Tabs>
+
+<Callout>
+  Docker is optional. Mimir works without it, but sandboxing provides additional security.
+</Callout>
+
+## Updating
+
+<Tabs items={['npm', 'yarn', 'pnpm', 'Binary']}>
+  <Tab>
+    ```bash
+    npm update -g mimir-code
+    ```
+  </Tab>
+
+  <Tab>
+    ```bash
+    yarn global upgrade mimir-code
+    ```
+  </Tab>
+
+  <Tab>
+    ```bash
+    pnpm update -g mimir-code
+    ```
+  </Tab>
+
+  <Tab>
+    Download the latest binary from [GitHub Releases](https://github.com/sebastianstupak/mimir/releases) and replace the existing binary.
+  </Tab>
+</Tabs>
+
+## Uninstalling
+
+<Tabs items={['npm', 'yarn', 'pnpm', 'Binary']}>
+  <Tab>
+    ```bash
+    npm uninstall -g mimir-code
+    ```
+  </Tab>
+
+  <Tab>
+    ```bash
+    yarn global remove mimir-code
+    ```
+  </Tab>
+
+  <Tab>
+    ```bash
+    pnpm remove -g mimir-code
+    ```
+  </Tab>
+
+  <Tab>
+    ```bash
+    # macOS/Linux
+    sudo rm /usr/local/bin/mimir
+
+    # Windows
+    # Delete from Program Files and remove from PATH
+    ```
+  </Tab>
+</Tabs>
+
+To remove all data:
+
+```bash
+# Remove global config
+rm -rf ~/.mimir
+
+# Remove project data
+rm -rf .mimir
+```
+
+## Troubleshooting
+
+### Command not found
+
+**Solution**: Ensure the installation directory is in your PATH.
+
+```bash
+# Check PATH
+echo $PATH
+
+# Find where npm installs global packages
+npm root -g
+
+# Add to PATH if needed
+export PATH="$(npm root -g):$PATH"
+```
+
+### Permission denied
+
+**Solution**: On macOS/Linux, you may need to use `sudo` or fix npm permissions.
+
+```bash
+# Fix npm permissions (recommended)
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+export PATH=~/.npm-global/bin:$PATH
+```
+
+### Docker not working
+
+**Solution**: Ensure Docker is running and accessible.
+
+```bash
+# Check Docker status
+docker ps
+
+# Start Docker daemon (Linux)
+sudo systemctl start docker
+
+# Or disable Docker in config
+# .mimir/config.yml
+docker:
+  enabled: false
+```
+
+### API key not recognized
+
+**Solution**: Verify environment variable or config file.
+
+```bash
+# Check environment variable
+echo $DEEPSEEK_API_KEY
+
+# Verify config
+cat .mimir/config.yml | grep apiKey
+```
+
+## Next Steps
+
+- [Configuration](/getting-started/configuration) - Configure providers and settings
+- [First Project](/getting-started/first-project) - Build your first project
+- [Keyboard Shortcuts](/getting-started/keyboard-shortcuts) - Learn productivity shortcuts
+
+## Getting Help
+
+- **Installation issues**: Check [Troubleshooting](#troubleshooting) section
+- **Report bugs**: [GitHub Issues](https://github.com/sebastianstupak/mimir/issues)
+- **Community**: [GitHub Discussions](https://github.com/sebastianstupak/mimir/discussions)

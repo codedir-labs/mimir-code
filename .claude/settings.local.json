@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version)",
+      "Bash(yarn:*)",
+      "Bash(nvm version:*)",
+      "Bash(fnm --version:*)",
+      "Bash(volta --version:*)",
+      "WebSearch",
+      "Bash(cmd.exe /c \"nvm version\")",
+      "Bash(curl:*)",
+      "Bash(bash)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(nvm:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(wc:*)",
+      "Bash(npm rebuild:*)",
+      "Bash(npm test:*)",
+      "Bash(dir:*)",
+      "WebFetch(domain:api-docs.deepseek.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:platform.deepseek.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:fishshell.com)",
+      "WebFetch(domain:docs.continue.dev)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

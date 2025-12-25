@@ -1,0 +1,20 @@
+{
+  "name": "light",
+  "displayName": "Light",
+  "description": "Clean light theme for bright environments",
+  "colors": {
+    "primary": "#2563EB",
+    "secondary": "#7C3AED",
+    "success": "#059669",
+    "warning": "#D97706",
+    "error": "#DC2626",
+    "info": "#0891B2",
+    "text": "#111827",
+    "textDim": "#374151",
+    "textMuted": "#9CA3AF",
+    "background": "#FFFFFF",
+    "backgroundLight": "#F9FAFB",
+    "border": "#E5E7EB",
+    "accent": "#DB2777"
+  }
+}

@@ -1,0 +1,419 @@
+# Mimir - Architecture
+
+Platform-agnostic AI coding agent CLI. TypeScript, test-driven, cross-platform (Windows/Unix).
+
+---
+
+## Tech Stack
+
+**Core**: Node.js 18+, TypeScript 5.x (strict), yarn  
+**CLI**: Commander.js, Ink (React for terminal), chalk, ora  
+**Testing**: Vitest, MSW (HTTP mocks), testcontainers  
+**Key Libs**: zod (validation), yaml, execa (processes), dockerode, sqlite3, tiktoken
+
+---
+
+## Project Structure
+
+```
+src/
+├── cli/          # Commands, UI components (Ink)
+├── core/         # Agent loop, LLM, tools, memory
+├── platform/     # Abstraction: fs, process, docker
+├── config/       # Configuration management
+├── providers/    # LLM implementations (7+ providers)
+├── utils/        # Logging, errors, token counting
+└── types/        # TypeScript definitions
+
+tests/
+├── unit/         # *.test.ts
+├── integration/  # *.spec.ts
+└── fixtures/     # Test data
+```
+
+---
+
+## Core Architecture
+
+### Platform Abstraction Layer
+
+**Purpose**: Cross-platform compatibility (Windows/Unix)
+
+```typescript
+// IFileSystem - fs operations
+interface IFileSystem {
+  readFile(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<void>;
+  exists(path: string): Promise<boolean>;
+  mkdir(path: string): Promise<void>;
+  readdir(path: string): Promise<string[]>;
+  stat(path: string): Promise<Stats>;
+}
+
+// IProcessExecutor - command execution
+interface IProcessExecutor {
+  execute(command: string, args: string[], options?: ExecOptions): Promise<ExecResult>;
+  spawn(command: string, args: string[]): ChildProcess;
+}
+
+// IDockerClient - container management
+interface IDockerClient {
+  build(context: string, tag: string): Promise<void>;
+  run(image: string, command: string[], options: RunOptions): Promise<RunResult>;
+  cleanup(containerId: string): Promise<void>;
+}
+```
+
+**Implementations**:
+- `FileSystemAdapter` - fs/promises + globby
+- `ProcessExecutor` - execa (handles Windows/Unix shells)
+- `DockerClient` - dockerode (handles Docker Desktop/daemon)
+
+---
+
+### LLM Provider Abstraction
+
+**Purpose**: Support multiple LLM providers with unified interface
+
+```typescript
+interface ILLMProvider {
+  chat(messages: Message[], tools?: Tool[]): Promise<ChatResponse>;
+  streamChat(messages: Message[], tools?: Tool[]): AsyncGenerator<ChatChunk>;
+  countTokens(text: string): number;
+  calculateCost(inputTokens: number, outputTokens: number): number;
+}
+
+abstract class BaseLLMProvider implements ILLMProvider {
+  protected apiKey: string;
+  protected baseURL: string;
+  protected retryConfig: RetryConfig;
+  
+  // Common HTTP logic, retry, error handling
+}
+```
+
+**Supported Providers** (all extend `BaseLLMProvider`):
+- DeepSeek - $0.14/$0.28 per 1M tokens
+- Anthropic - Claude models
+- OpenAI - GPT models
+- Google/Gemini
+- Qwen
+- Ollama - local, no cost
+
+**Factory Pattern**:
+```typescript
+class ProviderFactory {
+  static create(config: ProviderConfig): ILLMProvider {
+    switch (config.provider) {
+      case 'deepseek': return new DeepSeekProvider(config);
+      case 'anthropic': return new AnthropicProvider(config);
+      // ...
+    }
+  }
+}
+```
+
+---
+
+### Configuration System
+
+**Hierarchy** (lowest to highest priority):
+1. Default config
+2. Global (`~/.mimir/config.yml`)
+3. Project (`.mimir/config.yml`)
+4. Environment (`.env`)
+5. CLI flags
+
+**Schema** (Zod validation):
+```typescript
+const ConfigSchema = z.object({
+  llm: z.object({
+    provider: z.enum(['deepseek', 'anthropic', 'openai', ...]),
+    model: z.string(),
+    temperature: z.number().min(0).max(2).default(0.7),
+    maxTokens: z.number().default(4096),
+  }),
+  permissions: z.object({
+    autoAccept: z.boolean().default(false),
+    acceptRiskLevel: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+    alwaysAcceptCommands: z.array(z.string()).default([]),
+  }),
+  keyBindings: z.object({
+    interrupt: z.string().default('Ctrl+C'),
+    modeSwitch: z.string().default('Shift+Tab'),
+    editCommand: z.string().default('Ctrl+E'),
+    // ...
+  }),
+  docker: z.object({
+    enabled: z.boolean().default(true),
+    baseImage: z.string().default('alpine:latest'),
+    cpuLimit: z.number().optional(),
+    memoryLimit: z.string().optional(),
+  }),
+  // ...
+});
+```
+
+---
+
+### Agent Architecture (ReAct Loop)
+
+**Core Loop**:
+```typescript
+class Agent {
+  async run(task: string): Promise<Result> {
+    let iteration = 0;
+    while (iteration < maxIterations) {
+      // 1. REASON: Get next action from LLM
+      const action = await this.reason();
+      if (action.type === 'finish') return action.result;
+      
+      // 2. ACT: Execute tool
+      const observation = await this.act(action);
+      
+      // 3. OBSERVE: Record result
+      await this.observe(observation);
+      
+      iteration++;
+    }
+  }
+  
+  private async act(action: Action): Promise<Observation> {
+    // Check permissions before execution
+    if (!await this.checkPermission(action)) {
+      return { type: 'permission_denied' };
+    }
+    
+    // Execute tool
+    const result = await this.toolRegistry.execute(action);
+    return { type: 'tool_result', data: result };
+  }
+}
+```
+
+**Components**:
+- `Agent` - main ReAct loop
+- `ToolRegistry` - manages available tools
+- `ConversationMemory` - stores history
+- `PermissionManager` - handles command approval
+
+---
+
+### Tool System
+
+**Base Interface**:
+```typescript
+interface Tool {
+  name: string;
+  description: string;
+  schema: z.ZodObject<any>;
+  execute(args: any): Promise<ToolResult>;
+}
+```
+
+**Core Tools**:
+- `FileOperationsTool` - read/write/edit/list/delete
+- `FileSearchTool` - grep/glob/regex
+- `BashExecutionTool` - run commands (with permissions)
+- `GitTool` - git operations
+
+**MCP Integration**:
+- `MCPClient` - connects to MCP servers (stdio/HTTP)
+- `MCPToolRegistry` - dynamic tool registration
+- Tools namespaced as `server-name/tool-name`
+
+---
+
+### Permission System
+
+**Risk Levels**: low, medium, high, critical
+
+**Flow**:
+1. Tool requests execution
+2. `PermissionManager` assesses risk
+3. Check against allowlist
+4. If not allowed, prompt user:
+   - `y` - yes
+   - `n` - no
+   - `a` - always allow
+   - `never` - never allow
+   - `edit` - provide alternative
+   - `view` - show details
+5. Log decision to audit trail
+6. Execute or reject
+
+**Risk Assessment**:
+```typescript
+class RiskAssessor {
+  assess(command: string): RiskLevel {
+    // Pattern matching against known dangerous commands
+    if (matches(command, dangerousPatterns)) return 'critical';
+    if (matches(command, destructivePatterns)) return 'high';
+    // ...
+  }
+}
+```
+
+---
+
+### Storage (SQLite)
+
+**Schema**:
+```sql
+-- Conversations
+CREATE TABLE conversations (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  created_at INTEGER,
+  updated_at INTEGER
+);
+
+-- Messages
+CREATE TABLE messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT,
+  role TEXT,
+  content TEXT,
+  tokens INTEGER,
+  cost REAL,
+  created_at INTEGER,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+);
+
+-- Tool calls
+CREATE TABLE tool_calls (
+  id TEXT PRIMARY KEY,
+  message_id TEXT,
+  tool_name TEXT,
+  arguments TEXT,
+  result TEXT,
+  FOREIGN KEY (message_id) REFERENCES messages(id)
+);
+
+-- Permissions audit
+CREATE TABLE permissions (
+  id TEXT PRIMARY KEY,
+  command TEXT,
+  risk_level TEXT,
+  decision TEXT,
+  timestamp INTEGER
+);
+```
+
+---
+
+### Multi-Agent Orchestration
+
+```typescript
+class AgentOrchestrator {
+  private agents: Map<string, Agent> = new Map();
+  
+  async execute(task: Task): Promise<Result> {
+    // Parse into subtasks with dependencies
+    const subtasks = await this.planSubtasks(task);
+    
+    // Assign to agents
+    const assignments = this.assignTasks(subtasks);
+    
+    // Execute (parallel where possible)
+    const results = await Promise.all(
+      assignments.map(a => this.agents.get(a.agentId).run(a.task))
+    );
+    
+    // Merge results
+    return this.mergeResults(results);
+  }
+}
+```
+
+---
+
+## Code Style
+
+**TypeScript**:
+- Strict mode enabled
+- `noImplicitAny`, `strictNullChecks`, `noUnusedLocals`
+- Target: ES2022, Module: ESNext
+
+**Naming**:
+- camelCase: variables, functions
+- PascalCase: classes, types, interfaces
+- UPPER_SNAKE_CASE: constants
+- Prefix interfaces with `I` (ILLMProvider)
+
+**Patterns**:
+- Prefer async/await over promises
+- Use Result types for error handling
+- Avoid `any`, use `unknown` if needed
+- Factory pattern for providers/tools
+- Dependency injection for testability
+
+**Testing**:
+- `*.test.ts` - unit tests
+- `*.spec.ts` - integration tests
+- Arrange-Act-Assert pattern
+- Mock external dependencies (HTTP, filesystem, Docker)
+- >80% coverage target
+
+---
+
+## Security
+
+**Principles**:
+- Never commit secrets (use env vars)
+- All untrusted code in Docker
+- Validate all input (Zod schemas)
+- Sanitize file paths (prevent `../` attacks)
+- Parameterized execution (no string interpolation)
+- Audit trail for all commands
+- Risk assessment before execution
+
+**Docker Isolation**:
+- Read-only mounts where possible
+- Resource limits (CPU, memory, timeout)
+- Network isolation options
+- Clean up after execution
+
+---
+
+## Performance
+
+**Optimizations**:
+- Token caching (avoid re-counting)
+- Context window management (prune old messages)
+- Lazy loading of providers
+- Connection pooling (SQLite)
+- Batch operations where possible
+
+**Monitoring**:
+- Token usage per request
+- Cost per operation
+- Response times
+- Memory usage
+- Error rates
+
+---
+
+## Build & Distribution
+
+**Build Process**:
+```bash
+# Development
+yarn dev
+
+# Build
+yarn build  # tsup bundles to dist/
+
+# Binary compilation
+yarn build:binary  # pkg creates executables
+```
+
+**Platforms**:
+- Windows x64 (exe)
+- macOS x64/arm64 (binary)
+- Linux x64/arm64 (binary)
+
+**Installation**:
+- npm/yarn package
+- Standalone binaries (no Node.js required)
+- Platform-specific installers (PowerShell/bash scripts)

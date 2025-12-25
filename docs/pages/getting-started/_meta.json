@@ -1,0 +1,22 @@
+{
+  "index": {
+    "title": "Introduction",
+    "type": "page"
+  },
+  "installation": {
+    "title": "Installation",
+    "type": "page"
+  },
+  "configuration": {
+    "title": "Configuration",
+    "type": "page"
+  },
+  "first-project": {
+    "title": "First Project",
+    "type": "page"
+  },
+  "keyboard-shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "type": "page"
+  }
+}
