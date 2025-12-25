@@ -5,7 +5,7 @@
 
 import { IFileSystem } from '../platform/IFileSystem.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
-import { getDatabaseManagerAsync } from '../storage/Database.js';
+import { getDatabaseManagerAsync, closeDatabaseManager } from '../storage/Database.js';
 import { logger } from '../utils/logger.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -282,15 +282,21 @@ checkpoints/
         fileSystem: this.fs,
       });
 
-      // Verify database was created
+      // Perform a write operation to ensure database file is created
+      // better-sqlite3 may delay file creation until first write
+      db.execute('SELECT 1');
+
+      // Close database connection and clear singleton (flushes to disk)
+      closeDatabaseManager();
+
+      // Now verify database was created (after close flushes it)
       if (await this.fs.exists(dbPath)) {
         result.created.push('.mimir/mimir.db');
         result.dbInitialized = true;
         logger.info('Database initialized', { path: dbPath });
+      } else {
+        result.errors.push('Database file was not created on disk');
       }
-
-      // Close database connection
-      db.close();
     } catch (error) {
       result.errors.push(
         `Database initialization failed: ${error instanceof Error ? error.message : String(error)}`
