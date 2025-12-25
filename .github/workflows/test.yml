@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          # cache: 'yarn' - Disabled until yarn.lock is committed
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '22'
         with:
           files: ./coverage/lcov.info
           flags: unittests

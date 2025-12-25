@@ -148,8 +148,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: '22'
+          # cache: 'yarn' - Disabled until yarn.lock is committed
 
       - name: Install version 0.1.0 (simulated)
         run: |
@@ -192,8 +192,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: '22'
+          # cache: 'yarn' - Disabled until yarn.lock is committed
 
       - name: Install mimir
         run: |
@@ -297,8 +297,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: '22'
+          # cache: 'yarn' - Disabled until yarn.lock is committed
 
       - name: Test with Docker available
         run: |
@@ -322,8 +322,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: '22'
+          # cache: 'yarn' - Disabled until yarn.lock is committed
 
       - name: Create .bashrc if not exists
         run: touch ~/.bashrc

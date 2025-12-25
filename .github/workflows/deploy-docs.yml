@@ -37,9 +37,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: './docs/package-lock.json'
+          node-version: '22'
+          cache: 'yarn'
+          cache-dependency-path: './docs/yarn.lock'
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -47,10 +47,10 @@ jobs:
           static_site_generator: next
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Build with Next.js
-        run: npm run build
+        run: yarn build
         env:
           BASE_PATH: ${{ github.event.repository.name != 'yourusername.github.io' && format('/{0}', github.event.repository.name) || '' }}
 

@@ -28,8 +28,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: '22'
+          # cache: 'yarn' - Disabled until yarn.lock is committed
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -135,8 +135,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'yarn'
+          node-version: '22'
+          # cache: 'yarn' - Disabled until yarn.lock is committed
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
