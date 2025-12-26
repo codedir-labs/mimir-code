@@ -41,7 +41,3 @@ yarn build
 - `mimir cost today` - Cost analytics
 - `mimir permissions list` - Manage allowlist
 - `mimir doctor` - Run diagnostics
-
-## Development
-
-See [CLAUDE.md](CLAUDE.md) for architecture details and development guidelines.

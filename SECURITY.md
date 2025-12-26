@@ -65,13 +65,3 @@ All command executions go through a permission system:
 3. **Permissions**: Review permission prompts carefully before accepting
 4. **Updates**: Keep Mimir updated to latest version for security patches
 5. **Audit Logs**: Regularly review `.mimir/mimir.db` permission audit trail
-
-## Development Security Guidelines
-
-See `CLAUDE.md` for security considerations when contributing:
-
-- Input validation requirements
-- Path sanitization rules
-- Command execution safety
-- Docker isolation practices
-- Secret management

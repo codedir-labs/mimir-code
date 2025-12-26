@@ -1,0 +1,138 @@
+# Configuration
+
+## Custom Commands
+
+Extend Mimir with custom slash commands defined as YAML files in `.mimir/commands/`.
+
+### Quick Start
+
+Create `.mimir/commands/my-command.yml`:
+
+```yaml
+name: my-command
+description: Brief description
+prompt: |
+  Detailed instructions for the AI agent.
+  Use $1, $2 for arguments.
+  Use $ARGUMENTS for all arguments.
+```
+
+Use in chat:
+```
+/my-command arg1 arg2
+```
+
+### Command File Format
+
+```yaml
+name: command-name          # Required: lowercase, hyphens allowed
+description: Short desc     # Required: one-line description
+usage: /cmd [args]          # Optional: usage example
+aliases: [alias1, alias2]   # Optional: alternative names
+prompt: |                   # Required: AI agent instructions
+  Your detailed prompt here.
+  Available placeholders:
+  - $1, $2, $3: Individual arguments
+  - $ARGUMENTS: All arguments joined
+
+  Example: Analyze $1 for security issues.
+```
+
+### Example Commands
+
+#### Security Analysis
+
+`.mimir/commands/security.yml`:
+```yaml
+name: security
+description: Analyze code for security vulnerabilities
+usage: /security [file-or-commit]
+aliases: [sec, vuln]
+prompt: |
+  Perform comprehensive security analysis of git diff or file.
+
+  Focus on:
+  - SQL injection, XSS, command injection
+  - Path traversal, insecure deserialization
+  - Authentication/authorization flaws
+  - Cryptographic issues
+  - OWASP Top 10 vulnerabilities
+
+  Target: $ARGUMENTS
+
+  Provide specific line numbers and remediation steps.
+```
+
+#### Test Generation
+
+`.mimir/commands/test.yml`:
+```yaml
+name: test
+description: Generate comprehensive test cases
+usage: /test [file-or-function]
+prompt: |
+  Generate test cases for $ARGUMENTS.
+
+  Include:
+  - Unit tests with edge cases
+  - Integration tests
+  - Error handling scenarios
+  - Mocking external dependencies
+
+  Use existing test framework in the project.
+```
+
+#### Code Review
+
+`.mimir/commands/review.yml`:
+```yaml
+name: review
+description: Perform code review
+usage: /review [file-or-commit]
+aliases: [cr]
+prompt: |
+  Review $ARGUMENTS for:
+
+  - Correctness and logic errors
+  - Code quality and readability
+  - Performance issues
+  - Security vulnerabilities
+  - Best practices adherence
+
+  Provide specific recommendations with code examples.
+```
+
+### Placeholder Substitution
+
+Commands support argument placeholders:
+
+| Placeholder | Description | Example |
+|-------------|-------------|---------|
+| `$1`, `$2`, `$3` | Individual arguments | `/cmd foo bar` → `$1=foo`, `$2=bar` |
+| `$ARGUMENTS` | All arguments joined | `/cmd foo bar` → `$ARGUMENTS="foo bar"` |
+
+### Loading Priority
+
+Mimir loads commands from:
+
+1. Built-in commands (shipped with Mimir)
+2. Global commands (`~/.mimir/commands/`)
+3. Project commands (`.mimir/commands/`)
+
+Project commands override global ones. Custom commands cannot override built-in names.
+
+### Sharing Commands
+
+Track `.mimir/commands/` in git:
+
+```bash
+# .gitignore
+/.mimir/mimir.db
+/.mimir/logs/
+/.mimir/checkpoints/
+
+# Keep commands tracked
+!/.mimir/commands/
+```
+
+Team members automatically get commands when they pull.

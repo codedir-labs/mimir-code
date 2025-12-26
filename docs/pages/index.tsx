@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Head from 'next/head';
 import { LandingNavbar } from '../components/landing/Navbar';
 import { Hero } from '../components/landing/Hero';
 import { LandingFooter } from '../components/landing/Footer';
 
 export default function LandingPage() {
+  // Add landing-page class to body element to prevent Nextra docs styling
+  useEffect(() => {
+    document.body.classList.add('landing-page');
+    return () => {
+      document.body.classList.remove('landing-page');
+    };
+  }, []);
+
   return (
     <>
       <Head>

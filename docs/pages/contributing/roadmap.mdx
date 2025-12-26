@@ -2,6 +2,8 @@
 
 Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-platform.
 
+**Priority:** Configuration/Teams → Tools → Agent Orchestration → Core Features → Polish
+
 ---
 
 ## Phase 1: Foundation & Infrastructure
@@ -52,9 +54,11 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 ---
 
-## Phase 2: Configuration System
+## Phase 2: Configuration System & Teams/Enterprise Support
 
-**Goal**: Robust configuration with permissions, security, keyboard shortcuts
+**Goal**: Robust configuration with Teams integration, storage abstraction, policy enforcement
+
+**See**: `docs/contributing/plan-enterprise-teams.md` for detailed architecture
 
 ### Configuration Schema
 
@@ -63,7 +67,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Default configuration values
 - [x] Configuration documentation
 
-### Configuration Loader
+### Configuration Loader (Enhanced)
 
 - [x] YAML parser for `.mimir/config.yml`
 - [x] Global config (`~/.mimir/config.yml`)
@@ -73,6 +77,64 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] CLI flag overrides
 - [x] Configuration merge/priority system
 - [x] Zod validation
+- [ ] **NEW: Teams/Enterprise config source** (highest priority, enforced)
+- [ ] **NEW: Config hierarchy refactor** (default → teams → global → project → env → cli)
+
+### Storage Abstraction
+
+- [ ] `IStorageBackend` interface
+- [ ] `LocalSQLiteStorage` implementation (existing DB code)
+- [ ] `TeamsCloudStorage` implementation (API-based)
+- [ ] `HybridStorage` implementation (local-first with background sync)
+- [ ] Conversation storage (save/load/list/delete)
+- [ ] Message storage (append/load)
+- [ ] Tool call recording
+- [ ] Permission/audit logging
+- [ ] Config caching (for offline Teams mode)
+
+### Teams API Client
+
+- [ ] `TeamsAPIClient` interface and implementation
+- [ ] Authentication (login/logout/status)
+- [ ] Config endpoints (`GET /orgs/{orgId}/config`)
+- [ ] Tools endpoints (`GET/POST /orgs/{orgId}/tools`)
+- [ ] Custom commands endpoints (`GET /orgs/{orgId}/commands`)
+- [ ] Allowlist endpoints (`GET /orgs/{orgId}/allowlist`)
+- [ ] Conversation sync (`POST /orgs/{orgId}/conversations/sync`)
+- [ ] Audit log sync (`POST /orgs/{orgId}/audit/sync`)
+- [ ] Sandbox execution (`POST /sandbox/execute`)
+- [ ] LLM proxy (`POST /llm/chat`, `POST /llm/chat/stream`)
+- [ ] Quota management (`GET/POST /orgs/{orgId}/users/{userId}/quota`)
+
+### Authentication System
+
+- [ ] `mimir teams login` command
+- [ ] `mimir teams logout` command
+- [ ] `mimir teams status` command
+- [ ] Token storage (`~/.mimir/auth.json`)
+- [ ] Token encryption
+- [ ] Token refresh logic
+- [ ] OAuth flow (browser-based)
+- [ ] Enterprise mode detection
+
+### Sync Manager
+
+- [ ] Background batch sync (configurable interval)
+- [ ] Sync queue (conversation, audit, tools, commands)
+- [ ] Conflict resolution strategies
+- [ ] Offline mode handling
+- [ ] Force sync command (`mimir teams sync`)
+- [ ] Sync status tracking
+
+### Policy Enforcement
+
+- [ ] Enforce Teams config (cannot be overridden locally)
+- [ ] Allowed models enforcement
+- [ ] Allowed sub-agents enforcement
+- [ ] Forced sub-agents (e.g., security agent)
+- [ ] Model selection per sub-agent enforcement
+- [ ] Docker sandbox mode enforcement (local/cloud/auto)
+- [ ] Budget limits enforcement (daily/weekly/monthly)
 
 ### Permission & Security Configuration
 
@@ -90,6 +152,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Command classification by risk
   - `acceptRiskLevel` config setting
   - Auto-block above configured risk level
+- [ ] **NEW: Teams shared allowlist integration**
 
 ### Keyboard Shortcuts Configuration
 
@@ -124,6 +187,11 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Test risk assessment
 - [x] Test allowlist loader
 - [x] Test keyboard bindings (platform-specific)
+- [ ] Test Teams config source (mocked API)
+- [ ] Test storage abstraction implementations
+- [ ] Test sync manager (batch sync, conflict resolution)
+- [ ] Test authentication flow
+- [ ] Test enforcement (allowed models, sub-agents, etc.)
 
 ---
 
@@ -154,6 +222,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] API key loading from config/env
 - [x] Graceful handling of missing keys
 - [x] Provider-specific configurations
+- [ ] **NEW: Proxied provider for Teams mode** (route through Teams API)
 
 ### Shared Utilities
 
@@ -170,20 +239,90 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Test error scenarios (rate limits, network)
 - [ ] Test token counting accuracy
 - [ ] Test cost calculations
+- [ ] Test proxied provider (Teams mode)
 
 ---
 
-## Phase 4: Core Agent Tools & MCP Support
+## Phase 4: Tool System
 
-**Goal**: Essential tools (file, bash, git) + MCP integration
+**Goal**: Comprehensive tool system with built-in tools, custom tools, MCP, and Teams integration
+
+**See**: `docs/contributing/plan-tools.md` for detailed architecture
 
 ### Tool Architecture
 
-- [ ] `Tool` interface
+- [ ] `Tool` interface (name, description, schema, enabled, tokenCost, execute)
+- [ ] `ToolContext` interface (platform, config, conversation, logger, llm, permissions)
 - [ ] `ToolRegistry` class
 - [ ] Tool discovery system
 - [ ] Tool execution wrapper
 - [ ] Tool result formatting
+- [ ] Token cost estimation
+- [ ] Enable/disable tools in config
+
+### Built-in Tools
+
+- [ ] **FileOperationsTool**
+  - Read, write (with backup), edit (find/replace, line-based)
+  - List directory, create directories
+  - Delete (with confirmation)
+  - Check existence, get metadata
+- [ ] **FileSearchTool**
+  - grep/ripgrep integration
+  - Glob pattern matching
+  - Regex search
+  - Include/exclude patterns
+  - Formatted results with line numbers
+- [ ] **BashExecutionTool**
+  - Execute commands in project directory
+  - Capture stdout/stderr
+  - Timeout handling
+  - Failure handling
+  - Windows (PowerShell) and Unix (bash/zsh) support
+  - Command allowlist/blocklist
+  - Permission prompt system
+- [ ] **GitTool**
+  - git status, diff, log, branch, commit, checkout
+  - Detect git repository
+  - Parse git output
+
+### Tool Configuration
+
+- [ ] Tool enable/disable in `config.yml`
+- [ ] Per-tool settings (timeout, permissions, etc.)
+- [ ] Token cost tracking
+- [ ] System prompt size calculation
+- [ ] Teams-enforced tools (cannot be disabled)
+
+### /tools Command (In-Chat Management)
+
+- [ ] `/tools` - list all tools with status and token costs
+- [ ] `/tools enable <name>` - enable a tool
+- [ ] `/tools disable <name>` - disable a tool (if not enforced)
+- [ ] `/tools info <name>` - show tool details (description, schema, cost)
+- [ ] `/tools tokens` - show token cost breakdown (visual bar chart)
+- [ ] Update config.yml when enabling/disabling tools
+- [ ] Display total system prompt token cost
+
+### Custom Tools (TypeScript Runtime)
+
+- [ ] YAML tool definition loader (`.mimir/tools/*.yml`)
+- [ ] JSON Schema to Zod conversion
+- [ ] TypeScript code compilation (esbuild)
+- [ ] Docker sandbox execution (isolated context)
+- [ ] Context injection (platform, config, conversation, logger, llm)
+- [ ] Permission system integration (inherit allowlist)
+- [ ] Tool-specific permissions (allowlist, autoAccept, riskLevel)
+- [ ] Error handling and timeout enforcement
+- [ ] Example custom tools (run_tests, analyze_dependencies)
+
+### Sandbox Runtime for Custom Tools
+
+- [ ] Docker image for tool execution (`mimir/tool-sandbox:node18`)
+- [ ] Sandbox runtime library (safe platform abstractions)
+- [ ] IPC/API for host communication (file ops, command execution)
+- [ ] Resource limits (CPU, memory, timeout)
+- [ ] Security: prevent escaping working directory
 
 ### Model Context Protocol (MCP) Support
 
@@ -192,41 +331,15 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] **MCP Configuration**: Config schema, server definitions (command, args, env)
 - [ ] **MCP Tool Registry**: Dynamic registration, namespacing (server/tool), conflict handling
 - [ ] **Built-in MCP Servers**: Filesystem server, Git server (optional dependencies)
+- [ ] **MCP Tool Adapter**: Wrap MCP tools as `Tool` interface
 
-### File Operations Tool
+### Teams Tool Integration
 
-- [ ] Read, write (with backup), edit (find/replace, line-based)
-- [ ] List directory, create directories
-- [ ] Delete (with confirmation)
-- [ ] Check existence, get metadata
-
-### File Search Tool
-
-- [ ] grep/ripgrep integration
-- [ ] Glob pattern matching
-- [ ] Regex search
-- [ ] Include/exclude patterns
-- [ ] Formatted results with line numbers
-
-### Bash Execution Tool
-
-- [ ] Execute commands in project directory
-- [ ] Capture stdout/stderr
-- [ ] Timeout handling
-- [ ] Failure handling
-- [ ] Windows (PowerShell) and Unix (bash/zsh) support
-- [ ] Command allowlist/blocklist
-- [ ] **Permission Prompt**
-  - Show command + risk level
-  - Options: y/n/a(always)/never/edit/view
-  - Remember choices
-  - Auto-accept for allowed commands
-
-### Git Tool
-
-- [ ] git status, diff, log, branch, commit, checkout
-- [ ] Detect git repository
-- [ ] Parse git output
+- [ ] Load tools from Teams API (`GET /orgs/{orgId}/tools`)
+- [ ] Teams tools override local tools (if conflict)
+- [ ] Teams tools are enforced (cannot be disabled)
+- [ ] Display Teams tools in `/tools` command
+- [ ] Execute Teams tools (may route to cloud sandbox)
 
 ### Syntax Highlighting
 
@@ -236,12 +349,16 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 ### Testing
 
-- [ ] Unit tests per tool
+- [ ] Unit tests per built-in tool
 - [ ] Integration tests with real operations
 - [ ] Mock filesystem
 - [ ] Platform-specific behavior tests
+- [ ] Custom tool loading and execution
+- [ ] Docker sandbox tests
 - [ ] MCP client with mock servers
 - [ ] Permission prompt system tests
+- [ ] Teams tool sync tests
+- [ ] /tools command interactions
 
 ---
 
@@ -261,6 +378,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] `Dockerfile.base` (Alpine/Ubuntu)
 - [ ] `Dockerfile.node` (Node.js)
 - [ ] `Dockerfile.python` (Python)
+- [ ] `Dockerfile.tool-sandbox` (for custom tools)
 - [ ] Multi-arch builds (amd64, arm64)
 
 ### Container Management
@@ -281,6 +399,13 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Return results to agent
 - [ ] Error handling
 
+### Cloud Sandbox Integration
+
+- [ ] Detect Teams mode and `dockerMode` config
+- [ ] Route to cloud sandbox when configured
+- [ ] Execute via Teams API (`POST /sandbox/execute`)
+- [ ] Fallback to local on failure (if allowed)
+
 ### Testing
 
 - [ ] testcontainers for integration tests
@@ -288,6 +413,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Resource limits enforcement
 - [ ] Timeout handling
 - [ ] Multi-platform Docker support
+- [ ] Cloud sandbox routing tests
 
 ---
 
@@ -340,7 +466,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Format tool results
 - [ ] **Permission & Risk Assessment**
   - Assess command risk before execution
-  - Check against allowed commands
+  - Check against allowed commands (local + Teams)
   - Prompt user if not auto-accepted
   - Block high-risk if configured
   - Log all permission decisions
@@ -375,7 +501,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 ## Phase 7: Conversation History & Memory
 
-**Goal**: Persistent conversation storage
+**Goal**: Persistent conversation storage with Teams sync
 
 ### Storage
 
@@ -384,6 +510,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Conversation CRUD operations
 - [ ] Message append operations
 - [ ] Permission decision audit trail
+- [ ] **NEW: Use IStorageBackend abstraction** (supports local + cloud)
 
 ### Memory Management
 
@@ -401,18 +528,25 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] `mimir history export <id>` - export to file
 - [ ] `mimir history clear` - delete conversation history
 
+### Teams Sync Integration
+
+- [ ] Background sync to Teams API (if enabled)
+- [ ] Load conversations from Teams API
+- [ ] Conflict resolution (cloud vs local)
+
 ### Testing
 
 - [ ] SQLite operations
 - [ ] Conversation persistence
 - [ ] Resume functionality
 - [ ] Export formats
+- [ ] Teams sync workflows
 
 ---
 
 ## Phase 8: Token Counting & Cost Analysis
 
-**Goal**: Real-time token and cost tracking
+**Goal**: Real-time token and cost tracking with Teams quota enforcement
 
 ### Token Counting
 
@@ -445,6 +579,13 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Stop when budget exceeded
 - [ ] Allow override with flag
 
+### Teams Quota Enforcement
+
+- [ ] Check quota via Teams API before expensive operations
+- [ ] Display org-level quota usage
+- [ ] Enforce daily/weekly/monthly limits
+- [ ] Show quota in `mimir teams status`
+
 ### Cost Analytics (CLI commands)
 
 - [ ] `mimir cost today` - today's spending
@@ -467,6 +608,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Cost calculations
 - [ ] Budget enforcement
 - [ ] Analytics queries
+- [ ] Teams quota checks
 
 ---
 
@@ -494,6 +636,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] `mimir permissions remove <pattern>` - remove from allowlist
 - [ ] `mimir checkpoint list` - list checkpoints
 - [ ] `mimir checkpoint restore <id>` - restore checkpoint
+- [ ] **NEW: `mimir teams login/logout/status/sync`** - Teams commands
 - [ ] `mimir --version` - show version
 - [ ] `mimir --help` - show help
 
@@ -508,6 +651,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] `/models` - list available models
 - [ ] `/checkpoint` - create checkpoint now
 - [ ] `/undo` - undo last operation
+- [ ] **NEW: `/tools [list|enable|disable|info|tokens]`** - manage tools
 - [ ] `/help` - show slash commands
 - [ ] Custom commands loaded from `.mimir/commands/`
 
@@ -525,6 +669,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Options: y/n/a(always)/never/edit/view
   - On "edit": show command, allow alternative, replan, show updated plan
   - "Always accepted" indicator for auto-approved
+  - Show Teams allowlist status
 - [ ] **Keyboard Shortcuts**
   - Implement configured shortcuts
   - Help overlay (show shortcuts)
@@ -585,10 +730,102 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Alternative instruction system
 - [ ] Discuss mode Q&A flow
 - [ ] Keyboard shortcuts
+- [ ] Tools command UI
 
 ---
 
-## Phase 10: Model Switching & Context Management
+## Phase 10: Agent Orchestration & Multi-Agent System
+
+**Goal**: Task decomposition, specialized agents, parallel execution
+
+**See**: `docs/contributing/plan-agent-orchestration.md` for detailed architecture
+
+### Agent Orchestrator Core
+
+- [ ] `AgentOrchestrator` interface and implementation
+- [ ] Task complexity detection (single vs multi-agent)
+- [ ] Task decomposition (LLM-based parallel task planning)
+- [ ] Dependency graph construction
+- [ ] Topological sort (execution order)
+- [ ] Parallel execution engine
+- [ ] Result aggregation
+
+### Sub-Agent Management
+
+- [ ] Sub-agent creation (`createSubAgent`)
+- [ ] Nested agent creation (`createNestedAgent`)
+- [ ] Agent lifecycle management (start, pause, resume, stop)
+- [ ] Agent status tracking (pending, running, waiting, completed, failed, interrupted)
+- [ ] Budget enforcement per agent (tokens, cost, duration)
+- [ ] Nesting depth limits (configurable, default: 2 levels)
+
+### Specialized Agent Roles
+
+- [ ] **Main Agent**: Orchestrator, full tool access
+- [ ] **Finder Agent**: Quick searches, file discovery (Haiku/Qwen, read-only tools)
+- [ ] **Oracle Agent**: Deep reasoning, complex bugs (o3/GPT-5, full tools)
+- [ ] **Librarian Agent**: API/docs research (Sonnet 4.5, read-only)
+- [ ] **Refactoring Agent**: Code refactoring (Sonnet 4.5, write tools)
+- [ ] **Reviewer Agent**: Code review, security (Sonnet 4.5/o3, read + git)
+- [ ] **Tester Agent**: Test generation (Sonnet 4.5, write + bash)
+- [ ] **Rush Agent**: Quick targeted loops (Haiku, limited tools, 3-5 iterations)
+
+### Role-Based Tool Restrictions
+
+- [ ] Map agent roles to allowed tools
+- [ ] Enforce tool restrictions per agent
+- [ ] Override with Teams configuration (if enforced)
+
+### Interactive Agent Plan UI
+
+- [ ] Display parallel task plan to user
+- [ ] Show recommended role, model, estimated cost per task
+- [ ] Allow user to edit task descriptions
+- [ ] Allow user to change models (if not enforced)
+- [ ] Options: approve, cancel, edit, manual configuration
+- [ ] Configurable auto-approval mode
+
+### Multi-Agent Execution UI
+
+- [ ] Display all agents in one pane (stacked vertically)
+- [ ] Show status icon per agent (○ pending, ● running, ✓ completed, ✗ failed, ◌ waiting)
+- [ ] Show elapsed time, cost, tokens per agent
+- [ ] Show compact todo list per agent (first 3 items + "... +N more")
+- [ ] Keyboard shortcut to expand agent details
+- [ ] Real-time updates (500ms refresh)
+
+### Communication & Context
+
+- [ ] Centralized message queue (orchestrator manages all messages)
+- [ ] Inter-agent messaging (`sendMessage`, `broadcastMessage`)
+- [ ] Shared context (working directory, findings, decisions)
+- [ ] Agent-to-orchestrator communication
+- [ ] Result sharing between agents
+
+### Teams Enforcement for Agents
+
+- [ ] Enforce allowed models per agent
+- [ ] Enforce allowed sub-agent roles
+- [ ] Forced sub-agents (e.g., security agent on every write)
+- [ ] Model selection per sub-agent enforcement
+- [ ] Nesting depth limits (enterprise policy)
+
+### Testing
+
+- [ ] Task decomposition logic (mocked LLM)
+- [ ] Dependency graph construction
+- [ ] Topological sort
+- [ ] Parallel execution
+- [ ] Budget enforcement
+- [ ] Model selection/fallbacks
+- [ ] Inter-agent communication
+- [ ] Nested agent creation
+- [ ] Role-based tool restrictions
+- [ ] Teams enforcement for agents
+
+---
+
+## Phase 11: Model Switching & Context Management
 
 **Goal**: Dynamic model switching, intelligent context pruning
 
@@ -599,6 +836,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Context transfer when switching
 - [ ] Preserve conversation history
 - [ ] Adjust token limits per model
+- [ ] Check against allowed models (Teams enforcement)
 
 ### Context Compaction
 
@@ -629,10 +867,11 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Model switching
 - [ ] Context compaction strategies
 - [ ] Various context sizes
+- [ ] Teams allowed models enforcement
 
 ---
 
-## Phase 11: Custom Commands & Checkpoints
+## Phase 12: Custom Commands & Checkpoints
 
 **Goal**: User extensibility, code safety
 
@@ -649,6 +888,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Specify required permissions
   - Inherit risk level from definition
   - Support `auto-accept: true` in frontmatter
+- [ ] **Teams custom commands** (loaded from Teams API)
 
 ### Checkpoint System
 
@@ -674,6 +914,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
   - Network connectivity
   - LLM provider connection test
   - MCP server health
+  - Teams connection test (if authenticated)
 - [ ] Suggest fixes
 - [ ] Auto-fix when possible
 
@@ -690,53 +931,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Checkpoint creation/restoration
 - [ ] Doctor diagnostics
 - [ ] Command permission system
-
----
-
-## Phase 12: Multi-Agent Collaboration
-
-**Goal**: Multiple agents working together
-
-### Agent Orchestration
-
-- [ ] `AgentOrchestrator` class (use from start when multi-agent added)
-- [ ] Spawn multiple agent instances
-- [ ] Assign tasks to agents
-- [ ] Track agent states
-
-### Task Distribution
-
-- [ ] Parse tasks into subtasks
-- [ ] Assign subtasks to agents
-- [ ] Define task dependencies
-- [ ] Execute in parallel when possible
-
-### Inter-Agent Communication
-
-- [ ] Share results via orchestrator
-- [ ] Query other agents' progress
-- [ ] Request help from other agents
-- [ ] Merge results from multiple agents
-
-### Agent Awareness
-
-- [ ] Know about other active agents
-- [ ] Display all activities in UI
-- [ ] Show task assignments and progress
-- [ ] Highlight conflicts/blockers
-
-### Agent Roles
-
-- [ ] Define roles (reviewer, tester, implementer)
-- [ ] Route tasks to specialists
-- [ ] Configure expertise in config
-
-### Testing
-
-- [ ] Multi-agent task distribution
-- [ ] Inter-agent communication
-- [ ] Parallel execution
-- [ ] Conflict resolution
+- [ ] Teams custom commands sync
 
 ---
 
@@ -758,8 +953,11 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Installation guide
 - [ ] Configuration guide
 - [ ] Custom commands guide
+- [ ] Custom tools guide
 - [ ] MCP integration guide
 - [ ] Permission system guide
+- [ ] Teams/Enterprise guide
+- [ ] Agent orchestration guide
 - [ ] API documentation
 - [ ] Example projects
 
@@ -769,9 +967,11 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Code review workflow
 - [ ] Multi-file refactoring
 - [ ] Custom command for team
+- [ ] Custom tool example
 - [ ] Multi-agent collaboration
 - [ ] MCP server integration
 - [ ] Permission templates
+- [ ] Teams deployment example
 
 ### Error Messages & UX
 
@@ -795,6 +995,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Docker sandbox security
 - [ ] Permission system security
 - [ ] Dependency audit (npm audit)
+- [ ] Teams API security (auth, encryption)
 
 ### Release
 
@@ -807,11 +1008,11 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 ## Success Metrics
 
-**MVP (Phase 1-10)**
+**MVP (Phase 1-9)**
 
 - [ ] CLI on Windows, macOS, Linux
-- [ ] 7+ LLM providers
-- [ ] MCP protocol integration
+- [x] 2 LLM providers (DeepSeek, Anthropic) - more coming
+- [ ] Tool system (built-in + custom + MCP)
 - [ ] Permission & security system
 - [ ] Interrupt/cancel support
 - [ ] Architect/discuss mode
@@ -823,10 +1024,22 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 **v1.0 (Phase 1-13)**
 
 - [ ] All MVP features
-- [ ] Multi-agent collaboration
+- [ ] Teams/Enterprise support
+- [ ] Agent orchestration & multi-agent
+- [ ] Custom tools (TypeScript)
 - [ ] Custom commands
 - [ ] Alternative instruction system
 - [ ] Mode switching
 - [ ] Keyboard shortcuts
 - [ ] 85%+ test coverage
-- [ ] Documentation
+- [ ] Comprehensive documentation
+- [ ] Example projects
+
+---
+
+## Implementation Priority
+
+1. **Config/Teams Foundation** (Phase 2) - Prepare for enterprise features
+2. **Tool System** (Phase 4) - Core functionality for agents
+3. **Agent Orchestration** (Phase 10) - Enable multi-agent workflows
+4. **Polish remaining phases** (5-9, 11-13) - Complete MVP features

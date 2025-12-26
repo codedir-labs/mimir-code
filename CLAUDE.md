@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Mimir is a platform-agnostic, BYOK (Bring Your Own Key) AI coding agent CLI built with TypeScript. The project emphasizes:
 - Cross-platform compatibility (Windows/Unix)
 - Test-driven development with Vitest
-- Support for 7+ LLM providers (DeepSeek, Anthropic, OpenAI, Google/Gemini, Qwen, Ollama)
+- Support for multiple LLM providers (Currently: DeepSeek, Anthropic; Planned: OpenAI, Google/Gemini, Qwen, Ollama)
 - Model Context Protocol (MCP) integration
 - Security-first design with permission system and Docker sandboxing
 
@@ -101,17 +101,29 @@ Providers are created via `ProviderFactory.create()`. Each provider handles:
 ### Configuration System
 
 Configuration follows a strict hierarchy (lowest to highest priority):
-1. Default config
-2. Global (`~/.mimir/config.yml`)
-3. Project (`.mimir/config.yml`)
-4. Environment variables (`.env`)
-5. CLI flags
+1. Default config (hardcoded fallback)
+2. **Teams/Enterprise cloud config** (highest priority, ENFORCED - cannot be overridden)
+3. Global (`~/.mimir/config.yml`)
+4. Project (`.mimir/config.yml`)
+5. Environment variables (`.env`)
+6. CLI flags (TBD - may be restricted in enterprise mode)
+
+**CRITICAL**: Teams/Enterprise config is ENFORCED - users cannot override settings like:
+- Allowed models
+- Allowed sub-agents
+- Forced sub-agents (e.g., required security agent)
+- API keys (proxied through Teams backend)
+- Budget limits
+- Docker sandbox mode (local/cloud/auto)
 
 All config is validated with Zod schemas. Key configuration areas:
 - LLM provider settings (provider, model, temperature, maxTokens)
 - Permission system (autoAccept, acceptRiskLevel, alwaysAcceptCommands)
 - Keyboard shortcuts (interrupt, modeSwitch, editCommand)
 - Docker settings (enabled, baseImage, cpuLimit, memoryLimit)
+- **NEW: Teams settings** (apiUrl, orgId, features, enforcement)
+- **NEW: Tool configuration** (enable/disable tools, token costs)
+- **NEW: Agent orchestration** (multi-agent settings, sub-agent roles)
 
 ### Keyboard Shortcuts
 
@@ -281,6 +293,155 @@ All persistent data stored in SQLite database at `.mimir/mimir.db`:
 - **tool_calls** - tool execution records
 - **permissions** - audit trail of permission decisions
 
+**NEW**: Storage now uses abstraction layer (`IStorageBackend`) to support:
+- Local SQLite storage (default)
+- Teams cloud storage (API-based)
+- Hybrid storage (local-first with background sync)
+
+### Teams/Enterprise Support
+
+**See**: `docs/contributing/plan-enterprise-teams.md` for full architecture
+
+Mimir supports enterprise/teams deployments with centralized management:
+
+**Features:**
+- **Centralized Configuration**: Admin-managed config via cloud API
+- **Policy Enforcement**: Cannot be overridden by users (API keys, allowed models, etc.)
+- **Shared Resources**: Tools, custom commands, MCP servers, allowlists
+- **Cloud Storage**: Conversation history and audit logs synced to cloud
+- **LLM Proxy**: Route LLM calls through Teams backend (hide individual keys)
+- **Cloud Sandboxes**: Execute Docker containers in cloud environment
+- **Budget Quotas**: Organization-level spending limits
+
+**Authentication:**
+```bash
+mimir teams login   # Authenticate with organization
+mimir teams status  # Show org, user, quota usage
+mimir teams logout  # Sign out
+```
+
+**Architecture:**
+- `TeamsAPIClient` - API client for Teams backend
+- `IStorageBackend` - Storage abstraction (local/cloud/hybrid)
+- `SyncManager` - Background batch sync for conversations/audits
+- `TeamsConfigSource` - Highest priority config source (enforced)
+
+**Key Principles:**
+1. **Offline Mode**: Not available for enterprise (requires connection)
+2. **Local-First Sync**: Write locally, sync in background batches
+3. **Enforcement**: Teams config cannot be overridden by users
+4. **Backward Compatible**: Works seamlessly for non-enterprise users
+
+### Tool System
+
+**See**: `docs/contributing/plan-tools.md` for full architecture
+
+All tools implement the `Tool` interface:
+
+```typescript
+interface Tool {
+  name: string;
+  description: string;
+  schema: z.ZodObject<any>;
+  enabled: boolean;
+  tokenCost: number;  // Estimated tokens added to system prompt
+  source: 'built-in' | 'custom' | 'mcp' | 'teams';
+  execute(args: any, context: ToolContext): Promise<ToolResult>;
+}
+```
+
+**Built-in Tools:**
+- **FileOperationsTool** - read/write/edit/list/delete files
+- **FileSearchTool** - grep/glob/regex search
+- **BashExecutionTool** - execute commands with permission system
+- **GitTool** - git operations (status, diff, log, commit, etc.)
+
+**Custom Tools:**
+- Defined in `.mimir/tools/*.yml`
+- TypeScript runtime (compiled with esbuild)
+- Execute in Docker sandbox (isolated context)
+- Full access to: platform abstractions, config, conversation, logger, LLM
+- Inherit permission system (allowlist, risk assessment)
+
+**Tool Management:**
+```bash
+/tools              # List all tools with token costs
+/tools enable NAME  # Enable a tool
+/tools disable NAME # Disable a tool (if not enforced)
+/tools info NAME    # Show tool details
+/tools tokens       # Token cost breakdown (visual chart)
+```
+
+**Configuration:**
+```yaml
+tools:
+  file_operations:
+    enabled: true
+  run_tests:  # Custom tool
+    enabled: true
+```
+
+**Token Cost Tracking:**
+- Each tool reports estimated tokens added to system prompt
+- `/tools tokens` shows visual breakdown
+- Total system prompt cost displayed
+
+**Teams Integration:**
+- Tools loaded from Teams API
+- Teams tools override local tools
+- Teams tools cannot be disabled
+
+### Agent Orchestration
+
+**See**: `docs/contributing/plan-agent-orchestration.md` for full architecture
+
+Multi-agent system for complex tasks:
+
+**Core Components:**
+- `AgentOrchestrator` - Main orchestrator managing sub-agents
+- `Agent` - Individual agent with role, model, tools, budget
+- `SubAgentConfig` - Configuration for creating sub-agents
+
+**Specialized Roles:**
+- **finder** - Quick file searches (Haiku/Qwen, read-only tools)
+- **oracle** - Deep reasoning, complex bugs (o3/GPT-5, full tools)
+- **librarian** - API/docs research (Sonnet 4.5, read-only)
+- **refactoring** - Code refactoring (Sonnet 4.5, write tools)
+- **reviewer** - Security/quality review (Sonnet 4.5/o3, read+git)
+- **tester** - Test generation (Sonnet 4.5, write+bash)
+- **rush** - Quick targeted loops (Haiku, 3-5 iterations)
+
+**Workflow:**
+1. Orchestrator detects if task needs multiple agents
+2. Decomposes task into parallel sub-tasks (LLM-based)
+3. Presents plan to user (interactive approval)
+4. Creates specialized agents with role-based tool restrictions
+5. Executes agents in parallel (respecting dependencies)
+6. Merges results and presents to user
+
+**UI Display:**
+- All agents stacked vertically in one pane
+- Each shows: status icon, elapsed time, cost, tokens, compact todo list
+- Keyboard shortcut to expand agent details
+- Real-time updates (500ms refresh)
+
+**Teams Enforcement:**
+- Allowed models per agent
+- Allowed/forced sub-agent roles
+- Model selection per sub-agent
+- Nesting depth limits
+
+**Configuration:**
+```yaml
+agentOrchestration:
+  enabled: true
+  autoDetect: true           # Auto-detect multi-agent tasks
+  promptForApproval: true    # User approval before creating agents
+  promptForModels: true      # Let user select models
+  maxNestingDepth: 2         # Max sub-agent nesting
+  maxParallelAgents: 4
+```
+
 ## Code Style Guidelines
 
 ### TypeScript
@@ -380,6 +541,7 @@ Monitor token usage and implement pruning strategies:
 - `mimir cost today/week/month/compare` - cost analytics
 - `mimir doctor` - run diagnostics
 - `mimir permissions list/add/remove` - manage allowlist
+- **NEW: `mimir teams login/logout/status/sync`** - Teams authentication and sync
 
 ### Slash Commands (in-chat)
 
@@ -391,6 +553,7 @@ Monitor token usage and implement pruning strategies:
 - `/model <provider>` - switch LLM provider
 - `/checkpoint` - create checkpoint
 - `/undo` - undo last operation
+- **NEW: `/tools [list|enable|disable|info|tokens]`** - manage tools, show token costs
 - `/help` - show commands
 
 **Example Custom Commands (provided on `mimir init`):**

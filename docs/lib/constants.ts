@@ -10,3 +10,11 @@ export const PROJECT_NAME = 'Mimir Code';
 export const PROJECT_TAGLINE = 'Platform-agnostic AI Coding Agent';
 export const PROJECT_DESCRIPTION =
   'Bring Your Own Key (BYOK) AI coding agent CLI built with TypeScript';
+
+// Installation Commands
+export const INSTALL_COMMANDS = {
+  npm: 'npm install -g @codedir/mimir-code',
+  unix: 'curl -fsSL https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.sh | bash',
+  windows:
+    'iwr -useb https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.ps1 | iex',
+} as const;
