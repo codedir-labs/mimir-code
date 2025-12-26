@@ -1,4 +1,4 @@
-# Mimir Uninstallation Script for Windows (PowerShell)
+# Mimir Code Uninstallation Script for Windows (PowerShell)
 
 $ErrorActionPreference = "Continue"
 
@@ -27,24 +27,24 @@ function Write-ErrorMsg {
 function Main {
     Write-Host ""
     Write-Host "╔═══════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║      Mimir Uninstaller           ║" -ForegroundColor Cyan
+    Write-Host "║    Mimir Code Uninstaller        ║" -ForegroundColor Cyan
     Write-Host "╚═══════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""
 
-    Write-Warning "This will remove Mimir from your system."
+    Write-Warning "This will remove Mimir Code from your system."
     Write-Host ""
 
     # Remove global package
-    Write-Info "Removing Mimir package..."
+    Write-Info "Removing Mimir Code package..."
 
     try {
         if (Get-Command yarn -ErrorAction SilentlyContinue) {
             Write-Info "Detected yarn, removing global package..."
-            yarn global remove mimir-code 2>&1 | Out-Null
+            yarn global remove @codedir/mimir-code 2>&1 | Out-Null
         }
         elseif (Get-Command npm -ErrorAction SilentlyContinue) {
             Write-Info "Detected npm, removing global package..."
-            npm uninstall -g mimir-code 2>&1 | Out-Null
+            npm uninstall -g @codedir/mimir-code 2>&1 | Out-Null
         }
         else {
             Write-ErrorMsg "Neither npm nor yarn found. Cannot remove package."
@@ -91,7 +91,7 @@ function Main {
     Write-Host ""
     Write-Success "Uninstallation complete!"
     Write-Host ""
-    Write-Info "Thank you for using Mimir!"
+    Write-Info "Thank you for using Mimir Code!"
     Write-Host ""
 }
 

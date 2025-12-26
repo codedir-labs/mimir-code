@@ -2,18 +2,124 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
   packages: write
 
 jobs:
+  # Run full test suite first
+  test:
+    name: Test Suite
+    uses: ./.github/workflows/test.yml
+
+  # Run security audit
+  security:
+    name: Security Audit
+    uses: ./.github/workflows/security.yml
+
+  # Build binaries for all platforms
   build-binaries:
-    name: Build Binaries on ${{ matrix.os }}
+    name: Build ${{ matrix.platform }}
+    needs: [test, security]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: windows-latest
+            platform: win-x64
+          - os: macos-latest
+            platform: macos-arm64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build TypeScript
+        run: yarn build
+
+      - name: Build binaries
+        run: yarn build:binary
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.platform }}
+          path: build/
+          retention-days: 7
+          compression-level: 6
+
+  # Create draft GitHub release
+  create-draft-release:
+    name: Create Draft Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      release-id: ${{ steps.create-release.outputs.id }}
+      upload-url: ${{ steps.create-release.outputs.upload_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Draft Release
+        id: create-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.package-version.outputs.tag }}
+          name: Release ${{ steps.package-version.outputs.tag }}
+          files: |
+            artifacts/binaries-linux-x64/**
+            artifacts/binaries-win-x64/**
+            artifacts/binaries-macos-arm64/**
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output release info
+        run: |
+          echo "Created draft release:"
+          echo "  ID: ${{ steps.create-release.outputs.id }}"
+          echo "  Tag: ${{ steps.package-version.outputs.tag }}"
+          echo "  URL: ${{ steps.create-release.outputs.url }}"
+
+  # Test installation scripts against draft release
+  test-installation:
+    name: Test Installation on ${{ matrix.os }}
+    needs: create-draft-release
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -23,65 +129,71 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'yarn'
+      - name: Test installation script (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          # Test installation script
+          bash scripts/install.sh
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+          # Verify mimir command is available
+          which mimir || echo "Mimir not in PATH"
+          mimir --version || echo "Failed to run mimir"
 
-      - name: Build binaries
-        run: yarn build:binary
+      - name: Test installation script (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # Test installation script
+          powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 
-      - name: Upload binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: binaries-${{ matrix.os }}
-          path: build/
-          retention-days: 7
-          compression-level: 6
+          # Verify mimir command is available
+          Get-Command mimir -ErrorAction SilentlyContinue
+          mimir --version
 
-  release:
-    name: Create GitHub Release
-    needs: build-binaries
+      - name: Test basic functionality
+        run: |
+          # Test that mimir can run basic commands
+          mimir --help || exit 1
+          echo "Installation test passed!"
+
+  # Publish draft release and deploy to npm
+  publish-release:
+    name: Publish Release
+    needs: [create-draft-release, test-installation]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write  # Required for npm Trusted Publishers (OIDC)
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Publish GitHub Release
+        uses: actions/github-script@v7
         with:
-          path: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const releaseId = '${{ needs.create-draft-release.outputs.release-id }}';
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            artifacts/binaries-ubuntu-latest/**
-            artifacts/binaries-windows-latest/**
-            artifacts/binaries-macos-latest/**
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            // Publish the draft release
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+              draft: false
+            });
 
-  publish-npm:
-    name: Publish to npm
-    needs: build-binaries
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+            console.log(`Published release ${releaseId}`);
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 22.x
+      - name: Setup Node.js for npm publish
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -91,10 +203,17 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build
+      - name: Build for npm
         run: yarn build
 
-      - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (Trusted Publishers / OIDC)
+        run: npm publish --provenance --access public
+
+      - name: Create success summary
+        run: |
+          echo "## Release Published Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.package-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ steps.package-version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: Published at https://github.com/codedir-labs/mimir-code/releases" >> $GITHUB_STEP_SUMMARY
+          echo "- **npm Package**: Published at https://www.npmjs.com/package/@codedir/mimir-code" >> $GITHUB_STEP_SUMMARY

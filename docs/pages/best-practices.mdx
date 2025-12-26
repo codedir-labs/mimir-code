@@ -3,7 +3,7 @@ title: Documentation Best Practices
 description: Guidelines for writing and maintaining Mimir documentation with Nextra
 ---
 
-import { Callout, Steps, Tabs, Tab } from 'nextra/components';
+import { Callout, Steps, Tabs } from 'nextra/components';
 
 # Documentation Best Practices
 
@@ -244,9 +244,9 @@ For alternative content:
 import { Tabs, Tab } from 'nextra/components';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
-  <Tab>```bash npm install mimir-code ```</Tab>
-  <Tab>```bash yarn add mimir-code ```</Tab>
-  <Tab>```bash pnpm add mimir-code ```</Tab>
+  <Tabs.Tab>```bash npm install mimir-code ```</Tabs.Tab>
+  <Tabs.Tab>```bash yarn add mimir-code ```</Tabs.Tab>
+  <Tabs.Tab>```bash pnpm add mimir-code ```</Tabs.Tab>
 </Tabs>
 ````
 
@@ -739,3 +739,4 @@ npm run build
 - **Documentation issues**: Open issue in GitHub repository
 - **Nextra questions**: [Nextra GitHub Discussions](https://github.com/shuding/nextra/discussions)
 - **Next.js questions**: [Next.js GitHub Discussions](https://github.com/vercel/next.js/discussions)
+

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mimir Uninstallation Script for Unix (macOS, Linux)
+# Mimir Code Uninstallation Script for Unix (macOS, Linux)
 
 set -e
 
@@ -31,22 +31,22 @@ print_error() {
 main() {
     echo ""
     echo "╔═══════════════════════════════════════╗"
-    echo "║      Mimir Uninstaller           ║"
+    echo "║    Mimir Code Uninstaller        ║"
     echo "╚═══════════════════════════════════════╝"
     echo ""
 
-    print_warning "This will remove Mimir from your system."
+    print_warning "This will remove Mimir Code from your system."
     echo ""
 
     # Remove global npm/yarn package
-    print_info "Removing Mimir package..."
+    print_info "Removing Mimir Code package..."
 
     if command -v yarn &> /dev/null; then
         print_info "Detected yarn, removing global package..."
-        yarn global remove mimir-code || print_warning "Package not found or already removed"
+        yarn global remove @codedir/mimir-code || print_warning "Package not found or already removed"
     elif command -v npm &> /dev/null; then
         print_info "Detected npm, removing global package..."
-        npm uninstall -g mimir-code || print_warning "Package not found or already removed"
+        npm uninstall -g @codedir/mimir-code || print_warning "Package not found or already removed"
     else
         print_error "Neither npm nor yarn found. Cannot remove package."
     fi
@@ -88,12 +88,12 @@ main() {
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         # Detect shell profile
         if [ -f "$HOME/.bashrc" ]; then
-            sed -i.bak '/# Mimir/d; /mimir/d' "$HOME/.bashrc" 2>/dev/null || true
+            sed -i.bak '/# Mimir Code/d; /# Mimir/d; /mimir/d' "$HOME/.bashrc" 2>/dev/null || true
             print_success "Cleaned up .bashrc"
         fi
 
         if [ -f "$HOME/.zshrc" ]; then
-            sed -i.bak '/# Mimir/d; /mimir/d' "$HOME/.zshrc" 2>/dev/null || true
+            sed -i.bak '/# Mimir Code/d; /# Mimir/d; /mimir/d' "$HOME/.zshrc" 2>/dev/null || true
             print_success "Cleaned up .zshrc"
         fi
     else
@@ -103,7 +103,7 @@ main() {
     echo ""
     print_success "Uninstallation complete!"
     echo ""
-    print_info "Thank you for using Mimir!"
+    print_info "Thank you for using Mimir Code!"
     echo ""
 }
 

@@ -3,7 +3,7 @@ title: Installation
 description: Install Mimir on Windows, macOS, or Linux
 ---
 
-import { Callout, Steps, Tabs, Tab } from 'nextra/components';
+import { Callout, Steps, Tabs } from 'nextra/components';
 
 # Installation
 
@@ -38,55 +38,28 @@ docker --version
 
 ## Installation Methods
 
-<Tabs items={['npm', 'yarn', 'pnpm', 'Binary']}>
-  <Tab>
-    ### Install via npm
+<Tabs items={['Linux', 'macOS', 'Windows', 'npm']}>
+  <Tabs.Tab>
+    ### Linux Installation
+
+    **Automated installer (recommended):**
 
     ```bash
-    # Install globally
-    npm install -g mimir-code
+    curl -fsSL https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.sh | bash
+    ```
 
-    # Verify installation
+    **Manual installation via npm:**
+
+    ```bash
+    npm install -g @codedir/mimir-code
     mimir --version
     ```
 
-  </Tab>
-
-  <Tab>
-    ### Install via yarn
+    **Manual binary installation:**
 
     ```bash
-    # Install globally
-    yarn global add mimir-code
-
-    # Verify installation
-    mimir --version
-    ```
-
-  </Tab>
-
-  <Tab>
-    ### Install via pnpm
-
-    ```bash
-    # Install globally
-    pnpm add -g mimir-code
-
-    # Verify installation
-    mimir --version
-    ```
-
-  </Tab>
-
-  <Tab>
-    ### Install Binary
-
-    Download platform-specific binaries from [GitHub Releases](https://github.com/codedir-labs/mimir-code/releases).
-
-    **macOS / Linux:**
-    ```bash
-    # Download and extract
-    curl -L https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-macos.tar.gz | tar xz
+    # Download latest binary
+    curl -L https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-linux-x64 -o mimir
 
     # Make executable
     chmod +x mimir
@@ -98,16 +71,114 @@ docker --version
     mimir --version
     ```
 
-    **Windows (PowerShell):**
-    ```powershell
-    # Download binary
-    Invoke-WebRequest -Uri "https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-windows.exe" -OutFile "mimir.exe"
+  </Tabs.Tab>
 
-    # Add to PATH or run directly
-    .\mimir.exe --version
+  <Tabs.Tab>
+    ### macOS Installation
+
+    **Automated installer (recommended):**
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.sh | bash
     ```
 
-  </Tab>
+    **Manual installation via npm:**
+
+    ```bash
+    npm install -g @codedir/mimir-code
+    mimir --version
+    ```
+
+    **Manual binary installation:**
+
+    ```bash
+    # Download latest binary (Apple Silicon)
+    curl -L https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-macos-arm64 -o mimir
+
+    # Or for Intel Macs
+    # curl -L https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-macos-x64 -o mimir
+
+    # Make executable
+    chmod +x mimir
+
+    # Move to PATH
+    sudo mv mimir /usr/local/bin/
+
+    # Verify
+    mimir --version
+    ```
+
+    <Callout type="info">
+      On first run, you may need to allow the binary in System Preferences → Security & Privacy.
+    </Callout>
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+    ### Windows Installation
+
+    **Automated installer (recommended):**
+
+    ```powershell
+    # Run in PowerShell
+    iwr -useb https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.ps1 | iex
+    ```
+
+    **Manual installation via npm:**
+
+    ```powershell
+    npm install -g @codedir/mimir-code
+    mimir --version
+    ```
+
+    **Manual binary installation:**
+
+    ```powershell
+    # Download latest binary
+    Invoke-WebRequest -Uri "https://github.com/codedir-labs/mimir-code/releases/latest/download/mimir-win-x64.exe" -OutFile "$env:USERPROFILE\.mimir\bin\mimir.exe"
+
+    # Add to PATH (one-time setup)
+    $env:Path += ";$env:USERPROFILE\.mimir\bin"
+    [Environment]::SetEnvironmentVariable("Path", $env:Path, [EnvironmentVariableTarget]::User)
+
+    # Verify
+    mimir --version
+    ```
+
+    <Callout type="warning">
+      Windows users should use PowerShell or Windows Terminal, not Command Prompt.
+    </Callout>
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+    ### npm/yarn/pnpm Installation
+
+    Install using your preferred Node.js package manager:
+
+    **npm:**
+    ```bash
+    npm install -g @codedir/mimir-code
+    mimir --version
+    ```
+
+    **yarn:**
+    ```bash
+    yarn global add @codedir/mimir-code
+    mimir --version
+    ```
+
+    **pnpm:**
+    ```bash
+    pnpm add -g @codedir/mimir-code
+    mimir --version
+    ```
+
+    <Callout>
+      Requires Node.js 18 or higher. This method is cross-platform and works on all systems.
+    </Callout>
+
+  </Tabs.Tab>
 </Tabs>
 
 ## Quick Setup
@@ -134,7 +205,7 @@ This creates:
 Edit `.mimir/config.yml` or use environment variables:
 
 <Tabs items={['Environment Variable', 'Config File']}>
-  <Tab>
+  <Tabs.Tab>
     ```bash
     # Set environment variable
     export DEEPSEEK_API_KEY="your-api-key-here"
@@ -143,9 +214,9 @@ Edit `.mimir/config.yml` or use environment variables:
     echo "DEEPSEEK_API_KEY=your-api-key-here" >> .env
     ```
 
-  </Tab>
+  </Tabs.Tab>
 
-  <Tab>
+  <Tabs.Tab>
     ```yaml filename=".mimir/config.yml"
     llm:
       provider: deepseek
@@ -153,7 +224,7 @@ Edit `.mimir/config.yml` or use environment variables:
       # apiKey: sk-xxxxx            # Or directly (not recommended)
       model: deepseek-chat
     ```
-  </Tab>
+  </Tabs.Tab>
 </Tabs>
 
 ### Start Mimir
@@ -212,7 +283,7 @@ sudo dnf install -y ca-certificates curl
 
 ```powershell
 # Run as Administrator
-irm https://github.com/codedir-labs/mimir-code/releases/latest/download/install.ps1 | iex
+irm https://github.com/codedir-labs/@codedir/mimir-code/releases/latest/download/install.ps1 | iex
 ```
 
 **Manual installation**:
@@ -232,7 +303,7 @@ Install Docker Desktop and ensure WSL 2 backend is enabled.
 For sandboxed code execution, install Docker:
 
 <Tabs items={['macOS', 'Windows', 'Linux']}>
-  <Tab>
+  <Tabs.Tab>
     Download and install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop).
 
     Verify installation:
@@ -240,9 +311,9 @@ For sandboxed code execution, install Docker:
     docker run hello-world
     ```
 
-  </Tab>
+  </Tabs.Tab>
 
-  <Tab>
+  <Tabs.Tab>
     Download and install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop).
 
     Enable WSL 2 integration in Docker Desktop settings.
@@ -252,9 +323,9 @@ For sandboxed code execution, install Docker:
     docker run hello-world
     ```
 
-  </Tab>
+  </Tabs.Tab>
 
-  <Tab>
+  <Tabs.Tab>
     ### Ubuntu/Debian
 
     ```bash
@@ -278,7 +349,7 @@ For sandboxed code execution, install Docker:
     docker run hello-world
     ```
 
-  </Tab>
+  </Tabs.Tab>
 </Tabs>
 
 <Callout>
@@ -288,35 +359,35 @@ For sandboxed code execution, install Docker:
 ## Updating
 
 <Tabs items={['npm', 'yarn', 'pnpm', 'Binary']}>
-  <Tab>
+  <Tabs.Tab>
     ```bash
-    npm update -g mimir-code
+    npm update -g @codedir/mimir-code
     ```
-  </Tab>
+  </Tabs.Tab>
 
-<Tab>```bash yarn global upgrade mimir-code ```</Tab>
+<Tabs.Tab>```bash yarn global upgrade @codedir/mimir-code ```</Tabs.Tab>
 
-<Tab>```bash pnpm update -g mimir-code ```</Tab>
+<Tabs.Tab>```bash pnpm update -g @codedir/mimir-code ```</Tabs.Tab>
 
-  <Tab>
-    Download the latest binary from [GitHub Releases](https://github.com/codedir-labs/mimir-code/releases) and replace the existing binary.
-  </Tab>
+  <Tabs.Tab>
+    Download the latest binary from [GitHub Releases](https://github.com/codedir-labs/@codedir/mimir-code/releases) and replace the existing binary.
+  </Tabs.Tab>
 </Tabs>
 
 ## Uninstalling
 
 <Tabs items={['npm', 'yarn', 'pnpm', 'Binary']}>
-  <Tab>
+  <Tabs.Tab>
     ```bash
-    npm uninstall -g mimir-code
+    npm uninstall -g @codedir/mimir-code
     ```
-  </Tab>
+  </Tabs.Tab>
 
-<Tab>```bash yarn global remove mimir-code ```</Tab>
+<Tabs.Tab>```bash yarn global remove @codedir/mimir-code ```</Tabs.Tab>
 
-<Tab>```bash pnpm remove -g mimir-code ```</Tab>
+<Tabs.Tab>```bash pnpm remove -g @codedir/mimir-code ```</Tabs.Tab>
 
-  <Tab>
+  <Tabs.Tab>
     ```bash
     # macOS/Linux
     sudo rm /usr/local/bin/mimir
@@ -325,7 +396,7 @@ For sandboxed code execution, install Docker:
     # Delete from Program Files and remove from PATH
     ```
 
-  </Tab>
+  </Tabs.Tab>
 </Tabs>
 
 To remove all data:
@@ -404,5 +475,6 @@ cat .mimir/config.yml | grep apiKey
 ## Getting Help
 
 - **Installation issues**: Check [Troubleshooting](#troubleshooting) section
-- **Report bugs**: [GitHub Issues](https://github.com/codedir-labs/mimir-code/issues)
-- **Community**: [GitHub Discussions](https://github.com/codedir-labs/mimir-code/discussions)
+- **Report bugs**: [GitHub Issues](https://github.com/codedir-labs/@codedir/mimir-code/issues)
+- **Community**: [GitHub Discussions](https://github.com/codedir-labs/@codedir/mimir-code/discussions)
+

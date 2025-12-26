@@ -3,7 +3,7 @@ title: Architecture
 description: Deep dive into Mimir's architecture and design patterns
 ---
 
-import { Callout, Steps, Tabs, Tab } from 'nextra/components';
+import { Callout, Steps, Tabs } from 'nextra/components';
 
 # Architecture
 
@@ -439,9 +439,9 @@ class AgentOrchestrator {
 ## Build & Distribution
 
 <Tabs items={['Development', 'Build', 'Binary']}>
-  <Tab>```bash # Run in development mode yarn dev ```</Tab>
-  <Tab>```bash # Build TypeScript to dist/ yarn build ```</Tab>
-  <Tab>```bash # Create platform-specific executables yarn build:binary ```</Tab>
+  <Tabs.Tab>```bash # Run in development mode yarn dev ```</Tabs.Tab>
+  <Tabs.Tab>```bash # Build TypeScript to dist/ yarn build ```</Tabs.Tab>
+  <Tabs.Tab>```bash # Create platform-specific executables yarn build:binary ```</Tabs.Tab>
 </Tabs>
 
 **Supported Platforms**:
@@ -455,3 +455,4 @@ class AgentOrchestrator {
 - npm/yarn package
 - Standalone binaries (no Node.js required)
 - Platform-specific installers (PowerShell/bash scripts)
+

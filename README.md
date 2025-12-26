@@ -6,7 +6,7 @@ Platform-agnostic AI coding agent CLI. Supports 7+ LLM providers (DeepSeek, Anth
 
 ```bash
 # Clone and install
-git clone https://github.com/codedir-labs/mimir-code.git
+git clone https://github.com/codedir-labs/@codedir/mimir-code.git
 cd mimir
 yarn install
 

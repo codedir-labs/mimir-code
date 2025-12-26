@@ -208,7 +208,91 @@ table {
   line-height: 1.75;
   color: var(--nextra-fg-muted);
   max-width: 42rem;
+  margin: 0 auto 3rem;
+}
+
+/* Hero Installation Section */
+.hero-install {
+  max-width: 42rem;
   margin: 0 auto;
+}
+
+.install-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--nextra-border);
+  overflow-x: auto;
+}
+
+.install-tab {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--nextra-fg-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  margin-bottom: -2px;
+}
+
+.install-tab:hover {
+  color: var(--nextra-fg);
+  background: rgba(var(--nextra-primary-hue), 0.05);
+}
+
+.install-tab.active {
+  color: hsl(var(--nextra-primary-hue), 100%, 50%);
+  border-bottom-color: hsl(var(--nextra-primary-hue), 100%, 50%);
+}
+
+.install-command {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--nextra-bg);
+  border: 1px solid var(--nextra-border);
+  border-radius: 8px;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+.dark .install-command {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.install-command code {
+  flex: 1;
+  color: var(--nextra-fg);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.copy-button {
+  padding: 0.5rem 1rem;
+  background: hsl(var(--nextra-primary-hue), 100%, 50%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.copy-button:hover {
+  background: hsl(var(--nextra-primary-hue), 100%, 45%);
+  transform: translateY(-1px);
+}
+
+.copy-button:active {
+  transform: translateY(0);
 }
 
 /* Features Section */
@@ -510,6 +594,26 @@ table {
   .hero-wip-badge {
     font-size: 0.65rem;
     padding: 0.3rem 0.75rem;
+  }
+
+  .install-tabs {
+    gap: 0.25rem;
+  }
+
+  .install-tab {
+    padding: 0.625rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .install-command {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .copy-button {
+    width: 100%;
   }
 
   .landing-footer-content {

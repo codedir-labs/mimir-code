@@ -1,10 +1,10 @@
-# Mimir Installation Script for Windows (PowerShell)
+# Mimir Code Installation Script for Windows (PowerShell)
 
 $ErrorActionPreference = "Stop"
 
 # Configuration
 $InstallDir = "$env:USERPROFILE\.mimir"
-$GithubRepo = "anthropics/mimir-code"
+$GithubRepo = "codedir-labs/mimir-code"
 
 # Colors
 function Write-Info {
@@ -58,7 +58,7 @@ function Test-Dependencies {
         $nodeMajor = [int]($nodeVersion.Split('.')[0])
 
         if ($nodeMajor -lt 18) {
-            Write-ErrorMsg "Node.js version 18 or higher is required. Current version: v$nodeVersion"
+            Write-ErrorMsg "Node.js version 18 or higher is required for Mimir Code. Current version: v$nodeVersion"
             Write-Info "Please install Node.js from https://nodejs.org/"
             exit 1
         }
@@ -96,20 +96,20 @@ function New-Directories {
 
 # Install binary
 function Install-Binary {
-    Write-Info "Installing Mimir..."
+    Write-Info "Installing Mimir Code..."
 
     try {
         # Check if yarn is available
         if (Get-Command yarn -ErrorAction SilentlyContinue) {
             Write-Info "Using yarn for installation..."
-            yarn global add mimir-code
+            yarn global add @codedir/mimir-code
         }
         else {
             Write-Info "Using npm for installation..."
-            npm install -g mimir-code
+            npm install -g @codedir/mimir-code
         }
 
-        Write-Success "Mimir installed successfully"
+        Write-Success "Mimir Code installed successfully"
     }
     catch {
         Write-ErrorMsg "Installation failed: $_"
@@ -125,7 +125,7 @@ function Set-Configuration {
 
     if (-not (Test-Path $configFile)) {
         $configContent = @"
-# Mimir Configuration
+# Mimir Code Configuration
 # See https://github.com/$GithubRepo for documentation
 
 llm:
@@ -171,10 +171,10 @@ function Update-Path {
     $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
 
     if ($mimirCmd) {
-        Write-Success "Mimir is accessible in PATH"
+        Write-Success "Mimir Code is accessible in PATH"
     }
     else {
-        Write-Warning "Mimir command not found in PATH"
+        Write-Warning "Mimir Code command not found in PATH"
         Write-Info "You may need to restart your terminal or add npm global bin directory to PATH"
 
         # Get npm global bin path
@@ -207,7 +207,7 @@ function Test-Docker {
 function Main {
     Write-Host ""
     Write-Host "╔═══════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║       Mimir Installer            ║" -ForegroundColor Cyan
+    Write-Host "║     Mimir Code Installer         ║" -ForegroundColor Cyan
     Write-Host "║   Platform-agnostic AI Coding CLI     ║" -ForegroundColor Cyan
     Write-Host "╚═══════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""

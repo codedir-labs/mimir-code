@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mimir Installation Script for Unix (macOS, Linux)
+# Mimir Code Installation Script for Unix (macOS, Linux)
 
 set -e
 
@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # Configuration
 INSTALL_DIR="${HOME}/.mimir"
 BIN_DIR="${HOME}/.local/bin"
-GITHUB_REPO="anthropics/mimir-code"
+GITHUB_REPO="codedir-labs/mimir-code"
 LATEST_RELEASE_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
 
 # Functions
@@ -81,7 +81,7 @@ check_dependencies() {
 
     # Check for Node.js
     if ! command -v node &> /dev/null; then
-        print_warning "Node.js is not installed. Mimir requires Node.js 18 or higher."
+        print_warning "Node.js is not installed. Mimir Code requires Node.js 18 or higher."
         print_info "Please install Node.js from https://nodejs.org/"
         exit 1
     fi
@@ -108,7 +108,7 @@ create_directories() {
 
 # Download and install binary
 install_binary() {
-    print_info "Downloading Mimir..."
+    print_info "Downloading Mimir Code..."
 
     local platform=$(detect_platform)
     print_info "Detected platform: ${platform}"
@@ -122,12 +122,12 @@ install_binary() {
     print_info "Installing via npm..."
 
     if command -v yarn &> /dev/null; then
-        yarn global add mimir-code
+        yarn global add @codedir/mimir-code
     else
-        npm install -g mimir-code
+        npm install -g @codedir/mimir-code
     fi
 
-    print_success "Mimir installed successfully"
+    print_success "Mimir Code installed successfully"
 }
 
 # Set up configuration
@@ -136,7 +136,7 @@ setup_config() {
 
     if [ ! -f "${INSTALL_DIR}/config.yml" ]; then
         cat > "${INSTALL_DIR}/config.yml" <<EOF
-# Mimir Configuration
+# Mimir Code Configuration
 # See https://github.com/${GITHUB_REPO} for documentation
 
 llm:
@@ -192,7 +192,7 @@ update_shell_profile() {
         # Check if already in PATH
         if ! grep -q "${BIN_DIR}" "$shell_profile" 2>/dev/null; then
             echo "" >> "$shell_profile"
-            echo "# Mimir" >> "$shell_profile"
+            echo "# Mimir Code" >> "$shell_profile"
             echo "export PATH=\"\${PATH}:${BIN_DIR}\"" >> "$shell_profile"
             print_success "Updated ${shell_profile}"
             print_warning "Please run: source ${shell_profile}"
@@ -206,7 +206,7 @@ update_shell_profile() {
 main() {
     echo ""
     echo "╔═══════════════════════════════════════╗"
-    echo "║       Mimir Installer            ║"
+    echo "║     Mimir Code Installer         ║"
     echo "║   Platform-agnostic AI Coding CLI     ║"
     echo "╚═══════════════════════════════════════╝"
     echo ""
