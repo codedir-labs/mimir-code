@@ -354,8 +354,11 @@ function Test-Installation {
     try {
         Push-Location $testDir
 
-        # Run init command (with timeout)
-        $initJob = Start-Job -ScriptBlock { & mimir init --no-interactive 2>&1 }
+        # Run init command (with timeout and quiet flag)
+        $initJob = Start-Job -ScriptBlock {
+            & mimir init --no-interactive --quiet 2>&1
+            exit $LASTEXITCODE
+        }
         $initJob | Wait-Job -Timeout 30 | Out-Null
 
         if ($initJob.State -ne 'Completed') {
@@ -365,14 +368,19 @@ function Test-Installation {
         }
 
         $initOutput = Receive-Job $initJob
-        if ($initJob.State -eq 'Failed') {
-            Write-ErrorMsg "mimir init failed: $initOutput"
+        $exitCode = $initJob.ChildJobs[0].Output | Select-Object -Last 1
+
+        if ($initJob.State -eq 'Failed' -or $exitCode -ne 0) {
+            Write-ErrorMsg "mimir init failed with exit code $exitCode"
+            Write-Host $initOutput
             return $false
         }
 
         # Verify .mimir directory was created
         if (-not (Test-Path ".mimir") -or -not (Test-Path ".mimir\config.yml")) {
             Write-ErrorMsg ".mimir directory or config.yml not created"
+            Write-Info "Contents of test directory:"
+            Get-ChildItem -Force
             return $false
         }
 

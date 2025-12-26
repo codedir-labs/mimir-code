@@ -49,8 +49,10 @@ program
 program
   .command('init')
   .description('Initialize Mimir in current project')
-  .action(async () => {
-    await initCommand.execute();
+  .option('--no-interactive', 'Run without interactive prompts (for automated setup)')
+  .option('-q, --quiet', 'Suppress output')
+  .action(async (options: { interactive?: boolean; quiet?: boolean }) => {
+    await initCommand.execute(undefined, options);
     process.exit(0);
   });
 

@@ -8,6 +8,11 @@ import { ConfigLoader } from '../../config/ConfigLoader.js';
 import { MimirInitializer } from '../../core/MimirInitializer.js';
 import { logger } from '../../utils/logger.js';
 
+export interface InitOptions {
+  interactive?: boolean;
+  quiet?: boolean;
+}
+
 export class InitCommand {
   private initializer: MimirInitializer;
 
@@ -15,23 +20,29 @@ export class InitCommand {
     this.initializer = new MimirInitializer(_fs, _configLoader);
   }
 
-  async execute(projectRoot?: string): Promise<void> {
+  async execute(projectRoot?: string, options: InitOptions = {}): Promise<void> {
     const root = projectRoot || process.cwd();
 
-    logger.info('Initializing Mimir workspace', { projectRoot: root });
+    if (!options.quiet) {
+      logger.info('Initializing Mimir workspace', { projectRoot: root });
+    }
 
     // Check if already initialized
     if (await this.initializer.isWorkspaceInitialized(root)) {
-      logger.info('Mimir workspace is already initialized in this directory.');
-      logger.info('Run "mimir" to start an interactive chat session.');
+      if (!options.quiet) {
+        logger.info('Mimir workspace is already initialized in this directory.');
+        logger.info('Run "mimir" to start an interactive chat session.');
+      }
       return;
     }
 
     // Run full initialization
     const result = await this.initializer.initializeWorkspace(root);
 
-    // Print summary
-    this.initializer.printSummary(result, root);
+    // Print summary (unless quiet mode)
+    if (!options.quiet) {
+      this.initializer.printSummary(result, root);
+    }
 
     // Exit with error if initialization failed
     if (!result.success) {

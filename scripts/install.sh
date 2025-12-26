@@ -293,14 +293,20 @@ verify_installation() {
         cd "$test_dir"
         print_info "Testing mimir init in: $test_dir"
 
-        if ! timeout 30s mimir init --no-interactive 2>&1; then
-            print_error "mimir init failed or timed out"
+        # Run init with quiet flag (output to variable to capture errors)
+        init_output=$(timeout 30s mimir init --no-interactive --quiet 2>&1)
+        init_exit_code=$?
+
+        if [ $init_exit_code -ne 0 ]; then
+            print_error "mimir init failed with exit code $init_exit_code"
+            echo "$init_output"
             rm -rf "$test_dir"
             return 1
         fi
 
         if [ ! -d ".mimir" ] || [ ! -f ".mimir/config.yml" ]; then
             print_error ".mimir directory or config.yml not created"
+            ls -la
             rm -rf "$test_dir"
             return 1
         fi
