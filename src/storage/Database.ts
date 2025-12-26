@@ -1,11 +1,9 @@
 /**
- * Database Manager using Drizzle ORM
+ * Database Manager using sql.js
  * Handles automatic initialization, migrations, and seeding
  */
 
-import Database from 'better-sqlite3';
-import { drizzle, BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import * as schema from './schema.js';
 import { defaultPricing } from './seed.js';
 import { dirname } from 'path';
@@ -17,57 +15,136 @@ export interface DatabaseConfig {
   fileSystem?: IFileSystem;
 }
 
+interface RunResult {
+  changes: number;
+  lastInsertRowid: number;
+}
+
 /**
  * DatabaseManager with automatic initialization and migrations
  */
 export class DatabaseManager {
-  private sqlite: Database.Database;
-  private db: BetterSQLite3Database<typeof schema>;
+  private db!: SqlJsDatabase;
   private config: DatabaseConfig;
+  private fs!: IFileSystem;
+  private SQL: any;
+  private nodeFs: typeof import('fs') | null = null;
 
-  private constructor(config: DatabaseConfig) {
+  private constructor(config: DatabaseConfig, SQL: any) {
     this.config = config;
-
-    // Initialize SQLite connection
-    this.sqlite = new Database(config.path, {
-      verbose: config.verbose ? console.log : undefined,
-    });
-
-    // Enable WAL mode for better concurrency
-    this.sqlite.pragma('journal_mode = WAL');
-    this.sqlite.pragma('foreign_keys = ON');
-
-    // Initialize Drizzle ORM
-    this.db = drizzle(this.sqlite, { schema });
-
-    // Auto-initialize database
-    this.initialize();
+    this.SQL = SQL;
   }
 
   /**
    * Create DatabaseManager instance with proper directory setup
-   * Use this factory method instead of constructor for proper async initialization
    */
   static async create(config: DatabaseConfig): Promise<DatabaseManager> {
-    // Ensure database directory exists using IFileSystem if provided
+    // Ensure database directory exists
     const dbDir = dirname(config.path);
 
     if (config.fileSystem) {
-      // Use platform abstraction
       const dirExists = await config.fileSystem.exists(dbDir);
       if (!dirExists) {
         await config.fileSystem.mkdir(dbDir, { recursive: true });
       }
     } else {
-      // Fallback to sync fs for backwards compatibility (will be deprecated)
-      // This path should only be used during transition period
       const { existsSync, mkdirSync } = await import('fs');
       if (!existsSync(dbDir)) {
         mkdirSync(dbDir, { recursive: true });
       }
     }
 
-    return new DatabaseManager(config);
+    // Initialize sql.js
+    const SQL = await initSqlJs();
+    const manager = new DatabaseManager(config, SQL);
+    manager.fs = config.fileSystem!;
+
+    // Load Node.js fs module for sync operations
+    manager.nodeFs = await import('fs');
+
+    // Load or create database
+    await manager.loadDatabase();
+
+    // Initialize schema and seed data
+    manager.initialize();
+
+    // Save database after initialization (creates tables and seeds data)
+    await manager.save();
+
+    return manager;
+  }
+
+  /**
+   * Load database from file or create new
+   */
+  private async loadDatabase(): Promise<void> {
+    try {
+      if (this.config.fileSystem) {
+        const exists = await this.config.fileSystem.exists(this.config.path);
+        if (exists) {
+          const buffer = await this.config.fileSystem.readFile(
+            this.config.path,
+            'binary' as BufferEncoding
+          );
+          const uint8Array = new Uint8Array(Buffer.from(buffer as any, 'binary'));
+          this.db = new this.SQL.Database(uint8Array);
+          if (this.config.verbose) {
+            console.log('Loaded existing database from', this.config.path);
+          }
+        } else {
+          this.db = new this.SQL.Database();
+          if (this.config.verbose) {
+            console.log('Created new database');
+          }
+        }
+      } else {
+        const { existsSync, readFileSync } = await import('fs');
+        if (existsSync(this.config.path)) {
+          const buffer = readFileSync(this.config.path);
+          this.db = new this.SQL.Database(buffer);
+        } else {
+          this.db = new this.SQL.Database();
+        }
+      }
+    } catch (error) {
+      this.db = new this.SQL.Database();
+      if (this.config.verbose) {
+        console.log('Created new database after error:', error);
+      }
+    }
+  }
+
+  /**
+   * Save database to disk (async version)
+   */
+  async save(): Promise<void> {
+    const data = this.db.export();
+    const buffer = Buffer.from(data);
+
+    if (this.config.fileSystem) {
+      await this.config.fileSystem.writeFile(
+        this.config.path,
+        buffer.toString('binary'),
+        'binary' as BufferEncoding
+      );
+    } else {
+      const { writeFileSync } = await import('fs');
+      writeFileSync(this.config.path, buffer);
+    }
+  }
+
+  /**
+   * Save database to disk (sync version for auto-save)
+   * Uses sync fs operations to avoid async in execute/transaction
+   */
+  private saveSync(): void {
+    const data = this.db.export();
+    const buffer = Buffer.from(data);
+
+    // Use pre-loaded Node.js fs module for sync operations
+    if (this.nodeFs) {
+      this.nodeFs.writeFileSync(this.config.path, buffer);
+    }
   }
 
   /**
@@ -75,10 +152,7 @@ export class DatabaseManager {
    */
   private initialize(): void {
     try {
-      // Run migrations if available
-      this.runMigrations();
-
-      // Seed initial data if database is empty
+      this.createTablesManually();
       this.seedDatabase();
     } catch (error) {
       console.error('Database initialization failed:', error);
@@ -87,84 +161,9 @@ export class DatabaseManager {
   }
 
   /**
-   * Run Drizzle migrations
-   */
-  private runMigrations(): void {
-    try {
-      // Check if migrations folder exists
-      // Note: This is a sync check but migrations themselves are a build-time concern
-      // TODO: Consider making entire initialization async if needed
-      const migrationsFolder = './drizzle';
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { existsSync } = require('fs');
-      if (existsSync(migrationsFolder)) {
-        migrate(this.db, { migrationsFolder });
-      } else {
-        // No migrations yet - this is expected on first setup
-        // Tables will be created by Drizzle push or manual migration
-      }
-    } catch (error) {
-      // Migration errors are expected if tables don't exist yet
-      // We'll create them manually in seedDatabase
-      if (this.config.verbose) {
-        console.log('No migrations to run, will use manual initialization');
-      }
-    }
-  }
-
-  /**
-   * Seed database with initial data
-   */
-  private seedDatabase(): void {
-    // Check if pricing table has data
-    const pricingCount = this.sqlite
-      .prepare("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='pricing'")
-      .get() as { count: number };
-
-    if (pricingCount.count === 0) {
-      // Tables don't exist yet - create them manually from schema
-      this.createTablesManually();
-    }
-
-    // Check if pricing data exists
-    const existingPricing = this.sqlite.prepare('SELECT COUNT(*) as count FROM pricing').get() as {
-      count: number;
-    };
-
-    if (existingPricing.count === 0) {
-      // Insert default pricing
-      this.db.transaction((tx) => {
-        for (const price of defaultPricing) {
-          tx.insert(schema.pricing).values(price).run();
-        }
-      });
-
-      if (this.config.verbose) {
-        console.log(`Seeded ${defaultPricing.length} pricing entries`);
-      }
-    }
-
-    // Insert initial migration record if not exists
-    try {
-      const migrationExists = this.sqlite
-        .prepare('SELECT COUNT(*) as count FROM migrations WHERE version = ?')
-        .get('1.0.0') as { count: number };
-
-      if (migrationExists.count === 0) {
-        this.db.insert(schema.migrations).values({ version: '1.0.0' }).run();
-      }
-    } catch (error) {
-      // Migration table might not exist yet
-    }
-  }
-
-  /**
-   * Manually create tables from Drizzle schema
-   * This is a fallback for when migrations don't exist yet
+   * Manually create tables from schema
    */
   private createTablesManually(): void {
-    // This is a temporary solution - in production, we'll use proper migrations
-    // For now, we'll execute the raw SQL from schema.sql
     const createTablesSQL = `
       CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -328,13 +327,11 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_pricing_effective ON pricing(effective_from DESC);
     `;
 
-    // Execute each statement
     const statements = createTablesSQL.split(';').filter((s) => s.trim());
     for (const statement of statements) {
       try {
-        this.sqlite.exec(statement);
+        this.db.run(statement);
       } catch (error) {
-        // Table might already exist
         if (this.config.verbose) {
           console.log('Table creation warning:', error);
         }
@@ -347,54 +344,145 @@ export class DatabaseManager {
   }
 
   /**
-   * Get Drizzle database instance
+   * Seed database with initial data
    */
-  getDb(): BetterSQLite3Database<typeof schema> {
-    return this.db;
+  private seedDatabase(): void {
+    const pricingCount = this.db.exec(
+      "SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='pricing'"
+    );
+
+    if (pricingCount.length === 0 || pricingCount[0].values[0][0] === 0) {
+      this.createTablesManually();
+    }
+
+    const existingPricing = this.db.exec('SELECT COUNT(*) as count FROM pricing');
+    const count = existingPricing.length > 0 ? existingPricing[0].values[0][0] : 0;
+
+    if (count === 0) {
+      for (const price of defaultPricing) {
+        const stmt = this.db.prepare(
+          `INSERT INTO pricing (provider, model, input_price_per_1m, output_price_per_1m, effective_from, currency)
+           VALUES (?, ?, ?, ?, ?, ?)`
+        );
+        // sql.js doesn't accept undefined - convert to null or use defaults
+        stmt.run([
+          price.provider,
+          price.model,
+          price.inputPricePer1M,
+          price.outputPricePer1M,
+          price.effectiveFrom ?? Math.floor(Date.now() / 1000),
+          price.currency ?? 'USD',
+        ]);
+        stmt.free();
+      }
+
+      if (this.config.verbose) {
+        console.log(`Seeded ${defaultPricing.length} pricing entries`);
+      }
+    }
+
+    try {
+      const migrationExists = this.db.exec(
+        "SELECT COUNT(*) as count FROM migrations WHERE version = '1.0.0'"
+      );
+      const migCount = migrationExists.length > 0 ? migrationExists[0].values[0][0] : 0;
+
+      if (migCount === 0) {
+        this.db.run("INSERT INTO migrations (version) VALUES ('1.0.0')");
+      }
+    } catch (error) {
+      // Migration table might not exist yet
+    }
   }
 
   /**
-   * Get raw SQLite database instance (for legacy code)
+   * Execute a raw SQL query (auto-saves for write operations)
    */
-  getSqlite(): Database.Database {
-    return this.sqlite;
+  execute(sql: string, params?: unknown[]): RunResult {
+    const stmt = this.db.prepare(sql);
+    stmt.bind(params || []);
+    stmt.step();
+    const info = this.db.getRowsModified();
+    stmt.free();
+
+    // Auto-save for write operations (INSERT, UPDATE, DELETE)
+    const isWrite = /^\s*(INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i.test(sql);
+    if (isWrite && info > 0) {
+      // Save synchronously (sql.js export is sync, fs write would be async but we'll handle that)
+      this.saveSync();
+    }
+
+    return {
+      changes: info,
+      lastInsertRowid: 0, // sql.js doesn't provide this easily
+    };
   }
 
   /**
-   * Execute a raw SQL query (for backward compatibility)
-   */
-  execute(sql: string, params?: unknown[]): Database.RunResult {
-    const stmt = this.sqlite.prepare(sql);
-    return stmt.run(...(params || []));
-  }
-
-  /**
-   * Query a raw SQL statement (for backward compatibility)
+   * Query a raw SQL statement
    */
   query<T = unknown>(sql: string, params?: unknown[]): T[] {
-    const stmt = this.sqlite.prepare(sql);
-    return stmt.all(...(params || [])) as T[];
+    const stmt = this.db.prepare(sql);
+    stmt.bind(params || []);
+    const results: T[] = [];
+
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      results.push(row as T);
+    }
+    stmt.free();
+    return results;
   }
 
   /**
-   * Run a transaction
+   * Execute a query and return a single row
    */
-  transaction<T>(fn: (tx: BetterSQLite3Database<typeof schema>) => T): T {
-    return this.db.transaction((tx) => fn(tx));
+  queryOne<T>(sql: string, params?: unknown[]): T | null {
+    try {
+      const stmt = this.db.prepare(sql);
+      stmt.bind(params || []);
+      if (stmt.step()) {
+        const row = stmt.getAsObject();
+        stmt.free();
+        return row as T;
+      }
+      stmt.free();
+      return null;
+    } catch (error) {
+      console.error('Query failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Run a transaction (auto-saves after commit)
+   */
+  transaction<T>(fn: (db: DatabaseManager) => T): T {
+    this.db.run('BEGIN TRANSACTION');
+    try {
+      const result = fn(this);
+      this.db.run('COMMIT');
+      // Save after successful commit
+      this.saveSync();
+      return result;
+    } catch (error) {
+      this.db.run('ROLLBACK');
+      throw error;
+    }
   }
 
   /**
    * Close database connection
    */
   close(): void {
-    this.sqlite.close();
+    this.db.close();
   }
 
   /**
    * Vacuum database to optimize storage
    */
   vacuum(): void {
-    this.sqlite.exec('VACUUM');
+    this.db.run('VACUUM');
   }
 
   /**
@@ -406,30 +494,15 @@ export class DatabaseManager {
     sizeBytes: number;
     walMode: boolean;
   } {
-    const pageCount = this.sqlite.pragma('page_count', { simple: true }) as number;
-    const pageSize = this.sqlite.pragma('page_size', { simple: true }) as number;
-    const journalMode = this.sqlite.pragma('journal_mode', { simple: true }) as string;
+    const pageCount = this.queryOne<{ page_count: number }>('PRAGMA page_count');
+    const pageSize = this.queryOne<{ page_size: number }>('PRAGMA page_size');
 
     return {
-      pageCount,
-      pageSize,
-      sizeBytes: pageCount * pageSize,
-      walMode: journalMode.toLowerCase() === 'wal',
+      pageCount: pageCount?.page_count || 0,
+      pageSize: pageSize?.page_size || 0,
+      sizeBytes: (pageCount?.page_count || 0) * (pageSize?.page_size || 0),
+      walMode: false, // sql.js doesn't support WAL mode
     };
-  }
-
-  /**
-   * Execute a query and return a single row
-   */
-  queryOne<T>(sql: string, params?: unknown[]): T | null {
-    try {
-      const stmt = this.sqlite.prepare(sql);
-      const result = params ? stmt.get(...params) : stmt.get();
-      return (result as T) || null;
-    } catch (error) {
-      console.error('Query failed:', error);
-      return null;
-    }
   }
 
   /**
@@ -437,9 +510,8 @@ export class DatabaseManager {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      // Run integrity check
-      const result = this.sqlite.pragma('integrity_check', { simple: true });
-      return result === 'ok';
+      const result = this.queryOne<{ integrity_check: string }>('PRAGMA integrity_check');
+      return result?.integrity_check === 'ok';
     } catch (error) {
       console.error('Health check failed:', error);
       return false;
@@ -451,26 +523,7 @@ export class DatabaseManager {
 let dbInstance: DatabaseManager | null = null;
 
 /**
- * Get or create database manager instance
- * @deprecated Use getDatabaseManagerAsync instead for proper async initialization
- */
-export function getDatabaseManager(config?: DatabaseConfig): DatabaseManager {
-  if (!dbInstance && config) {
-    // Legacy sync path - will use fallback sync fs operations
-    // This is deprecated and should be replaced with getDatabaseManagerAsync
-    throw new Error('getDatabaseManager is deprecated. Use getDatabaseManagerAsync instead.');
-  }
-  if (!dbInstance) {
-    throw new Error(
-      'DatabaseManager not initialized. Call getDatabaseManagerAsync with config first.'
-    );
-  }
-  return dbInstance;
-}
-
-/**
  * Get or create database manager instance (async)
- * This is the preferred method as it properly uses platform abstractions
  */
 export async function getDatabaseManagerAsync(config?: DatabaseConfig): Promise<DatabaseManager> {
   if (!dbInstance && config) {

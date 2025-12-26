@@ -18,7 +18,6 @@ const targets = [
 ];
 
 const externals = [
-  'better-sqlite3',
   'fsevents',
 ];
 

@@ -47,8 +47,6 @@ describe('DatabaseManager', () => {
       const db = await DatabaseManager.create(config);
 
       expect(db).toBeDefined();
-      expect(db.getDb()).toBeDefined();
-      expect(db.getSqlite()).toBeDefined();
 
       // Verify database file was created
       const dbExists = await fs.exists(dbPath);
@@ -179,7 +177,7 @@ describe('DatabaseManager', () => {
       db.close();
     });
 
-    it('should have WAL mode enabled', async () => {
+    it('should have WAL mode disabled (sql.js limitation)', async () => {
       const config: DatabaseConfig = {
         path: dbPath,
         fileSystem: fs,
@@ -189,7 +187,8 @@ describe('DatabaseManager', () => {
       const db = await DatabaseManager.create(config);
 
       const stats = db.getStats();
-      expect(stats.walMode).toBe(true);
+      // sql.js doesn't support WAL mode (in-memory database)
+      expect(stats.walMode).toBe(false);
 
       db.close();
     });

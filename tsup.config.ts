@@ -30,7 +30,6 @@ export default defineConfig([
     minify: false,
     external: [
       // Native modules
-      'better-sqlite3',
       'fsevents',
       // UI libraries
       'ink',
