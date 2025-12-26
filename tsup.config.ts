@@ -15,7 +15,36 @@ export default defineConfig([
     minify: false,
     external: ['react', 'ink'],
   },
-  // Bundled CommonJS build for CLI (npm and pkg)
+  // ESM build for CLI (npm package - can run directly)
+  {
+    entry: ['src/cli.ts'],
+    format: ['esm'],
+    target: 'node18',
+    outDir: 'dist',
+    outExtension: () => ({ js: '.mjs' }),
+    clean: false,
+    sourcemap: true,
+    dts: false,
+    splitting: false,
+    bundle: true,
+    minify: false,
+    external: [
+      // Native modules
+      'better-sqlite3',
+      'fsevents',
+      // UI libraries
+      'ink',
+      'react',
+      'react-dom',
+      'yoga-layout',
+      'ink-spinner',
+      'ink-select-input',
+      'ink-text-input',
+      'ink-table',
+      'react-devtools-core',
+    ],
+  },
+  // Bundled CommonJS build for pkg binaries only
   {
     entry: ['src/cli.ts'],
     format: ['cjs'],
@@ -43,8 +72,7 @@ export default defineConfig([
       // Optional dev tools
       'react-devtools-core',
     ],
-    banner: {
-      js: '#!/usr/bin/env node',
-    },
+    // Don't add shebang - npm adds it automatically based on package.json bin field
+    // pkg also adds it automatically when creating binaries
   },
 ]);

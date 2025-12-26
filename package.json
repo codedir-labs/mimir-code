@@ -4,7 +4,7 @@
   "description": "Platform-agnostic, BYOK AI coding agent CLI",
   "main": "dist/index.js",
   "bin": {
-    "mimir": "dist/cli.cjs"
+    "mimir": "dist/cli.mjs"
   },
   "type": "module",
   "files": [
@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "tsup",
-    "build:binary": "pkg dist/cli.cjs --compress GZip --output dist/binaries/mimir",
+    "build:binary": "pkg dist/cli.cjs --compress GZip --output dist/binaries/mimir-code",
     "test": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",

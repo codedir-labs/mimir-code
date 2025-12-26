@@ -15,20 +15,25 @@ echo -e "${BLUE}Building project...${NC}"
 cd "$ROOT_DIR"
 yarn build
 
+if [ ! -f "dist/cli.mjs" ]; then
+    echo -e "${RED}✗ FAILED${NC} - dist/cli.mjs not found"
+    exit 1
+fi
+
 if [ ! -f "dist/cli.cjs" ]; then
-    echo -e "${RED}✗ FAILED${NC} - dist/cli.cjs not found"
+    echo -e "${RED}✗ FAILED${NC} - dist/cli.cjs not found (needed for pkg)"
     exit 1
 fi
 
 echo -e "${GREEN}✓ Build successful${NC}"
 echo ""
 echo "Testing bundled CLI directly..."
-node dist/cli.cjs --version
+node dist/cli.mjs --version
 
 echo ""
 echo -e "${GREEN}✓ All checks passed!${NC}"
 echo ""
-echo "Bundle size:"
-ls -lh dist/cli.cjs
+echo "Bundle sizes:"
+ls -lh dist/cli.mjs dist/cli.cjs
 echo ""
 echo "To test installation: yarn test:install"

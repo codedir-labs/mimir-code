@@ -179,7 +179,21 @@ fi
 
 ## Build Architecture
 
-The CLI uses a **hybrid bundling approach**:
+The CLI uses a **dual-build strategy**:
+
+### Two Builds, Different Purposes:
+
+1. **ESM Build (`dist/cli.mjs`)** - For npm package distribution
+   - Can run directly with Node.js: `node dist/cli.mjs`
+   - Handles ESM modules with top-level await (ink, react)
+   - Used when users install via npm
+   - Smaller bundle size (~200KB)
+
+2. **CJS Build (`dist/cli.cjs`)** - For pkg binaries only
+   - Cannot run directly (ESM compatibility issues)
+   - Used by pkg to create standalone executables
+   - pkg embeds all external dependencies
+   - Slightly larger bundle size (~212KB)
 
 ### What Gets Bundled:
 - ✅ **Your code** - All `src/**/*.ts` files
@@ -191,24 +205,25 @@ The CLI uses a **hybrid bundling approach**:
 - ⚠️ **UI libraries** - `ink`, `react`, `yoga-layout` (use ESM features like top-level await)
 - ⚠️ **React ecosystem** - Can't be bundled into CommonJS
 
-**Why this approach?**
+**Why this dual-build approach?**
 - 🚀 **Fast startup** - Bundled code loads faster
 - 📦 **Smaller size** - Tree-shaking removes unused code
 - ✅ **Compatibility** - ESM/native modules work correctly
 - 🎯 **Best practice** - Used by esbuild, vite, tsx, etc.
+- 💡 **ESM support** - npm users can run the CLI directly without issues
 
-### For npm:
+### For npm (ESM):
 ```
-dist/cli.cjs (bundled)
-  ├─ require('better-sqlite3') → node_modules/better-sqlite3/
-  ├─ require('ink') → node_modules/ink/
-  └─ require('react') → node_modules/react/
+dist/cli.mjs (bundled ESM)
+  ├─ import('better-sqlite3') → node_modules/better-sqlite3/
+  ├─ import('ink') → node_modules/ink/
+  └─ import('react') → node_modules/react/
 ```
 
-### For pkg binaries:
+### For pkg binaries (CJS):
 ```
 mimir-code-linux-x64 (standalone)
-  ├─ Bundled code (embedded)
+  ├─ Bundled code (embedded from cli.cjs)
   ├─ Node.js runtime (embedded)
   └─ Assets (embedded):
       ├─ node_modules/better-sqlite3/
@@ -244,13 +259,18 @@ tar -tzf codedir-mimir-code-0.1.0.tgz
 
 **Test bundled CLI directly:**
 ```bash
-node dist/cli.cjs --version
+# ESM build (for npm)
+node dist/cli.mjs --version
+
+# CJS build (for pkg - may have ESM compatibility issues)
+# Don't run directly, only used by pkg
 ```
 
-**Check bundle size:**
+**Check bundle sizes:**
 ```bash
-ls -lh dist/cli.cjs
-# Should be ~500KB-1MB (without node_modules)
+ls -lh dist/cli.mjs dist/cli.cjs
+# cli.mjs: ~200KB (ESM, for npm)
+# cli.cjs: ~212KB (CJS, for pkg)
 ```
 
 **Test binary locally (after build:binary):**
