@@ -30,27 +30,21 @@ interface RunResult {
 function locateWasmFile(): ArrayBuffer {
   const wasmFileName = 'sql-wasm.wasm';
 
-  // Get the directory of the current module
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-
-  // Detect if running from a compiled Bun binary
-  // In Bun binaries, import.meta.path points to the binary itself
-  const isBunBinary =
-    typeof (globalThis as any).Bun !== 'undefined' && process.argv[0]?.endsWith('.exe');
-  const binaryDir =
-    isBunBinary && process.argv[0] ? dirname(process.argv[0]) : dirname(process.execPath);
+  // Determine the binary directory
+  // For Bun compiled binaries, process.argv[0] is the executable path
+  // For Node.js, use process.execPath
+  const executablePath = process.argv[0] || process.execPath;
+  const binaryDir = dirname(executablePath);
 
   // Location 1: resources directory (for production binaries)
   // Standalone binaries will have: /path/to/mimir (executable) + /path/to/resources/sql-wasm.wasm
   const resourcesPaths = [
-    // Next to the binary (same directory)
+    // Next to the binary (same directory) - most common for our installers
     join(binaryDir, 'resources', wasmFileName),
-    // Current working directory
+    // For development/testing
     join(process.cwd(), 'resources', wasmFileName),
-    // Parent directory of binary
+    // Parent directory of binary (for some install layouts)
     join(binaryDir, '..', 'resources', wasmFileName),
-    // For npm global installs
-    join(binaryDir, '..', '..', 'resources', wasmFileName),
   ];
 
   for (const resourcePath of resourcesPaths) {
@@ -61,7 +55,8 @@ function locateWasmFile(): ArrayBuffer {
     }
   }
 
-  // Location 2: node_modules (for development)
+  // Location 2: node_modules (for development only)
+  const currentDir = dirname(fileURLToPath(import.meta.url));
   const nodeModulesPaths = [
     join(currentDir, '..', '..', 'node_modules', 'sql.js', 'dist', wasmFileName),
     join(process.cwd(), 'node_modules', 'sql.js', 'dist', wasmFileName),
@@ -79,10 +74,10 @@ function locateWasmFile(): ArrayBuffer {
   const diagnostics = [
     `process.argv[0]: ${process.argv[0]}`,
     `process.execPath: ${process.execPath}`,
+    `executablePath: ${executablePath}`,
     `binaryDir: ${binaryDir}`,
     `currentDir: ${currentDir}`,
     `process.cwd(): ${process.cwd()}`,
-    `isBunBinary: ${isBunBinary}`,
   ];
 
   throw new Error(

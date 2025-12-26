@@ -338,12 +338,36 @@ verify_installation() {
     }
 
     # Run init with quiet flag (output to variable to capture errors)
+    print_info "Running: mimir init --no-interactive --quiet"
+    print_info "Working directory: $(pwd)"
+    print_info "PATH: $PATH"
+    print_info "Which mimir: $(which mimir)"
+
     init_output=$(timeout 30s mimir init --no-interactive --quiet 2>&1)
     init_exit_code=$?
 
     if [ $init_exit_code -ne 0 ]; then
         print_error "mimir init failed with exit code $init_exit_code"
+        echo ""
+        echo "=== Full error output ==="
         echo "$init_output"
+        echo "========================"
+        echo ""
+
+        # Show binary info for debugging
+        print_info "Binary location: $(which mimir)"
+        print_info "Binary permissions: $(ls -l $(which mimir))"
+
+        # Check if resources directory exists
+        local bin_dir_actual=$(dirname "$(which mimir)")
+        if [ -d "${bin_dir_actual}/resources" ]; then
+            print_info "Resources directory found at: ${bin_dir_actual}/resources"
+            print_info "Resources contents:"
+            ls -la "${bin_dir_actual}/resources"
+        else
+            print_error "Resources directory NOT found at: ${bin_dir_actual}/resources"
+        fi
+
         cd "$original_dir"
         rm -rf "$test_dir"
         return 1
