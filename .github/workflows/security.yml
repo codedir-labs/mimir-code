@@ -1,8 +1,6 @@
 name: Security Checks
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
     branches: [main, develop]
   schedule:
@@ -69,12 +67,14 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    # Only run on pull requests
-    if: github.event_name == 'pull_request'
+    # Run on pull requests and when called from release workflow
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_call'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for dependency review
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
@@ -122,7 +122,8 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # For workflow_call, scan the entire codebase; for PRs, scan the diff
+          base: ${{ github.event.pull_request.base.sha || (github.event_name == 'workflow_call' && 'HEAD~1' || github.event.before) }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
           extra_args: --only-verified
 
@@ -159,7 +160,7 @@ jobs:
     name: Security Summary
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [npm-audit, codeql-analysis, secret-scanning, license-check]
+    needs: [npm-audit, dependency-review, codeql-analysis, secret-scanning, license-check]
     if: always()
 
     steps:
@@ -168,12 +169,13 @@ jobs:
           echo "## Security Check Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- NPM Audit: ${{ needs.npm-audit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependency Review: ${{ needs.dependency-review.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- CodeQL: ${{ needs.codeql-analysis.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Secret Scanning: ${{ needs.secret-scanning.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- License Check: ${{ needs.license-check.result }}" >> $GITHUB_STEP_SUMMARY
 
           # Fail if any critical check failed
-          if [[ "${{ needs.npm-audit.result }}" == "failure" ]] || [[ "${{ needs.codeql-analysis.result }}" == "failure" ]] || [[ "${{ needs.secret-scanning.result }}" == "failure" ]]; then
+          if [[ "${{ needs.npm-audit.result }}" == "failure" ]] || [[ "${{ needs.dependency-review.result }}" == "failure" ]] || [[ "${{ needs.codeql-analysis.result }}" == "failure" ]] || [[ "${{ needs.secret-scanning.result }}" == "failure" ]]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "❌ Security checks failed" >> $GITHUB_STEP_SUMMARY
             exit 1
