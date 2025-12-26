@@ -6,6 +6,12 @@ on:
       - main
   workflow_dispatch:
 
+# Prevent multiple concurrent releases - only one release workflow should run at a time
+# If a new push happens during a release, cancel the old one and start the new one
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel releases - queue them instead for safety
+
 permissions:
   contents: write
   packages: write

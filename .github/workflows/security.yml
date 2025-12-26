@@ -12,8 +12,10 @@ on:
   workflow_call:
 
 # Cancel in-progress runs when a new workflow with the same group name is triggered
+# Use a static prefix unique to this workflow to prevent conflicts when called via workflow_call
+# This ensures each workflow has its own concurrency group independent of the caller
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: security-checks-workflow-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -93,13 +95,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
           queries: security-extended
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: '/language:javascript-typescript'
 

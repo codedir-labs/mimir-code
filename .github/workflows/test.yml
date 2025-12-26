@@ -8,8 +8,10 @@ on:
   workflow_call:
 
 # Cancel in-progress runs when a new workflow with the same group name is triggered
+# Use a static prefix unique to this workflow to prevent conflicts when called via workflow_call
+# This ensures each workflow has its own concurrency group independent of the caller
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: test-suite-workflow-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
