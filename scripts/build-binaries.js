@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-/**
- * Build script for creating cross-platform binaries using Bun
- *
- * This script builds standalone executables for all supported platforms.
- * It requires Bun to be installed and uses Bun's built-in cross-compilation.
- */
 
 import { execSync } from 'child_process';
 import { mkdirSync, existsSync } from 'fs';
@@ -16,7 +10,6 @@ const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 const binariesDir = join(rootDir, 'dist', 'binaries');
 
-// Target platforms for Bun compile
 const targets = [
   { platform: 'linux', arch: 'x64', target: 'bun-linux-x64', output: 'mimir-code-linux-amd64' },
   { platform: 'darwin', arch: 'x64', target: 'bun-darwin-x64', output: 'mimir-code-darwin-amd64' },
@@ -24,37 +17,40 @@ const targets = [
   { platform: 'windows', arch: 'x64', target: 'bun-windows-x64', output: 'mimir-code-windows-amd64.exe' },
 ];
 
-console.log('🔨 Building Mimir Code binaries with Bun...\n');
+const externals = [
+  'better-sqlite3',
+  'fsevents',
+];
 
-// Create binaries directory
+console.log('Building binaries...\n');
+
 if (!existsSync(binariesDir)) {
   mkdirSync(binariesDir, { recursive: true });
-  console.log(`✅ Created ${binariesDir}\n`);
 }
 
-// Build for each target
 for (const { platform, arch, target, output } of targets) {
-  console.log(`📦 Building for ${platform}-${arch} (${target})...`);
+  console.log(`Building for ${platform}-${arch}...`);
 
   const entryPoint = join(rootDir, 'src', 'cli.ts');
   const outputPath = join(binariesDir, output);
+  const externalFlags = externals.map(pkg => `--external ${pkg}`).join(' ');
 
   try {
     execSync(
-      `bun build ${entryPoint} --compile --target=${target} --outfile=${outputPath}`,
+      `bun build ${entryPoint} --compile --target=${target} --minify --sourcemap=external ${externalFlags} --outfile=${outputPath}`,
       {
         cwd: rootDir,
         stdio: 'inherit',
         env: { ...process.env }
       }
     );
-    console.log(`✅ Built: ${output}\n`);
+    console.log(`Built: ${output}\n`);
   } catch (error) {
-    console.error(`❌ Failed to build ${output}`);
+    console.error(`Failed to build ${output}`);
     console.error(error.message);
     process.exit(1);
   }
 }
 
-console.log('🎉 All binaries built successfully!');
-console.log(`\nBinaries location: ${binariesDir}`);
+console.log('All binaries built successfully!');
+console.log(`Location: ${binariesDir}`);

@@ -101,7 +101,7 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Setup Node.js (for build script)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -110,16 +110,16 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build TypeScript (for npm distribution)
+      - name: Build TypeScript
         run: yarn build
 
       - name: Clean old binaries
         run: rm -rf dist/binaries && mkdir -p dist/binaries
 
-      - name: Build standalone binaries (all platforms with Bun)
+      - name: Build standalone binaries
         run: yarn build:binary:all
 
-      - name: List Bun output
+      - name: List binary output
         run: ls -lah dist/binaries/ || echo "No binaries directory found"
 
       - name: Verify binaries were built
@@ -135,23 +135,20 @@ jobs:
 
           for binary in "${EXPECTED_BINARIES[@]}"; do
             if [ -f "dist/binaries/$binary" ]; then
-              echo "✅ Found: $binary"
+              echo "Found: $binary"
             else
-              echo "❌ Missing: $binary"
+              echo "Missing: $binary"
               MISSING_COUNT=$((MISSING_COUNT + 1))
             fi
           done
 
           if [ $MISSING_COUNT -gt 0 ]; then
-            echo ""
-            echo "❌ Error: $MISSING_COUNT binary(ies) missing!"
+            echo "Error: $MISSING_COUNT binary(ies) missing"
             exit 1
           fi
 
           echo ""
-          echo "✅ All binaries built successfully!"
-          echo ""
-          echo "Final binaries:"
+          echo "All binaries built successfully"
           ls -lah dist/binaries/
 
       - name: Get version from package.json
