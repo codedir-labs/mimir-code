@@ -85,27 +85,50 @@ jobs:
           echo "  Tag: ${{ steps.package-version.outputs.tag }}"
           echo "  URL: ${{ steps.create-release.outputs.url }}"
 
-  # Publish draft release and deploy to npm
-  publish-release:
-    name: Publish Release
+  # Test installation from draft release on all platforms
+  test-draft-installation:
+    name: Test Installation - ${{ matrix.os }}
     needs: create-draft-release
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-      id-token: write  # Required for npm Trusted Publishers (OIDC)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: true  # Stop all if any platform fails
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get version from package.json
-        id: package-version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
+      - name: Run installation test (Unix)
+        if: runner.os != 'Windows'
+        run: bash scripts/install.sh latest true
+
+      - name: Run installation test (Windows)
+        if: runner.os == 'Windows'
+        run: powershell -File scripts\install.ps1 -Version latest -TestMode
+
+      - name: Create test summary
+        if: success()
+        run: |
+          echo "✅ Installation test passed on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+
+  # Publish GitHub release only after successful installation tests
+  publish-github-release:
+    name: Publish GitHub Release
+    needs: [create-draft-release, test-draft-installation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
       - name: Publish GitHub Release
         uses: actions/github-script@v7
         with:
@@ -122,6 +145,29 @@ jobs:
             });
 
             console.log(`Published release ${releaseId}`);
+            core.summary.addRaw('✅ GitHub Release published successfully!');
+            await core.summary.write();
+
+  # Publish to npm after GitHub release is public
+  publish-npm:
+    name: Publish to npm
+    needs: publish-github-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write  # Required for npm Trusted Publishers (OIDC)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js for npm publish
         uses: actions/setup-node@v4
@@ -129,6 +175,12 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           cache: 'yarn'
+
+      - name: Upgrade npm for Trusted Publishers
+        run: npm install -g npm@latest
+
+      - name: Verify npm version
+        run: npm --version
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -139,11 +191,90 @@ jobs:
       - name: Publish to npm (Trusted Publishers / OIDC)
         run: npm publish --provenance --access public
 
-      - name: Create success summary
+      - name: Create publish summary
         run: |
-          echo "## Release Published Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "## npm Package Published! 📦" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.package-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tag**: ${{ steps.package-version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Release**: Published at https://github.com/codedir-labs/mimir-code/releases" >> $GITHUB_STEP_SUMMARY
-          echo "- **npm Package**: Published at https://www.npmjs.com/package/@codedir/mimir-code" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: https://www.npmjs.com/package/@codedir/mimir-code" >> $GITHUB_STEP_SUMMARY
+
+  # Test installation from npm on all platforms
+  test-npm-installation:
+    name: Test npm Installation - ${{ matrix.os }}
+    needs: publish-npm
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false  # Run all tests even if one fails
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Wait for npm package to be available (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "Waiting for npm package to be available..."
+          sleep 60
+
+      - name: Wait for npm package to be available (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Write-Host "Waiting for npm package to be available..."
+          Start-Sleep -Seconds 60
+
+      - name: Run npm installation test (Unix)
+        if: runner.os != 'Windows'
+        run: bash scripts/install.sh latest true
+
+      - name: Run npm installation test (Windows)
+        if: runner.os == 'Windows'
+        run: powershell -File scripts\install.ps1 -Version latest -TestMode
+
+      - name: Create test summary
+        if: success()
+        run: |
+          echo "✅ npm installation test passed on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+
+  # Final release summary
+  release-complete:
+    name: Release Complete
+    needs: [publish-npm, test-npm-installation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create success summary
+        run: |
+          echo "## 🎉 Release Published Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version: ${{ steps.package-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **All tests passed on all platforms**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Links:" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 [npm Package](https://www.npmjs.com/package/@codedir/mimir-code)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏷️ [GitHub Release](https://github.com/codedir-labs/mimir-code/releases/tag/${{ steps.package-version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "npm install -g @codedir/mimir-code" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

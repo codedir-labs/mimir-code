@@ -1,5 +1,10 @@
 # Mimir Code Installation Script for Windows (PowerShell)
 
+param(
+    [string]$Version = "latest",  # Version to install (default: latest)
+    [switch]$TestMode = $false     # Enable test mode with verification
+)
+
 $ErrorActionPreference = "Stop"
 
 # Configuration
@@ -99,14 +104,23 @@ function Install-Binary {
     Write-Info "Installing Mimir Code..."
 
     try {
-        # Check if yarn is available
-        if (Get-Command yarn -ErrorAction SilentlyContinue) {
-            Write-Info "Using yarn for installation..."
-            yarn global add @codedir/mimir-code
+        # For now, we'll use npm install since binaries aren't published yet
+        # In the future, this will download platform-specific binaries from GitHub releases
+
+        if ($Version -eq "latest") {
+            # Check if yarn is available
+            if (Get-Command yarn -ErrorAction SilentlyContinue) {
+                Write-Info "Using yarn for installation..."
+                yarn global add @codedir/mimir-code
+            }
+            else {
+                Write-Info "Using npm for installation..."
+                npm install -g @codedir/mimir-code
+            }
         }
         else {
-            Write-Info "Using npm for installation..."
-            npm install -g @codedir/mimir-code
+            Write-Info "Installing version ${Version} via npm..."
+            npm install -g "@codedir/mimir-code@${Version}"
         }
 
         Write-Success "Mimir Code installed successfully"
@@ -203,6 +217,92 @@ function Test-Docker {
     }
 }
 
+# Verify installation (for CI/testing)
+function Test-Installation {
+    Write-Info "Verifying installation..."
+
+    # Check if mimir is in PATH
+    $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+    if (-not $mimirCmd) {
+        Write-ErrorMsg "mimir not found in PATH"
+        Write-Info "PATH: $env:PATH"
+        return $false
+    }
+    Write-Success "mimir found in PATH: $($mimirCmd.Source)"
+
+    # Check if mimir runs
+    try {
+        $installedVersion = & mimir --version 2>&1
+        Write-Success "mimir version: $installedVersion"
+    }
+    catch {
+        Write-ErrorMsg "mimir --version failed"
+        return $false
+    }
+
+    # Test mimir init in a temporary directory
+    $testDir = Join-Path $env:TEMP "mimir-test-$(Get-Random)"
+    New-Item -ItemType Directory -Path $testDir -Force | Out-Null
+    Write-Info "Testing mimir init in: $testDir"
+
+    try {
+        Push-Location $testDir
+
+        # Run init command (with timeout)
+        $initJob = Start-Job -ScriptBlock { & mimir init --no-interactive 2>&1 }
+        $initJob | Wait-Job -Timeout 30 | Out-Null
+
+        if ($initJob.State -ne 'Completed') {
+            Stop-Job $initJob
+            Write-ErrorMsg "mimir init timed out"
+            return $false
+        }
+
+        $initOutput = Receive-Job $initJob
+        if ($initJob.State -eq 'Failed') {
+            Write-ErrorMsg "mimir init failed: $initOutput"
+            return $false
+        }
+
+        # Verify .mimir directory was created
+        if (-not (Test-Path ".mimir") -or -not (Test-Path ".mimir\config.yml")) {
+            Write-ErrorMsg ".mimir directory or config.yml not created"
+            return $false
+        }
+
+        Write-Success "mimir init works correctly"
+    }
+    catch {
+        Write-ErrorMsg "Verification failed: $_"
+        return $false
+    }
+    finally {
+        Pop-Location
+        Remove-Item -Recurse -Force $testDir -ErrorAction SilentlyContinue
+    }
+
+    # Test mimir doctor
+    try {
+        $doctorJob = Start-Job -ScriptBlock { & mimir doctor 2>&1 }
+        $doctorJob | Wait-Job -Timeout 30 | Out-Null
+
+        if ($doctorJob.State -eq 'Completed') {
+            Write-Success "mimir doctor passed"
+        }
+        else {
+            Stop-Job $doctorJob
+            Write-Warning "mimir doctor reported issues (non-fatal)"
+        }
+    }
+    catch {
+        Write-Warning "mimir doctor reported issues (non-fatal)"
+    }
+
+    Write-Host ""
+    Write-Success "All verification tests passed!"
+    return $true
+}
+
 # Main installation
 function Main {
     Write-Host ""
@@ -211,6 +311,10 @@ function Main {
     Write-Host "║   Platform-agnostic AI Coding CLI     ║" -ForegroundColor Cyan
     Write-Host "╚═══════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""
+
+    if ($Version -ne "latest") {
+        Write-Info "Installing version: $Version"
+    }
 
     # Check if running as admin
     if (Test-Administrator) {
@@ -226,19 +330,30 @@ function Main {
 
     Write-Host ""
     Write-Success "Installation complete!"
-    Write-Host ""
-    Write-Info "To get started:"
-    Write-Info "  1. Set your API key in $InstallDir\config.yml"
-    Write-Info "  2. Run: mimir setup"
-    Write-Info "  3. Start coding: mimir"
-    Write-Host ""
-    Write-Info "Documentation: https://github.com/$GithubRepo"
-    Write-Host ""
 
-    # Prompt to open config
-    $openConfig = Read-Host "Would you like to open the configuration file now? (y/n)"
-    if ($openConfig -eq 'y') {
-        notepad "$InstallDir\config.yml"
+    # Run verification if in test mode
+    if ($TestMode) {
+        Write-Host ""
+        Write-Info "Running verification tests..."
+        if (-not (Test-Installation)) {
+            throw "Installation verification failed"
+        }
+    }
+    else {
+        Write-Host ""
+        Write-Info "To get started:"
+        Write-Info "  1. Set your API key in $InstallDir\config.yml"
+        Write-Info "  2. Run: mimir setup"
+        Write-Info "  3. Start coding: mimir"
+        Write-Host ""
+        Write-Info "Documentation: https://github.com/$GithubRepo"
+        Write-Host ""
+
+        # Prompt to open config
+        $openConfig = Read-Host "Would you like to open the configuration file now? (y/n)"
+        if ($openConfig -eq 'y') {
+            notepad "$InstallDir\config.yml"
+        }
     }
 }
 

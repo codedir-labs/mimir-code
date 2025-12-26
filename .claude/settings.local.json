@@ -27,7 +27,8 @@
       "WebFetch(domain:fishshell.com)",
       "WebFetch(domain:docs.continue.dev)",
       "Bash(npx tsc:*)",
-      "WebFetch(domain:nextra.site)"
+      "WebFetch(domain:nextra.site)",
+      "WebFetch(domain:docs.npmjs.com)"
     ]
   }
 }

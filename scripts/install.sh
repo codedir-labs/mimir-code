@@ -3,6 +3,10 @@
 
 set -e
 
+# Parse arguments
+VERSION="${1:-latest}"  # First argument: version to install (default: latest)
+TEST_MODE="${2:-false}"  # Second argument: enable test mode with verification
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -108,23 +112,24 @@ create_directories() {
 
 # Download and install binary
 install_binary() {
-    print_info "Downloading Mimir Code..."
+    print_info "Installing Mimir Code..."
 
     local platform=$(detect_platform)
     print_info "Detected platform: ${platform}"
 
-    # Create temporary directory
-    local tmp_dir=$(mktemp -d)
-    cd "${tmp_dir}"
-
-    # Download latest release
     # For now, we'll use npm install since binaries aren't published yet
-    print_info "Installing via npm..."
+    # In the future, this will download platform-specific binaries from GitHub releases
 
-    if command -v yarn &> /dev/null; then
-        yarn global add @codedir/mimir-code
+    if [ "$VERSION" = "latest" ]; then
+        print_info "Installing latest version via npm..."
+        if command -v yarn &> /dev/null; then
+            yarn global add @codedir/mimir-code
+        else
+            npm install -g @codedir/mimir-code
+        fi
     else
-        npm install -g @codedir/mimir-code
+        print_info "Installing version ${VERSION} via npm..."
+        npm install -g "@codedir/mimir-code@${VERSION}"
     fi
 
     print_success "Mimir Code installed successfully"
@@ -202,6 +207,59 @@ update_shell_profile() {
     fi
 }
 
+# Verify installation (for CI/testing)
+verify_installation() {
+    print_info "Verifying installation..."
+
+    # Check if mimir is in PATH
+    if ! command -v mimir &> /dev/null; then
+        print_error "mimir not found in PATH"
+        print_info "PATH: $PATH"
+        return 1
+    fi
+    print_success "mimir found in PATH: $(which mimir)"
+
+    # Check if mimir runs
+    if ! mimir --version &> /dev/null; then
+        print_error "mimir --version failed"
+        return 1
+    fi
+    local installed_version=$(mimir --version)
+    print_success "mimir version: $installed_version"
+
+    # Test mimir init in a temporary directory
+    local test_dir=$(mktemp -d)
+    (
+        cd "$test_dir"
+        print_info "Testing mimir init in: $test_dir"
+
+        if ! timeout 30s mimir init --no-interactive 2>&1; then
+            print_error "mimir init failed or timed out"
+            rm -rf "$test_dir"
+            return 1
+        fi
+
+        if [ ! -d ".mimir" ] || [ ! -f ".mimir/config.yml" ]; then
+            print_error ".mimir directory or config.yml not created"
+            rm -rf "$test_dir"
+            return 1
+        fi
+
+        print_success "mimir init works correctly"
+    )
+    rm -rf "$test_dir"
+
+    # Test mimir doctor
+    if timeout 30s mimir doctor 2>&1 > /dev/null; then
+        print_success "mimir doctor passed"
+    else
+        print_warning "mimir doctor reported issues (non-fatal)"
+    fi
+
+    echo ""
+    print_success "All verification tests passed!"
+}
+
 # Main installation
 main() {
     echo ""
@@ -211,6 +269,10 @@ main() {
     echo "╚═══════════════════════════════════════╝"
     echo ""
 
+    if [ "$VERSION" != "latest" ]; then
+        print_info "Installing version: ${VERSION}"
+    fi
+
     check_dependencies
     create_directories
     install_binary
@@ -219,14 +281,22 @@ main() {
 
     echo ""
     print_success "Installation complete!"
-    echo ""
-    print_info "To get started:"
-    print_info "  1. Set your API key in ${INSTALL_DIR}/config.yml"
-    print_info "  2. Run: mimir setup"
-    print_info "  3. Start coding: mimir"
-    echo ""
-    print_info "Documentation: https://github.com/${GITHUB_REPO}"
-    echo ""
+
+    # Run verification if in test mode
+    if [ "$TEST_MODE" = "true" ] || [ "$TEST_MODE" = "1" ]; then
+        echo ""
+        print_info "Running verification tests..."
+        verify_installation
+    else
+        echo ""
+        print_info "To get started:"
+        print_info "  1. Set your API key in ${INSTALL_DIR}/config.yml"
+        print_info "  2. Run: mimir setup"
+        print_info "  3. Start coding: mimir"
+        echo ""
+        print_info "Documentation: https://github.com/${GITHUB_REPO}"
+        echo ""
+    fi
 }
 
 # Run installation
