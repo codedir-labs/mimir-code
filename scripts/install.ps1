@@ -406,11 +406,6 @@ function Test-Installation {
     try {
         Push-Location $testDir
 
-        # Show diagnostic info
-        Write-Info "Running: mimir init --no-interactive --quiet"
-        Write-Info "Working directory: $(Get-Location)"
-        Write-Info "Which mimir: $(Get-Command mimir -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)"
-
         # Run init command (with timeout and quiet flag)
         $initJob = Start-Job -ScriptBlock {
             $output = & mimir init --no-interactive --quiet 2>&1
@@ -436,29 +431,10 @@ function Test-Installation {
 
         if ($initJob.State -eq 'Failed' -or $null -eq $exitCode -or $exitCode -ne 0) {
             Write-ErrorMsg "mimir init failed with exit code $exitCode"
-            Write-Host ""
-            Write-Host "=== Full error output ===" -ForegroundColor Yellow
-            Write-Host $initOutput
-            Write-Host "========================" -ForegroundColor Yellow
-            Write-Host ""
-
-            # Show binary info for debugging
-            $mimirPath = (Get-Command mimir -ErrorAction SilentlyContinue).Source
-            if ($mimirPath) {
-                Write-Info "Binary location: $mimirPath"
-
-                # Check if resources directory exists
-                $binDir = Split-Path -Parent $mimirPath
-                $resourcesDir = Join-Path $binDir "resources"
-                if (Test-Path $resourcesDir) {
-                    Write-Info "Resources directory found at: $resourcesDir"
-                    Write-Info "Resources contents:"
-                    Get-ChildItem $resourcesDir | Format-Table -AutoSize | Out-String
-                } else {
-                    Write-ErrorMsg "Resources directory NOT found at: $resourcesDir"
-                }
+            if ($initOutput) {
+                Write-Host ""
+                Write-Host $initOutput
             }
-
             return $false
         }
 

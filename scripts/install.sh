@@ -338,76 +338,33 @@ verify_installation() {
     }
 
     # Run init with quiet flag (output to variable to capture errors)
-    print_info "Running: mimir init --no-interactive --quiet"
-    print_info "Working directory: $(pwd)"
-    print_info "PATH: $PATH"
-    print_info "Which mimir: $(which mimir)"
-
-    # Check if binary is executable
     local mimir_path=$(which mimir)
-    if [ -n "$mimir_path" ]; then
-        print_info "Binary permissions: $(ls -l "$mimir_path")"
-        print_info "Binary type: $(file "$mimir_path")"
-    fi
 
     # Check if timeout command exists (not available on macOS by default)
     if command -v timeout &> /dev/null; then
         # Use timeout if available
-        print_info "Using timeout command"
         init_output=$(timeout 30s mimir init --no-interactive --quiet 2>&1)
         init_exit_code=$?
     elif command -v gtimeout &> /dev/null; then
         # Use gtimeout on macOS if coreutils is installed
-        print_info "Using gtimeout command"
         init_output=$(gtimeout 30s mimir init --no-interactive --quiet 2>&1)
         init_exit_code=$?
     else
         # No timeout available - run without it (mostly affects macOS)
-        print_info "timeout command not available, running without timeout"
-
-        # Try running with explicit path to avoid any PATH issues
         if [ -n "$mimir_path" ]; then
-            print_info "Running with explicit path: $mimir_path"
-
-            # Capture stdout and stderr separately for better debugging
-            local stderr_file=$(mktemp)
-            init_output=$("$mimir_path" init --no-interactive --quiet 2>"$stderr_file")
+            init_output=$("$mimir_path" init --no-interactive --quiet 2>&1)
             init_exit_code=$?
-            local stderr_content=$(cat "$stderr_file")
-            rm -f "$stderr_file"
-
-            # Combine output if there's stderr
-            if [ -n "$stderr_content" ]; then
-                init_output="$init_output"$'\n'"STDERR: $stderr_content"
-            fi
         else
             init_output=$(mimir init --no-interactive --quiet 2>&1)
             init_exit_code=$?
         fi
     fi
 
-    print_info "Exit code: $init_exit_code"
-
     if [ $init_exit_code -ne 0 ]; then
         print_error "mimir init failed with exit code $init_exit_code"
-        echo ""
-        echo "=== Full error output ==="
-        echo "$init_output"
-        echo "========================"
-        echo ""
-
-        # Show binary info for debugging
-        print_info "Binary location: $(which mimir)"
-        print_info "Binary permissions: $(ls -l $(which mimir))"
-
-        # Check if resources directory exists
-        local bin_dir_actual=$(dirname "$(which mimir)")
-        if [ -d "${bin_dir_actual}/resources" ]; then
-            print_info "Resources directory found at: ${bin_dir_actual}/resources"
-            print_info "Resources contents:"
-            ls -la "${bin_dir_actual}/resources"
-        else
-            print_error "Resources directory NOT found at: ${bin_dir_actual}/resources"
+        if [ -n "$init_output" ]; then
+            echo ""
+            echo "$init_output"
         fi
 
         cd "$original_dir"

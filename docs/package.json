@@ -1,6 +1,6 @@
 {
   "name": "mimir-docs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Documentation for Mimir",
   "private": true,
   "type": "module",
