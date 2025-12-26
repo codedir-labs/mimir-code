@@ -1,7 +1,9 @@
-#!/usr/bin/env node
-
 /**
  * Mimir CLI entry point
+ *
+ * Note: Shebang is NOT included in source code.
+ * - npm adds it automatically based on package.json bin field
+ * - pkg adds it automatically when creating binaries
  */
 
 import { Command } from 'commander';

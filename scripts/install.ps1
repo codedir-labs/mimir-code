@@ -107,63 +107,67 @@ function Install-Binary {
         $platform = Get-Platform
         Write-Info "Detected platform: $platform"
 
-        # Check if we should install from GitHub release (binaries)
-        $useGitHubRelease = $false
+        # Determine release tag
         $releaseTag = $null
-
-        # If Version starts with 'v' or is a specific version tag, try GitHub release first
         if ($Version -match '^v\d+\.\d+\.\d+') {
-            $useGitHubRelease = $true
             $releaseTag = $Version
         }
         elseif ($Version -match '^\d+\.\d+\.\d+') {
-            $useGitHubRelease = $true
             $releaseTag = "v$Version"
         }
-
-        # Try to download from GitHub release if applicable
-        if ($useGitHubRelease) {
-            Write-Info "Attempting to download from GitHub release ${releaseTag}..."
-
-            $binaryName = "mimir-code-${platform}.exe"
-            $downloadUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/${binaryName}"
-            $binPath = "$env:USERPROFILE\.local\bin"
-            $targetBinary = Join-Path $binPath "mimir.exe"
-
-            # Create directory if it doesn't exist
-            if (-not (Test-Path $binPath)) {
-                New-Item -ItemType Directory -Path $binPath -Force | Out-Null
-            }
-
+        else {
+            # For 'latest' or other non-version strings, fetch latest release
+            Write-Info "Fetching latest release tag..."
             try {
-                # Try to download the binary
-                Invoke-WebRequest -Uri $downloadUrl -OutFile $targetBinary -ErrorAction Stop
-                Write-Success "Mimir Code installed from GitHub release"
-                return
+                $latestUrl = "https://api.github.com/repos/${GithubRepo}/releases/latest"
+                $response = Invoke-RestMethod -Uri $latestUrl -ErrorAction Stop
+                $releaseTag = $response.tag_name
             }
             catch {
-                Write-Warning "Binary not found in GitHub release, falling back to npm..."
+                Write-ErrorMsg "Failed to fetch latest release tag"
+                Write-Host ""
+                Write-Host "Please try installing via npm instead:" -ForegroundColor Yellow
+                Write-Host "  npm install -g @codedir/mimir-code" -ForegroundColor White
+                Write-Host ""
+                Write-Host "If this issue persists, please report it:" -ForegroundColor Yellow
+                Write-Host "  https://github.com/${GithubRepo}/issues" -ForegroundColor White
+                exit 1
             }
         }
 
-        # Install from npm (fallback or default for 'latest')
-        if ($Version -eq "latest") {
-            # Check if yarn is available
-            if (Get-Command yarn -ErrorAction SilentlyContinue) {
-                Write-Info "Using yarn for installation..."
-                yarn global add @codedir/mimir-code
-            }
-            else {
-                Write-Info "Using npm for installation..."
-                npm install -g @codedir/mimir-code
-            }
-        }
-        else {
-            Write-Info "Installing version ${Version} via npm..."
-            npm install -g "@codedir/mimir-code@${Version}"
+        Write-Info "Downloading from GitHub release ${releaseTag}..."
+
+        $binaryName = "mimir-code-${platform}.exe"
+        $downloadUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/${binaryName}"
+        $binPath = "$env:USERPROFILE\.local\bin"
+        $targetBinary = Join-Path $binPath "mimir.exe"
+
+        # Create directory if it doesn't exist
+        if (-not (Test-Path $binPath)) {
+            New-Item -ItemType Directory -Path $binPath -Force | Out-Null
         }
 
-        Write-Success "Mimir Code installed successfully"
+        # Try to download the binary
+        try {
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $targetBinary -ErrorAction Stop
+            Write-Success "Mimir Code installed from GitHub release"
+            return
+        }
+        catch {
+            # Installation failed
+            Write-ErrorMsg "Failed to download binary from GitHub release"
+            Write-Host "URL: $downloadUrl" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "Please try installing via npm instead:" -ForegroundColor Yellow
+            Write-Host "  npm install -g @codedir/mimir-code" -ForegroundColor White
+            Write-Host ""
+            Write-Host "Or install a specific version:" -ForegroundColor Yellow
+            Write-Host "  npm install -g @codedir/mimir-code@0.1.0" -ForegroundColor White
+            Write-Host ""
+            Write-Host "If this issue persists, please report it:" -ForegroundColor Yellow
+            Write-Host "  https://github.com/${GithubRepo}/issues" -ForegroundColor White
+            exit 1
+        }
     }
     catch {
         $errorMessage = $_.Exception.Message

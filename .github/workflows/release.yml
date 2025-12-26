@@ -181,18 +181,14 @@ jobs:
 
       - name: Test installation (Unix)
         if: matrix.shell == 'bash'
-        env:
-          INSTALL_VERSION: ${{ steps.package-version.outputs.tag }}
-          TEST_MODE: "true"
         run: |
           # Test the curl | bash installation method
-          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash -s -- "$INSTALL_VERSION" "$TEST_MODE"
+          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash -s -- "${{ steps.package-version.outputs.tag }}" "true"
 
       - name: Test installation (Windows)
         if: matrix.shell == 'pwsh'
         run: |
           # Test the iwr | iex installation method
-          # Download the script and execute it with parameters
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1" -OutFile "$env:TEMP\install.ps1"
           & "$env:TEMP\install.ps1" -Version "${{ steps.package-version.outputs.tag }}" -TestMode
           Remove-Item "$env:TEMP\install.ps1"
