@@ -74,5 +74,22 @@ for (const { platform, arch, target, output } of targets) {
   }
 }
 
-console.log('All binaries built successfully!');
+// Copy WASM file to binaries directory for GitHub release
+console.log('Copying WASM file to binaries directory for release...');
+const wasmReleaseSource = join(resourcesDir, 'sql-wasm.wasm');
+const wasmReleaseDest = join(binariesDir, 'sql-wasm.wasm');
+
+try {
+  copyFileSync(wasmReleaseSource, wasmReleaseDest);
+  console.log(`✅ Copied sql-wasm.wasm to binaries directory for GitHub release`);
+} catch (error) {
+  console.error('Failed to copy WASM file for release');
+  console.error(error.message);
+}
+
+console.log('\nAll binaries built successfully!');
 console.log(`Location: ${binariesDir}`);
+console.log('\nFor GitHub release, upload these files:');
+targets.forEach(({ output }) => console.log(`  - ${output}`));
+console.log('  - sql-wasm.wasm');
+console.log('  - resources/ directory (optional, for manual installations)');

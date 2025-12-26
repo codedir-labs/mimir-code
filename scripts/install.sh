@@ -166,6 +166,30 @@ install_binary() {
     if [ "$download_success" = true ]; then
         chmod +x "${tmp_binary}"
         print_success "Mimir Code binary installed from GitHub release"
+
+        # Download WASM file to resources directory
+        print_info "Downloading WASM resources..."
+        mkdir -p "${BIN_DIR}/resources"
+        local wasm_url="https://github.com/${GITHUB_REPO}/releases/download/${release_tag}/sql-wasm.wasm"
+        local wasm_path="${BIN_DIR}/resources/sql-wasm.wasm"
+
+        local wasm_success=false
+        if command -v curl &> /dev/null; then
+            if curl -L -f -o "${wasm_path}" "${wasm_url}" 2>/dev/null; then
+                wasm_success=true
+            fi
+        elif command -v wget &> /dev/null; then
+            if wget -O "${wasm_path}" "${wasm_url}" 2>/dev/null; then
+                wasm_success=true
+            fi
+        fi
+
+        if [ "$wasm_success" = true ]; then
+            print_success "WASM resources installed"
+        else
+            print_warning "Failed to download WASM file, will use fallback if available"
+        fi
+
         return 0
     fi
 
@@ -326,20 +350,69 @@ verify_installation() {
     print_success "All verification tests passed!"
 }
 
+# Check for existing installation and backup if upgrading
+check_existing_installation() {
+    if [ -f "${BIN_DIR}/mimir" ]; then
+        local current_version=$(${BIN_DIR}/mimir --version 2>/dev/null || echo "unknown")
+        print_info "Found existing installation: ${current_version}"
+
+        # Backup old binary
+        if [ "$current_version" != "unknown" ]; then
+            local backup_path="${BIN_DIR}/mimir.backup-${current_version}"
+            cp "${BIN_DIR}/mimir" "${backup_path}"
+            print_info "Backed up to ${backup_path}"
+        fi
+    fi
+}
+
 # Main installation
 main() {
+    # We'll set these after fetching the version
+    local INSTALL_VERSION=""
+    local IS_UPGRADE=false
+
+    # Check for existing installation first
+    if [ -f "${BIN_DIR}/mimir" ]; then
+        IS_UPGRADE=true
+    fi
+
+    # Check dependencies early
+    check_dependencies
+
+    # Determine what version we're installing (needed for header)
+    local release_tag=""
+    if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        release_tag="$VERSION"
+        INSTALL_VERSION="${VERSION#v}"  # Remove 'v' prefix
+    elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        release_tag="v$VERSION"
+        INSTALL_VERSION="$VERSION"
+    else
+        # Fetch latest release tag
+        if command -v curl &> /dev/null; then
+            release_tag=$(curl -s "${LATEST_RELEASE_URL}" | grep '"tag_name":' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+        elif command -v wget &> /dev/null; then
+            release_tag=$(wget -qO- "${LATEST_RELEASE_URL}" | grep '"tag_name":' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+        fi
+        INSTALL_VERSION="${release_tag#v}"  # Remove 'v' prefix
+    fi
+
     echo ""
     echo "╔═══════════════════════════════════════╗"
-    echo "║     Mimir Code Installer         ║"
-    echo "║   Platform-agnostic AI Coding CLI     ║"
+    if [ "$IS_UPGRADE" = true ]; then
+        echo "║    Mimir Code Installer v${INSTALL_VERSION}        ║"
+        echo "║   Upgrading Platform-agnostic CLI     ║"
+    else
+        echo "║    Mimir Code Installer v${INSTALL_VERSION}        ║"
+        echo "║   Platform-agnostic AI Coding CLI     ║"
+    fi
     echo "╚═══════════════════════════════════════╝"
     echo ""
 
-    if [ "$VERSION" != "latest" ]; then
-        print_info "Installing version: ${VERSION}"
+    if [ "$IS_UPGRADE" = true ]; then
+        check_existing_installation
     fi
 
-    check_dependencies
     create_directories
     install_binary
     setup_config
@@ -355,11 +428,10 @@ main() {
         verify_installation
     else
         echo ""
-        print_info "To get started:"
-        print_info "  1. Set your API key in ${INSTALL_DIR}/config.yml"
-        print_info "  2. Run: mimir setup"
-        print_info "  3. Start coding: mimir"
+        print_info "Start building with AI:"
+        print_info "  mimir"
         echo ""
+        print_info "Set your API key: ${INSTALL_DIR}/config.yml"
         print_info "Documentation: https://github.com/${GITHUB_REPO}"
         echo ""
     fi

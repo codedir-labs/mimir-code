@@ -150,7 +150,26 @@ function Install-Binary {
         # Try to download the binary
         try {
             Invoke-WebRequest -Uri $downloadUrl -OutFile $targetBinary -ErrorAction Stop
-            Write-Success "Mimir Code installed from GitHub release"
+            Write-Success "Mimir Code binary installed from GitHub release"
+
+            # Download WASM file to resources directory
+            Write-Info "Downloading WASM resources..."
+            $resourcesDir = Join-Path $binPath "resources"
+            if (-not (Test-Path $resourcesDir)) {
+                New-Item -ItemType Directory -Path $resourcesDir -Force | Out-Null
+            }
+
+            $wasmUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/sql-wasm.wasm"
+            $wasmPath = Join-Path $resourcesDir "sql-wasm.wasm"
+
+            try {
+                Invoke-WebRequest -Uri $wasmUrl -OutFile $wasmPath -ErrorAction Stop
+                Write-Success "WASM resources installed"
+            }
+            catch {
+                Write-Warning "Failed to download WASM file, will use fallback if available"
+            }
+
             return
         }
         catch {
@@ -417,18 +436,70 @@ function Test-Installation {
     return $true
 }
 
+# Check for existing installation and backup if upgrading
+function Test-ExistingInstallation {
+    $mimirPath = "$env:USERPROFILE\.local\bin\mimir.exe"
+    if (Test-Path $mimirPath) {
+        try {
+            $currentVersion = & $mimirPath --version 2>$null
+            Write-Info "Found existing installation: $currentVersion"
+
+            # Backup old binary
+            if ($currentVersion) {
+                $backupPath = "$env:USERPROFILE\.local\bin\mimir.backup-$currentVersion.exe"
+                Copy-Item $mimirPath $backupPath -Force
+                Write-Info "Backed up to $backupPath"
+            }
+            return $true
+        }
+        catch {
+            return $true  # File exists but couldn't get version
+        }
+    }
+    return $false
+}
+
 # Main installation
 function Main {
+    # Determine version before header
+    $installVersion = $null
+    $isUpgrade = Test-ExistingInstallation
+
+    # Get version for header
+    $releaseTag = $null
+    if ($Version -match '^v\d+\.\d+\.\d+') {
+        $releaseTag = $Version
+        $installVersion = $Version.Substring(1)  # Remove 'v'
+    }
+    elseif ($Version -match '^\d+\.\d+\.\d+') {
+        $releaseTag = "v$Version"
+        $installVersion = $Version
+    }
+    else {
+        # Fetch latest
+        try {
+            $latestUrl = "https://api.github.com/repos/${GithubRepo}/releases/latest"
+            $response = Invoke-RestMethod -Uri $latestUrl -ErrorAction Stop
+            $releaseTag = $response.tag_name
+            $installVersion = $releaseTag.Substring(1)  # Remove 'v'
+        }
+        catch {
+            $installVersion = "latest"
+        }
+    }
+
     Write-Host ""
     Write-Host "╔═══════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║     Mimir Code Installer         ║" -ForegroundColor Cyan
-    Write-Host "║   Platform-agnostic AI Coding CLI     ║" -ForegroundColor Cyan
+    if ($isUpgrade) {
+        Write-Host "║    Mimir Code Installer v$installVersion        ║" -ForegroundColor Cyan
+        Write-Host "║   Upgrading Platform-agnostic CLI     ║" -ForegroundColor Cyan
+    }
+    else {
+        Write-Host "║    Mimir Code Installer v$installVersion        ║" -ForegroundColor Cyan
+        Write-Host "║   Platform-agnostic AI Coding CLI     ║" -ForegroundColor Cyan
+    }
     Write-Host "╚═══════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""
-
-    if ($Version -ne "latest") {
-        Write-Info "Installing version: $Version"
-    }
 
     # Check if running as admin
     if (Test-Administrator) {
@@ -455,11 +526,10 @@ function Main {
     }
     else {
         Write-Host ""
-        Write-Info "To get started:"
-        Write-Info "  1. Set your API key in $InstallDir\config.yml"
-        Write-Info "  2. Run: mimir setup"
-        Write-Info "  3. Start coding: mimir"
+        Write-Info "Start building with AI:"
+        Write-Info "  mimir"
         Write-Host ""
+        Write-Info "Set your API key: $InstallDir\config.yml"
         Write-Info "Documentation: https://github.com/$GithubRepo"
         Write-Host ""
 

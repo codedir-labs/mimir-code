@@ -33,12 +33,24 @@ function locateWasmFile(): ArrayBuffer {
   // Get the directory of the current module
   const currentDir = dirname(fileURLToPath(import.meta.url));
 
+  // Detect if running from a compiled Bun binary
+  // In Bun binaries, import.meta.path points to the binary itself
+  const isBunBinary =
+    typeof (globalThis as any).Bun !== 'undefined' && process.argv[0]?.endsWith('.exe');
+  const binaryDir =
+    isBunBinary && process.argv[0] ? dirname(process.argv[0]) : dirname(process.execPath);
+
   // Location 1: resources directory (for production binaries)
   // Standalone binaries will have: /path/to/mimir (executable) + /path/to/resources/sql-wasm.wasm
   const resourcesPaths = [
+    // Next to the binary (same directory)
+    join(binaryDir, 'resources', wasmFileName),
+    // Current working directory
     join(process.cwd(), 'resources', wasmFileName),
-    join(dirname(process.execPath), 'resources', wasmFileName),
-    join(dirname(process.execPath), '..', 'resources', wasmFileName),
+    // Parent directory of binary
+    join(binaryDir, '..', 'resources', wasmFileName),
+    // For npm global installs
+    join(binaryDir, '..', '..', 'resources', wasmFileName),
   ];
 
   for (const resourcePath of resourcesPaths) {
@@ -63,8 +75,18 @@ function locateWasmFile(): ArrayBuffer {
     }
   }
 
+  // Enhanced error message with diagnostic information
+  const diagnostics = [
+    `process.argv[0]: ${process.argv[0]}`,
+    `process.execPath: ${process.execPath}`,
+    `binaryDir: ${binaryDir}`,
+    `currentDir: ${currentDir}`,
+    `process.cwd(): ${process.cwd()}`,
+    `isBunBinary: ${isBunBinary}`,
+  ];
+
   throw new Error(
-    `Could not locate ${wasmFileName}. Tried:\n` +
+    `Could not locate ${wasmFileName}.\n\nDiagnostics:\n${diagnostics.join('\n')}\n\nTried:\n` +
       [...resourcesPaths, ...nodeModulesPaths].map((p) => `  - ${p}`).join('\n')
   );
 }
