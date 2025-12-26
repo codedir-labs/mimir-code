@@ -133,7 +133,18 @@ AGPL-3.0
     if (isWindows) {
       // Create ZIP for Windows
       const zip = new AdmZip();
-      zip.addLocalFolder(stagingDir);
+      // Add files with the archive name as the root directory
+      const files = require('fs').readdirSync(stagingDir);
+      for (const file of files) {
+        const filePath = join(stagingDir, file);
+        const stat = require('fs').statSync(filePath);
+
+        if (stat.isDirectory()) {
+          zip.addLocalFolder(filePath, `${archiveName}/${file}`);
+        } else {
+          zip.addLocalFile(filePath, archiveName);
+        }
+      }
       const zipPath = join(binariesDir, `${archiveName}.zip`);
       zip.writeZip(zipPath);
       console.log(`✅ Created: ${archiveName}.zip`);

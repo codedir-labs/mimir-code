@@ -327,30 +327,38 @@ verify_installation() {
 
     # Test mimir init in a temporary directory
     local test_dir=$(mktemp -d)
-    (
-        cd "$test_dir"
-        print_info "Testing mimir init in: $test_dir"
+    print_info "Testing mimir init in: $test_dir"
 
-        # Run init with quiet flag (output to variable to capture errors)
-        init_output=$(timeout 30s mimir init --no-interactive --quiet 2>&1)
-        init_exit_code=$?
+    # Save current directory and change to test directory
+    local original_dir=$(pwd)
+    cd "$test_dir" || {
+        print_error "Failed to change to test directory"
+        rm -rf "$test_dir"
+        return 1
+    }
 
-        if [ $init_exit_code -ne 0 ]; then
-            print_error "mimir init failed with exit code $init_exit_code"
-            echo "$init_output"
-            rm -rf "$test_dir"
-            return 1
-        fi
+    # Run init with quiet flag (output to variable to capture errors)
+    init_output=$(timeout 30s mimir init --no-interactive --quiet 2>&1)
+    init_exit_code=$?
 
-        if [ ! -d ".mimir" ] || [ ! -f ".mimir/config.yml" ]; then
-            print_error ".mimir directory or config.yml not created"
-            ls -la
-            rm -rf "$test_dir"
-            return 1
-        fi
+    if [ $init_exit_code -ne 0 ]; then
+        print_error "mimir init failed with exit code $init_exit_code"
+        echo "$init_output"
+        cd "$original_dir"
+        rm -rf "$test_dir"
+        return 1
+    fi
 
-        print_success "mimir init works correctly"
-    )
+    if [ ! -d ".mimir" ] || [ ! -f ".mimir/config.yml" ]; then
+        print_error ".mimir directory or config.yml not created"
+        ls -la
+        cd "$original_dir"
+        rm -rf "$test_dir"
+        return 1
+    fi
+
+    print_success "mimir init works correctly"
+    cd "$original_dir"
     rm -rf "$test_dir"
 
     # Test mimir doctor
