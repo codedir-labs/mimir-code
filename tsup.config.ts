@@ -15,7 +15,7 @@ export default defineConfig([
     minify: false,
     external: ['react', 'ink'],
   },
-  // CommonJS build for CLI (required for pkg)
+  // Bundled CommonJS build for CLI (npm and pkg)
   {
     entry: ['src/cli.ts'],
     format: ['cjs'],
@@ -25,8 +25,17 @@ export default defineConfig([
     sourcemap: true,
     dts: false,
     splitting: false,
-    shims: true,
+    bundle: true, // Bundle for faster startup
     minify: false,
+    external: [
+      // Native modules must be external (they use dynamic requires)
+      'better-sqlite3',
+      'fsevents', // macOS file watcher (optional)
+    ],
+    noExternal: [
+      // Bundle everything else
+      /.*/,
+    ],
     banner: {
       js: '#!/usr/bin/env node',
     },

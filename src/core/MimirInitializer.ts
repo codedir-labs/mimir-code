@@ -214,15 +214,8 @@ checkpoints/
   private async copyExampleCommands(mimirDir: string, result: InitializationResult): Promise<void> {
     const commandsDir = path.join(mimirDir, 'commands');
 
-    // Example commands to copy
-    const exampleCommands = [
-      'security.yml',
-      'refactor.yml',
-      'test.yml',
-      'docs.yml',
-      'review.yml',
-      'perf.yml',
-    ];
+    // Example command to copy
+    const exampleCommands = ['update-docs.yml'];
 
     try {
       // Get the source commands directory (from installed package)

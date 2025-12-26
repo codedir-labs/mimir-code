@@ -1,11 +1,11 @@
-# Documentation Generation Command
+# Update Documentation Command
 # Generates or improves code documentation
-# Usage: /docs [file-or-symbol]
+# Usage: /update-docs [file-or-symbol]
 
-name: docs
+name: update-docs
 description: Generate or improve code documentation
-usage: /docs [file-or-symbol]
-aliases: [doc, document]
+usage: /update-docs [file-or-symbol]
+aliases: [docs, doc]
 prompt: |
   Generate or improve documentation for the specified code. Include:
 

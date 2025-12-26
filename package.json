@@ -15,11 +15,13 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "tsup",
-    "build:binary": "pkg . --compress GZip --output dist/binaries/mimir",
+    "build:binary": "pkg dist/cli.cjs --compress GZip --output dist/binaries/mimir",
     "test": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:coverage": "vitest run --coverage",
+    "test:install": "bash scripts/test-local-install.sh",
+    "test:install:win": "powershell -File scripts/test-local-install.ps1",
     "lint": "eslint src tests --ext .ts",
     "lint:fix": "eslint src tests --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
@@ -116,11 +118,10 @@
     "node": ">=18.0.0"
   },
   "pkg": {
-    "scripts": "dist/**/*.cjs",
     "assets": [
-      "dist/**/*",
       "scripts/templates/**/*",
-      "src/cli/themes/**/*"
+      "src/cli/themes/**/*",
+      "node_modules/better-sqlite3/**/*"
     ],
     "targets": [
       "node22-linux-x64",

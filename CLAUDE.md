@@ -556,31 +556,26 @@ Monitor token usage and implement pruning strategies:
 - **NEW: `/tools [list|enable|disable|info|tokens]`** - manage tools, show token costs
 - `/help` - show commands
 
-**Example Custom Commands (provided on `mimir init`):**
-- `/security [file-or-commit]` - Analyze git diffs for security vulnerabilities (OWASP top 10, SQL injection, XSS, etc.)
-- `/refactor [file-or-pattern]` - Suggest refactoring improvements (code smells, design patterns, performance)
-- `/test [file-or-function]` - Generate comprehensive test cases (unit, integration, edge cases)
-- `/docs [file-or-symbol]` - Generate or improve documentation (JSDoc, README, API docs)
-- `/review [file-or-commit]` - Perform comprehensive code review (correctness, quality, security)
-- `/perf [file-or-function]` - Analyze performance issues (algorithmic complexity, I/O, memory)
+**Example Custom Command (provided on `mimir init`):**
+- `/update-docs [file-or-symbol]` - Generate or improve code documentation (JSDoc, README, API docs)
 
 Custom commands are YAML files in `.mimir/commands/` directory:
 ```yaml
-name: security
-description: Analyze git changes for security vulnerabilities
-usage: /security [file-or-commit]
-aliases: [sec, vuln]
+name: update-docs
+description: Generate or improve code documentation
+usage: /update-docs [file-or-symbol]
+aliases: [docs, doc]
 prompt: |
-  Perform a comprehensive security analysis of the git diff.
-  Focus on SQL injection, XSS, command injection, path traversal...
-  [Full sophisticated prompt with analysis criteria]
+  Generate or improve documentation for the specified code.
+  Include JSDoc/TSDoc comments, module overviews, usage examples...
+  [Full sophisticated prompt with documentation guidelines]
 
   Target: $ARGUMENTS
 ```
 
 **Placeholder substitution:**
-- `$1`, `$2`, `$3` - Individual arguments (e.g., `/security src/auth.ts` → `$1` = `src/auth.ts`)
-- `$ARGUMENTS` - All arguments joined (e.g., `/test utils.ts unit` → `$ARGUMENTS` = `utils.ts unit`)
+- `$1`, `$2`, `$3` - Individual arguments (e.g., `/update-docs src/auth.ts` → `$1` = `src/auth.ts`)
+- `$ARGUMENTS` - All arguments joined (e.g., `/update-docs utils.ts README.md` → `$ARGUMENTS` = `utils.ts README.md`)
 
 Commands are loaded from both global (`~/.mimir/commands/`) and project (`.mimir/commands/`) directories. Project commands override global ones. Custom commands that conflict with built-in names are skipped.
 
