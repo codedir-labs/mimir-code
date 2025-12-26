@@ -137,56 +137,89 @@ function Install-Binary {
 
         Write-Info "Downloading from GitHub release ${releaseTag}..."
 
-        $binaryName = "mimir-code-${platform}.exe"
-        $downloadUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/${binaryName}"
+        # Download ZIP archive
+        $archiveName = "mimir-code-${releaseTag}-${platform}.zip"
+        $downloadUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/${archiveName}"
         $binPath = "$env:USERPROFILE\.local\bin"
-        $targetBinary = Join-Path $binPath "mimir.exe"
+        $tmpDir = Join-Path $env:TEMP "mimir-install-$(Get-Random)"
+        $tmpArchive = Join-Path $tmpDir $archiveName
 
-        # Create directory if it doesn't exist
+        # Create directories
         if (-not (Test-Path $binPath)) {
             New-Item -ItemType Directory -Path $binPath -Force | Out-Null
         }
+        if (-not (Test-Path $tmpDir)) {
+            New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+        }
 
-        # Try to download the binary
+        # Download archive
         try {
-            Invoke-WebRequest -Uri $downloadUrl -OutFile $targetBinary -ErrorAction Stop
-            Write-Success "Mimir Code binary installed from GitHub release"
-
-            # Download WASM file to resources directory
-            Write-Info "Downloading WASM resources..."
-            $resourcesDir = Join-Path $binPath "resources"
-            if (-not (Test-Path $resourcesDir)) {
-                New-Item -ItemType Directory -Path $resourcesDir -Force | Out-Null
-            }
-
-            $wasmUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/sql-wasm.wasm"
-            $wasmPath = Join-Path $resourcesDir "sql-wasm.wasm"
-
-            try {
-                Invoke-WebRequest -Uri $wasmUrl -OutFile $wasmPath -ErrorAction Stop
-                Write-Success "WASM resources installed"
-            }
-            catch {
-                Write-Warning "Failed to download WASM file, will use fallback if available"
-            }
-
-            return
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $tmpArchive -ErrorAction Stop
         }
         catch {
-            # Installation failed
-            Write-ErrorMsg "Failed to download binary from GitHub release"
+            Write-ErrorMsg "Failed to download release archive"
             Write-Host "URL: $downloadUrl" -ForegroundColor Red
             Write-Host ""
             Write-Host "Please try installing via npm instead:" -ForegroundColor Yellow
             Write-Host "  npm install -g @codedir/mimir-code" -ForegroundColor White
             Write-Host ""
-            Write-Host "Or install a specific version:" -ForegroundColor Yellow
-            Write-Host "  npm install -g @codedir/mimir-code@0.1.0" -ForegroundColor White
-            Write-Host ""
             Write-Host "If this issue persists, please report it:" -ForegroundColor Yellow
             Write-Host "  https://github.com/${GithubRepo}/issues" -ForegroundColor White
+            Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
             exit 1
         }
+
+        # Extract archive
+        Write-Info "Extracting archive..."
+        try {
+            Expand-Archive -Path $tmpArchive -DestinationPath $tmpDir -Force -ErrorAction Stop
+        }
+        catch {
+            Write-ErrorMsg "Failed to extract archive"
+            Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
+            exit 1
+        }
+
+        # Find extracted directory
+        $extractedDir = Join-Path $tmpDir "mimir-code-${releaseTag}-${platform}"
+        if (-not (Test-Path $extractedDir)) {
+            Write-ErrorMsg "Extracted directory not found"
+            Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
+            exit 1
+        }
+
+        # Install binary
+        $sourceBinary = Join-Path $extractedDir "mimir.exe"
+        if (Test-Path $sourceBinary) {
+            Copy-Item $sourceBinary -Destination (Join-Path $binPath "mimir.exe") -Force
+            Write-Success "Binary installed"
+        }
+        else {
+            Write-ErrorMsg "Binary not found in archive"
+            Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
+            exit 1
+        }
+
+        # Install resources
+        $sourceResources = Join-Path $extractedDir "resources"
+        if (Test-Path $sourceResources) {
+            $destResources = Join-Path $binPath "resources"
+            if (Test-Path $destResources) {
+                Remove-Item -Recurse -Force $destResources
+            }
+            Copy-Item -Recurse $sourceResources -Destination $binPath -Force
+            Write-Success "Resources installed"
+        }
+        else {
+            Write-ErrorMsg "Resources directory not found in archive"
+            Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
+            exit 1
+        }
+
+        # Clean up
+        Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue
+
+        Write-Success "Mimir Code installed from GitHub release"
     }
     catch {
         $errorMessage = $_.Exception.Message

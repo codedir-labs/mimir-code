@@ -146,66 +146,80 @@ install_binary() {
 
     print_info "Downloading from GitHub release ${release_tag}..."
 
-    local binary_name="mimir-code-${platform}"
-    local download_url="https://github.com/${GITHUB_REPO}/releases/download/${release_tag}/${binary_name}"
-    local tmp_binary="${BIN_DIR}/mimir"
+    # Download tarball
+    local archive_name="mimir-code-${release_tag}-${platform}.tar.gz"
+    local download_url="https://github.com/${GITHUB_REPO}/releases/download/${release_tag}/${archive_name}"
+    local tmp_dir=$(mktemp -d)
+    local tmp_archive="${tmp_dir}/${archive_name}"
+
     mkdir -p "${BIN_DIR}"
 
-    # Try to download the binary
+    # Download tarball
     local download_success=false
     if command -v curl &> /dev/null; then
-        if curl -L -f -o "${tmp_binary}" "${download_url}" 2>/dev/null; then
+        if curl -L -f -o "${tmp_archive}" "${download_url}" 2>/dev/null; then
             download_success=true
         fi
     elif command -v wget &> /dev/null; then
-        if wget -O "${tmp_binary}" "${download_url}" 2>/dev/null; then
+        if wget -O "${tmp_archive}" "${download_url}" 2>/dev/null; then
             download_success=true
         fi
     fi
 
-    if [ "$download_success" = true ]; then
-        chmod +x "${tmp_binary}"
-        print_success "Mimir Code binary installed from GitHub release"
-
-        # Download WASM file to resources directory
-        print_info "Downloading WASM resources..."
-        mkdir -p "${BIN_DIR}/resources"
-        local wasm_url="https://github.com/${GITHUB_REPO}/releases/download/${release_tag}/sql-wasm.wasm"
-        local wasm_path="${BIN_DIR}/resources/sql-wasm.wasm"
-
-        local wasm_success=false
-        if command -v curl &> /dev/null; then
-            if curl -L -f -o "${wasm_path}" "${wasm_url}" 2>/dev/null; then
-                wasm_success=true
-            fi
-        elif command -v wget &> /dev/null; then
-            if wget -O "${wasm_path}" "${wasm_url}" 2>/dev/null; then
-                wasm_success=true
-            fi
-        fi
-
-        if [ "$wasm_success" = true ]; then
-            print_success "WASM resources installed"
-        else
-            print_warning "Failed to download WASM file, will use fallback if available"
-        fi
-
-        return 0
+    if [ "$download_success" != true ]; then
+        print_error "Failed to download release archive"
+        print_error "URL: ${download_url}"
+        print_error ""
+        print_error "Please try installing via npm instead:"
+        print_error "  npm install -g @codedir/mimir-code"
+        print_error ""
+        print_error "If this issue persists, please report it:"
+        print_error "  https://github.com/${GITHUB_REPO}/issues"
+        rm -rf "${tmp_dir}"
+        exit 1
     fi
 
-    # Installation failed
-    print_error "Failed to download binary from GitHub release"
-    print_error "URL: ${download_url}"
-    print_error ""
-    print_error "Please try installing via npm instead:"
-    print_error "  npm install -g @codedir/mimir-code"
-    print_error ""
-    print_error "Or install a specific version:"
-    print_error "  npm install -g @codedir/mimir-code@0.1.0"
-    print_error ""
-    print_error "If this issue persists, please report it:"
-    print_error "  https://github.com/${GITHUB_REPO}/issues"
-    exit 1
+    # Extract tarball
+    print_info "Extracting archive..."
+    if ! tar -xzf "${tmp_archive}" -C "${tmp_dir}" 2>/dev/null; then
+        print_error "Failed to extract archive"
+        rm -rf "${tmp_dir}"
+        exit 1
+    fi
+
+    # Find extracted directory
+    local extracted_dir="${tmp_dir}/mimir-code-${release_tag}-${platform}"
+    if [ ! -d "${extracted_dir}" ]; then
+        print_error "Extracted directory not found"
+        rm -rf "${tmp_dir}"
+        exit 1
+    fi
+
+    # Install binary
+    if [ -f "${extracted_dir}/mimir" ]; then
+        cp "${extracted_dir}/mimir" "${BIN_DIR}/mimir"
+        chmod +x "${BIN_DIR}/mimir"
+        print_success "Binary installed"
+    else
+        print_error "Binary not found in archive"
+        rm -rf "${tmp_dir}"
+        exit 1
+    fi
+
+    # Install resources
+    if [ -d "${extracted_dir}/resources" ]; then
+        cp -r "${extracted_dir}/resources" "${BIN_DIR}/"
+        print_success "Resources installed"
+    else
+        print_error "Resources directory not found in archive"
+        rm -rf "${tmp_dir}"
+        exit 1
+    fi
+
+    # Clean up
+    rm -rf "${tmp_dir}"
+
+    print_success "Mimir Code installed from GitHub release"
 }
 
 # Set up configuration

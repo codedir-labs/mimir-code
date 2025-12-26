@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import { mkdirSync, existsSync, copyFileSync } from 'fs';
+import { mkdirSync, existsSync, copyFileSync, readFileSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const tar = require('tar');
+const AdmZip = require('adm-zip');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 const binariesDir = join(rootDir, 'dist', 'binaries');
+const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
+const version = packageJson.version;
 
 const targets = [
   { platform: 'linux', arch: 'x64', target: 'bun-linux-x64', output: 'mimir-code-linux-amd64' },
@@ -17,38 +24,16 @@ const targets = [
   { platform: 'windows', arch: 'x64', target: 'bun-windows-x64', output: 'mimir-code-windows-amd64.exe' },
 ];
 
-const externals = [
-  'fsevents',
-];
+const externals = ['fsevents'];
 
-console.log('Building binaries...\n');
+console.log(`Building Mimir Code v${version}...\n`);
 
-// Create binaries and resources directories
+// Create binaries directory
 if (!existsSync(binariesDir)) {
   mkdirSync(binariesDir, { recursive: true });
 }
 
-const resourcesDir = join(binariesDir, 'resources');
-if (!existsSync(resourcesDir)) {
-  mkdirSync(resourcesDir, { recursive: true });
-}
-
-// Copy WASM files to resources directory
-console.log('Step 1: Copying WASM files to resources directory...');
-const wasmSource = join(rootDir, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
-const wasmDest = join(resourcesDir, 'sql-wasm.wasm');
-
-try {
-  copyFileSync(wasmSource, wasmDest);
-  console.log(`✅ Copied sql-wasm.wasm to resources/`);
-  console.log('');
-} catch (error) {
-  console.error('Failed to copy WASM files');
-  console.error(error.message);
-  process.exit(1);
-}
-
-console.log('Step 2: Compiling binaries...\n');
+console.log('Step 1: Compiling binaries...\n');
 
 for (const { platform, arch, target, output } of targets) {
   console.log(`Building for ${platform}-${arch}...`);
@@ -66,30 +51,122 @@ for (const { platform, arch, target, output } of targets) {
         env: { ...process.env }
       }
     );
-    console.log(`Built: ${output}\n`);
+    console.log(`✅ Built: ${output}\n`);
   } catch (error) {
-    console.error(`Failed to build ${output}`);
+    console.error(`❌ Failed to build ${output}`);
     console.error(error.message);
     process.exit(1);
   }
 }
 
-// Copy WASM file to binaries directory for GitHub release
-console.log('Copying WASM file to binaries directory for release...');
-const wasmReleaseSource = join(resourcesDir, 'sql-wasm.wasm');
-const wasmReleaseDest = join(binariesDir, 'sql-wasm.wasm');
+console.log('Step 2: Creating distribution packages...\n');
 
-try {
-  copyFileSync(wasmReleaseSource, wasmReleaseDest);
-  console.log(`✅ Copied sql-wasm.wasm to binaries directory for GitHub release`);
-} catch (error) {
-  console.error('Failed to copy WASM file for release');
-  console.error(error.message);
+// Create staging directory for each platform
+for (const { platform, output } of targets) {
+  const isWindows = platform === 'windows';
+  const archiveName = `mimir-code-v${version}-${output.replace('mimir-code-', '').replace('.exe', '')}`;
+  const stagingDir = join(binariesDir, 'staging', archiveName);
+
+  // Create staging directory
+  if (existsSync(stagingDir)) {
+    rmSync(stagingDir, { recursive: true, force: true });
+  }
+  mkdirSync(stagingDir, { recursive: true });
+
+  // Copy binary
+  const binarySource = join(binariesDir, output);
+  const binaryDest = join(stagingDir, isWindows ? 'mimir.exe' : 'mimir');
+  copyFileSync(binarySource, binaryDest);
+
+  // Create resources directory and copy WASM
+  const resourcesDir = join(stagingDir, 'resources');
+  mkdirSync(resourcesDir, { recursive: true });
+  const wasmSource = join(rootDir, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
+  const wasmDest = join(resourcesDir, 'sql-wasm.wasm');
+  copyFileSync(wasmSource, wasmDest);
+
+  // Copy README
+  const readmeContent = `# Mimir Code v${version}
+
+Platform-agnostic AI coding agent CLI
+
+## Installation
+
+Extract this archive and run the installer:
+
+### Unix (macOS/Linux)
+\`\`\`bash
+curl -fsSL https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.sh | bash
+\`\`\`
+
+### Windows (PowerShell)
+\`\`\`powershell
+irm https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.ps1 | iex
+\`\`\`
+
+## Manual Installation
+
+1. Copy \`mimir${isWindows ? '.exe' : ''}\` to a directory in your PATH (e.g., \`~/.local/bin\` or \`C:\\Users\\<user>\\.local\\bin\`)
+2. Copy the \`resources/\` directory to the same location
+3. Run \`mimir --version\` to verify
+
+## Directory Structure
+\`\`\`
+${isWindows ? '.local/bin/' : '~/.local/bin/'}
+├── mimir${isWindows ? '.exe' : ''}
+└── resources/
+    └── sql-wasm.wasm
+\`\`\`
+
+## Documentation
+https://github.com/codedir-labs/mimir-code
+
+## License
+AGPL-3.0
+`;
+
+  const readmePath = join(stagingDir, 'README.md');
+  require('fs').writeFileSync(readmePath, readmeContent);
+
+  // Create archive
+  try {
+    if (isWindows) {
+      // Create ZIP for Windows
+      const zip = new AdmZip();
+      zip.addLocalFolder(stagingDir);
+      const zipPath = join(binariesDir, `${archiveName}.zip`);
+      zip.writeZip(zipPath);
+      console.log(`✅ Created: ${archiveName}.zip`);
+    } else {
+      // Create tar.gz for Unix
+      const tarPath = join(binariesDir, `${archiveName}.tar.gz`);
+      await tar.create(
+        {
+          gzip: true,
+          file: tarPath,
+          cwd: join(binariesDir, 'staging'),
+        },
+        [archiveName]
+      );
+      console.log(`✅ Created: ${archiveName}.tar.gz`);
+    }
+  } catch (error) {
+    console.error(`❌ Failed to create archive for ${output}`);
+    console.error(error.message);
+  }
 }
 
-console.log('\nAll binaries built successfully!');
-console.log(`Location: ${binariesDir}`);
-console.log('\nFor GitHub release, upload these files:');
-targets.forEach(({ output }) => console.log(`  - ${output}`));
-console.log('  - sql-wasm.wasm');
-console.log('  - resources/ directory (optional, for manual installations)');
+// Clean up staging directory
+const stagingRoot = join(binariesDir, 'staging');
+if (existsSync(stagingRoot)) {
+  rmSync(stagingRoot, { recursive: true, force: true });
+}
+
+console.log('\n🎉 All distribution packages created successfully!');
+console.log(`\n📦 Location: ${binariesDir}`);
+console.log('\n📤 Upload these files to GitHub release:');
+targets.forEach(({ platform, output }) => {
+  const archiveName = `mimir-code-v${version}-${output.replace('mimir-code-', '').replace('.exe', '')}`;
+  const ext = platform === 'windows' ? '.zip' : '.tar.gz';
+  console.log(`   • ${archiveName}${ext}`);
+});
