@@ -108,6 +108,9 @@ jobs:
       - name: Build TypeScript
         run: yarn build
 
+      - name: Clean old binaries
+        run: rm -rf dist/binaries && mkdir -p dist/binaries
+
       - name: Build standalone binaries (all platforms)
         run: yarn build:binary
 

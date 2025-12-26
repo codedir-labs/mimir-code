@@ -57,7 +57,7 @@ export default defineConfig([
     bundle: true,
     minify: false,
     external: [
-      // Native modules (use dynamic requires)
+      // Native modules (must be dynamically loaded)
       'better-sqlite3',
       'fsevents',
       // UI libraries (use ESM features like top-level await)
@@ -69,10 +69,11 @@ export default defineConfig([
       'ink-select-input',
       'ink-text-input',
       'ink-table',
-      // Optional dev tools
       'react-devtools-core',
     ],
-    // Don't add shebang - npm adds it automatically based on package.json bin field
-    // pkg also adds it automatically when creating binaries
+    // Add explicit shebang for pkg binaries (must be at line 1)
+    banner: {
+      js: '#!/usr/bin/env node',
+    },
   },
 ]);
