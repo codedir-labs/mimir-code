@@ -20,6 +20,10 @@ jobs:
   security:
     name: Security Audit
     uses: ./.github/workflows/security.yml
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
 
   # Build binaries for all platforms
   build-binaries:

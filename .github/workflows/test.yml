@@ -26,6 +26,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure Git line endings
+        run: git config --global core.autocrlf false
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

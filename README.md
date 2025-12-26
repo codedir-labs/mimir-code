@@ -17,6 +17,16 @@ yarn mimir setup
 yarn mimir
 ```
 
+## Development Setup
+
+After cloning the repository, configure Git to use LF line endings:
+
+```bash
+git config core.autocrlf false
+```
+
+This ensures consistent line endings across platforms (required for Prettier formatting checks).
+
 ## Manual Testing
 
 ```bash
