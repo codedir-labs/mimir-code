@@ -14,6 +14,8 @@
   ],
   "scripts": {
     "dev": "tsx src/cli.ts",
+    "embed-wasm": "node scripts/embed-wasm.js",
+    "prebuild": "yarn embed-wasm",
     "build": "tsup",
     "build:binary": "bun build src/cli.ts --compile --outfile dist/binaries/mimir",
     "build:binary:all": "node scripts/build-binaries.js",

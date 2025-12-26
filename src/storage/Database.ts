@@ -7,6 +7,7 @@ import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import { defaultPricing } from './seed.js';
 import { dirname } from 'path';
 import type { IFileSystem } from '../platform/IFileSystem.js';
+import { getWasmBinary } from './embedded/sql-wasm-embedded.js';
 
 export interface DatabaseConfig {
   path: string;
@@ -52,8 +53,10 @@ export class DatabaseManager {
       }
     }
 
-    // Initialize sql.js
-    const SQL = await initSqlJs();
+    // Initialize sql.js with embedded WASM binary
+    const SQL = await initSqlJs({
+      wasmBinary: getWasmBinary(),
+    });
     const manager = new DatabaseManager(config, SQL);
 
     // Load Node.js fs module for sync operations

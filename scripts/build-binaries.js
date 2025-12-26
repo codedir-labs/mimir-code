@@ -23,9 +23,25 @@ const externals = [
 
 console.log('Building binaries...\n');
 
+// First, embed WASM binary
+console.log('Step 1: Embedding sql.js WASM binary...');
+try {
+  execSync('node scripts/embed-wasm.js', {
+    cwd: rootDir,
+    stdio: 'inherit',
+  });
+  console.log('');
+} catch (error) {
+  console.error('Failed to embed WASM binary');
+  console.error(error.message);
+  process.exit(1);
+}
+
 if (!existsSync(binariesDir)) {
   mkdirSync(binariesDir, { recursive: true });
 }
+
+console.log('Step 2: Compiling binaries...\n');
 
 for (const { platform, arch, target, output } of targets) {
   console.log(`Building for ${platform}-${arch}...`);
