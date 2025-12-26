@@ -166,7 +166,7 @@ function Install-Binary {
         Write-Success "Mimir Code installed successfully"
     }
     catch {
-        Write-ErrorMsg "Installation failed: $_"
+        Write-ErrorMsg "Installation failed: $($_.Exception.Message)"
         exit 1
     }
 }
@@ -429,6 +429,6 @@ try {
     Main
 }
 catch {
-    Write-ErrorMsg "Installation failed: $_"
+    Write-ErrorMsg "Installation failed: $($_.Exception.Message)"
     exit 1
 }

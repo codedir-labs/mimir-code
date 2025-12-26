@@ -120,11 +120,20 @@ jobs:
       - name: List built binaries
         run: ls -lah dist/binaries/
 
+      - name: Rename binaries for release
+        run: |
+          cd dist/binaries
+          # Rename binaries to match our naming convention
+          [ -f mimir-linux ] && mv mimir-linux mimir-linux-x64 || true
+          [ -f mimir-macos ] && mv mimir-macos mimir-macos-x64 || true
+          [ -f mimir-win.exe ] && mv mimir-win.exe mimir-win-x64.exe || true
+          ls -lah
+
       - name: Upload binaries to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.package-version.outputs.version }}
-          files: dist/binaries/*
+          files: dist/binaries/mimir-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -165,10 +174,98 @@ jobs:
         if: runner.os == 'Windows'
         run: powershell -File scripts\install.ps1 -Version ${{ steps.package-version.outputs.tag }} -TestMode
 
+      - name: Test upgrade scenario (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "Testing upgrade scenario..."
+
+          # Modify config to test preservation
+          echo "# Custom user setting" >> ~/.mimir/config.yml
+          echo "customTest: true" >> ~/.mimir/config.yml
+
+          # Run installation again (simulating upgrade)
+          bash scripts/install.sh ${{ steps.package-version.outputs.tag }} false
+
+          # Verify config was preserved
+          if grep -q "customTest" ~/.mimir/config.yml; then
+            echo "✅ User config preserved during upgrade"
+          else
+            echo "❌ User config was overwritten"
+            exit 1
+          fi
+
+      - name: Test upgrade scenario (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Write-Host "Testing upgrade scenario..."
+
+          # Modify config to test preservation
+          Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "# Custom user setting"
+          Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "customTest: true"
+
+          # Run installation again (simulating upgrade)
+          powershell -File scripts\install.ps1 -Version ${{ steps.package-version.outputs.tag }}
+
+          # Verify config was preserved
+          $configContent = Get-Content "$env:USERPROFILE\.mimir\config.yml" -Raw
+          if ($configContent -match "customTest") {
+            Write-Host "✅ User config preserved during upgrade"
+          } else {
+            Write-Host "❌ User config was overwritten"
+            exit 1
+          }
+
+      - name: Test uninstall script (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "Testing uninstall..."
+
+          # Make uninstall script executable
+          chmod +x scripts/uninstall.sh
+
+          # Run uninstall (simulate keeping config)
+          echo "N" | bash scripts/uninstall.sh || true
+
+          # Config should still exist
+          if [ -d "$HOME/.mimir" ]; then
+            echo "✅ Config preserved when requested"
+          else
+            echo "❌ Config was removed unexpectedly"
+            exit 1
+          fi
+
+          # Run uninstall again (simulate removing config)
+          echo -e "Y\nN" | bash scripts/uninstall.sh || true
+
+          # Config should be backed up and removed
+          if [ ! -d "$HOME/.mimir" ]; then
+            echo "✅ Config removed when requested"
+          else
+            echo "❌ Config still exists"
+            exit 1
+          fi
+
+      - name: Test uninstall script (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Write-Host "Testing uninstall..."
+
+          # For Windows, we'll just verify the uninstall script exists
+          # Full interactive testing is complex in CI
+          if (Test-Path "scripts\uninstall.ps1") {
+            Write-Host "✅ Uninstall script exists"
+          } else {
+            Write-Host "❌ Uninstall script not found"
+            exit 1
+          }
+
       - name: Create test summary
         if: success()
         run: |
-          echo "✅ Installation test passed on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All tests passed on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "  - Installation test passed" >> $GITHUB_STEP_SUMMARY
+          echo "  - Upgrade test passed" >> $GITHUB_STEP_SUMMARY
+          echo "  - Uninstall test passed" >> $GITHUB_STEP_SUMMARY
 
   # Publish GitHub release only after successful installation tests
   publish-github-release:

@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "tsup",
-    "build:binary": "pkg dist/cli.js --compress GZip --targets node18-linux-x64,node18-macos-x64,node18-macos-arm64,node18-win-x64 --output dist/binaries/mimir",
+    "build:binary": "pkg . --compress GZip --output dist/binaries/mimir",
     "test": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -114,5 +114,20 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "pkg": {
+    "scripts": "dist/**/*.js",
+    "assets": [
+      "dist/**/*",
+      "scripts/templates/**/*",
+      "src/cli/themes/**/*"
+    ],
+    "targets": [
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-macos-arm64",
+      "node18-win-x64"
+    ],
+    "outputPath": "dist/binaries"
   }
 }
