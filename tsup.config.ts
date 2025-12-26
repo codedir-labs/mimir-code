@@ -25,16 +25,23 @@ export default defineConfig([
     sourcemap: true,
     dts: false,
     splitting: false,
-    bundle: true, // Bundle for faster startup
+    bundle: true,
     minify: false,
     external: [
-      // Native modules must be external (they use dynamic requires)
+      // Native modules (use dynamic requires)
       'better-sqlite3',
-      'fsevents', // macOS file watcher (optional)
-    ],
-    noExternal: [
-      // Bundle everything else
-      /.*/,
+      'fsevents',
+      // UI libraries (use ESM features like top-level await)
+      'ink',
+      'react',
+      'react-dom',
+      'yoga-layout',
+      'ink-spinner',
+      'ink-select-input',
+      'ink-text-input',
+      'ink-table',
+      // Optional dev tools
+      'react-devtools-core',
     ],
     banner: {
       js: '#!/usr/bin/env node',

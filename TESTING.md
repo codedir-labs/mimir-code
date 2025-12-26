@@ -1,10 +1,29 @@
 # Testing Guide
 
-## Local Installation Testing
+## Local Testing
 
-Test the installation scripts locally without pushing to GitHub.
+### Quick Build Test (Fastest - 5 seconds)
 
-### Quick Start
+Just verify the build works without full installation:
+
+**Unix (macOS/Linux):**
+```bash
+yarn test:build
+```
+
+**Windows:**
+```powershell
+yarn test:build:win
+```
+
+This will:
+- ✅ Build the bundled CLI
+- ✅ Test `node dist/cli.cjs --version`
+- ✅ Show bundle size
+
+### Full Installation Test (Complete - 30 seconds)
+
+Test the installation scripts locally without pushing to GitHub:
 
 **Unix (macOS/Linux):**
 ```bash
@@ -158,6 +177,45 @@ if [ ! -f "${INSTALL_DIR}/config.yml" ]; then
 fi
 ```
 
+## Build Architecture
+
+The CLI uses a **hybrid bundling approach**:
+
+### What Gets Bundled:
+- ✅ **Your code** - All `src/**/*.ts` files
+- ✅ **Pure JS dependencies** - Libraries without native/ESM features
+- ✅ **Utilities** - chalk, commander, zod, etc.
+
+### What Stays External:
+- ⚠️ **Native modules** - `better-sqlite3`, `fsevents` (use dynamic requires)
+- ⚠️ **UI libraries** - `ink`, `react`, `yoga-layout` (use ESM features like top-level await)
+- ⚠️ **React ecosystem** - Can't be bundled into CommonJS
+
+**Why this approach?**
+- 🚀 **Fast startup** - Bundled code loads faster
+- 📦 **Smaller size** - Tree-shaking removes unused code
+- ✅ **Compatibility** - ESM/native modules work correctly
+- 🎯 **Best practice** - Used by esbuild, vite, tsx, etc.
+
+### For npm:
+```
+dist/cli.cjs (bundled)
+  ├─ require('better-sqlite3') → node_modules/better-sqlite3/
+  ├─ require('ink') → node_modules/ink/
+  └─ require('react') → node_modules/react/
+```
+
+### For pkg binaries:
+```
+mimir-code-linux-x64 (standalone)
+  ├─ Bundled code (embedded)
+  ├─ Node.js runtime (embedded)
+  └─ Assets (embedded):
+      ├─ node_modules/better-sqlite3/
+      ├─ node_modules/ink/
+      └─ node_modules/react/
+```
+
 ## Debugging
 
 **Enable verbose logging:**
@@ -176,13 +234,26 @@ yarn test:install:win
 tar -tzf codedir-mimir-code-0.1.0.tgz
 
 # Should include:
-# - dist/cli.cjs
-# - dist/index.js
+# - dist/cli.cjs (bundled code)
+# - dist/index.js (ESM library)
 # - package.json
 # - node_modules/better-sqlite3/
+# - node_modules/ink/
+# - node_modules/react/
 ```
 
 **Test bundled CLI directly:**
 ```bash
 node dist/cli.cjs --version
+```
+
+**Check bundle size:**
+```bash
+ls -lh dist/cli.cjs
+# Should be ~500KB-1MB (without node_modules)
+```
+
+**Test binary locally (after build:binary):**
+```bash
+./dist/binaries/mimir-code-linux-x64 --version
 ```
