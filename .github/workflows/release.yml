@@ -61,6 +61,20 @@ jobs:
           body: |
             ## Installation
 
+            ### Using installers (Recommended)
+
+            **Unix (macOS/Linux)**:
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.sh | bash
+            ```
+
+            **Windows (PowerShell)**:
+            ```powershell
+            irm https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.ps1 | iex
+            ```
+
+            ### Using npm
+
             ```bash
             npm install -g @codedir/mimir-code
             ```
@@ -71,7 +85,9 @@ jobs:
             yarn global add @codedir/mimir-code
             ```
 
-            **Note**: Standalone binaries coming soon. For now, install via npm.
+            ### Manual Installation
+
+            Download the archive for your platform from the Assets section below and extract it to a directory in your PATH.
           draft: true
           prerelease: false
           generate_release_notes: true
@@ -85,9 +101,9 @@ jobs:
           echo "  Tag: ${{ steps.package-version.outputs.tag }}"
           echo "  URL: ${{ steps.create-release.outputs.url }}"
 
-  # Build standalone binaries for all platforms
+  # Build distribution packages (tar.gz/zip) for all platforms
   build-binaries:
-    name: Build Binaries
+    name: Build Distribution Packages
     needs: create-draft-release
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -116,40 +132,11 @@ jobs:
       - name: Clean old binaries
         run: rm -rf dist/binaries && mkdir -p dist/binaries
 
-      - name: Build standalone binaries
+      - name: Build distribution packages
         run: yarn build:binary:all
 
-      - name: List binary output
+      - name: List distribution packages
         run: ls -lah dist/binaries/ || echo "No binaries directory found"
-
-      - name: Verify binaries were built
-        run: |
-          EXPECTED_BINARIES=(
-            "mimir-code-linux-amd64"
-            "mimir-code-darwin-amd64"
-            "mimir-code-darwin-arm64"
-            "mimir-code-windows-amd64.exe"
-          )
-
-          MISSING_COUNT=0
-
-          for binary in "${EXPECTED_BINARIES[@]}"; do
-            if [ -f "dist/binaries/$binary" ]; then
-              echo "Found: $binary"
-            else
-              echo "Missing: $binary"
-              MISSING_COUNT=$((MISSING_COUNT + 1))
-            fi
-          done
-
-          if [ $MISSING_COUNT -gt 0 ]; then
-            echo "Error: $MISSING_COUNT binary(ies) missing"
-            exit 1
-          fi
-
-          echo ""
-          echo "All binaries built successfully"
-          ls -lah dist/binaries/
 
       - name: Get version from package.json
         id: package-version
@@ -157,15 +144,50 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Upload binaries to release
+      - name: Verify distribution packages were created
+        run: |
+          VERSION="${{ steps.package-version.outputs.version }}"
+
+          EXPECTED_PACKAGES=(
+            "mimir-code-v${VERSION}-linux-amd64.tar.gz"
+            "mimir-code-v${VERSION}-darwin-amd64.tar.gz"
+            "mimir-code-v${VERSION}-darwin-arm64.tar.gz"
+            "mimir-code-v${VERSION}-windows-amd64.zip"
+          )
+
+          MISSING_COUNT=0
+
+          for package in "${EXPECTED_PACKAGES[@]}"; do
+            if [ -f "dist/binaries/$package" ]; then
+              echo "✅ Found: $package"
+              # Show package size
+              du -h "dist/binaries/$package"
+            else
+              echo "❌ Missing: $package"
+              MISSING_COUNT=$((MISSING_COUNT + 1))
+            fi
+          done
+
+          if [ $MISSING_COUNT -gt 0 ]; then
+            echo ""
+            echo "Error: $MISSING_COUNT package(s) missing"
+            echo "Directory contents:"
+            ls -lah dist/binaries/
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All distribution packages created successfully"
+
+      - name: Upload distribution packages to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.package-version.outputs.version }}
           files: |
-            dist/binaries/mimir-code-linux-amd64
-            dist/binaries/mimir-code-darwin-amd64
-            dist/binaries/mimir-code-darwin-arm64
-            dist/binaries/mimir-code-windows-amd64.exe
+            dist/binaries/mimir-code-v${{ steps.package-version.outputs.version }}-linux-amd64.tar.gz
+            dist/binaries/mimir-code-v${{ steps.package-version.outputs.version }}-darwin-amd64.tar.gz
+            dist/binaries/mimir-code-v${{ steps.package-version.outputs.version }}-darwin-arm64.tar.gz
+            dist/binaries/mimir-code-v${{ steps.package-version.outputs.version }}-windows-amd64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
