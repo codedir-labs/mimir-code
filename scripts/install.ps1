@@ -413,21 +413,28 @@ function Test-Installation {
 
         # Run init command (with timeout and quiet flag)
         $initJob = Start-Job -ScriptBlock {
-            & mimir init --no-interactive --quiet 2>&1
-            exit $LASTEXITCODE
+            $output = & mimir init --no-interactive --quiet 2>&1
+            return @{
+                Output = $output
+                ExitCode = $LASTEXITCODE
+            }
         }
         $initJob | Wait-Job -Timeout 30 | Out-Null
 
         if ($initJob.State -ne 'Completed') {
             Stop-Job $initJob
             Write-ErrorMsg "mimir init timed out"
+            Remove-Job $initJob -Force
             return $false
         }
 
-        $initOutput = Receive-Job $initJob
-        $exitCode = $initJob.ChildJobs[0].Output | Select-Object -Last 1
+        $initResult = Receive-Job $initJob
+        $initOutput = $initResult.Output
+        $exitCode = $initResult.ExitCode
 
-        if ($initJob.State -eq 'Failed' -or $exitCode -ne 0) {
+        Remove-Job $initJob -Force
+
+        if ($initJob.State -eq 'Failed' -or $null -eq $exitCode -or $exitCode -ne 0) {
             Write-ErrorMsg "mimir init failed with exit code $exitCode"
             Write-Host ""
             Write-Host "=== Full error output ===" -ForegroundColor Yellow
