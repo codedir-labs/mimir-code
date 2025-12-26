@@ -5,9 +5,10 @@
 
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import { defaultPricing } from './seed.js';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { readFileSync, existsSync } from 'fs';
 import type { IFileSystem } from '../platform/IFileSystem.js';
-import { getWasmBinary } from './embedded/sql-wasm-embedded.js';
 
 export interface DatabaseConfig {
   path: string;
@@ -18,6 +19,54 @@ export interface DatabaseConfig {
 interface RunResult {
   changes: number;
   lastInsertRowid: number;
+}
+
+/**
+ * Locate sql.js WASM file
+ * Tries multiple locations in order:
+ * 1. resources/ directory (for standalone binaries)
+ * 2. node_modules/sql.js/dist/ (for development)
+ */
+function locateWasmFile(): ArrayBuffer {
+  const wasmFileName = 'sql-wasm.wasm';
+
+  // Get the directory of the current module
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+
+  // Location 1: resources directory (for production binaries)
+  // Standalone binaries will have: /path/to/mimir (executable) + /path/to/resources/sql-wasm.wasm
+  const resourcesPaths = [
+    join(process.cwd(), 'resources', wasmFileName),
+    join(dirname(process.execPath), 'resources', wasmFileName),
+    join(dirname(process.execPath), '..', 'resources', wasmFileName),
+  ];
+
+  for (const resourcePath of resourcesPaths) {
+    if (existsSync(resourcePath)) {
+      const buffer = readFileSync(resourcePath);
+      // Convert Node.js Buffer to ArrayBuffer
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    }
+  }
+
+  // Location 2: node_modules (for development)
+  const nodeModulesPaths = [
+    join(currentDir, '..', '..', 'node_modules', 'sql.js', 'dist', wasmFileName),
+    join(process.cwd(), 'node_modules', 'sql.js', 'dist', wasmFileName),
+  ];
+
+  for (const modulePath of nodeModulesPaths) {
+    if (existsSync(modulePath)) {
+      const buffer = readFileSync(modulePath);
+      // Convert Node.js Buffer to ArrayBuffer
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    }
+  }
+
+  throw new Error(
+    `Could not locate ${wasmFileName}. Tried:\n` +
+      [...resourcesPaths, ...nodeModulesPaths].map((p) => `  - ${p}`).join('\n')
+  );
 }
 
 /**
@@ -53,9 +102,10 @@ export class DatabaseManager {
       }
     }
 
-    // Initialize sql.js with embedded WASM binary
+    // Initialize sql.js with WASM binary from file system
+    const wasmBinary = locateWasmFile();
     const SQL = await initSqlJs({
-      wasmBinary: getWasmBinary(),
+      wasmBinary,
     });
     const manager = new DatabaseManager(config, SQL);
 

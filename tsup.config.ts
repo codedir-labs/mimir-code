@@ -1,4 +1,10 @@
 import { defineConfig } from 'tsup';
+import { copyFileSync, existsSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig([
   // ESM build for library usage
@@ -42,5 +48,20 @@ export default defineConfig([
       'ink-table',
       'react-devtools-core',
     ],
+    onSuccess: async () => {
+      // Copy WASM file to dist/binaries/resources/ for development/testing
+      const resourcesDir = join(__dirname, 'dist', 'binaries', 'resources');
+      if (!existsSync(resourcesDir)) {
+        mkdirSync(resourcesDir, { recursive: true });
+      }
+
+      const wasmSource = join(__dirname, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
+      const wasmDest = join(resourcesDir, 'sql-wasm.wasm');
+
+      if (existsSync(wasmSource)) {
+        copyFileSync(wasmSource, wasmDest);
+        console.log('✅ Copied sql-wasm.wasm to dist/binaries/resources/');
+      }
+    },
   },
 ]);

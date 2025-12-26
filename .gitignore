@@ -6,6 +6,7 @@ package-lock.json
 dist/
 build/
 *.tsbuildinfo
+resources/
 
 # Next.js (docs site)
 docs/.next/

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import { mkdirSync, existsSync } from 'fs';
+import { mkdirSync, existsSync, copyFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -23,22 +23,29 @@ const externals = [
 
 console.log('Building binaries...\n');
 
-// First, embed WASM binary
-console.log('Step 1: Embedding sql.js WASM binary...');
-try {
-  execSync('node scripts/embed-wasm.js', {
-    cwd: rootDir,
-    stdio: 'inherit',
-  });
-  console.log('');
-} catch (error) {
-  console.error('Failed to embed WASM binary');
-  console.error(error.message);
-  process.exit(1);
-}
-
+// Create binaries and resources directories
 if (!existsSync(binariesDir)) {
   mkdirSync(binariesDir, { recursive: true });
+}
+
+const resourcesDir = join(binariesDir, 'resources');
+if (!existsSync(resourcesDir)) {
+  mkdirSync(resourcesDir, { recursive: true });
+}
+
+// Copy WASM files to resources directory
+console.log('Step 1: Copying WASM files to resources directory...');
+const wasmSource = join(rootDir, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
+const wasmDest = join(resourcesDir, 'sql-wasm.wasm');
+
+try {
+  copyFileSync(wasmSource, wasmDest);
+  console.log(`✅ Copied sql-wasm.wasm to resources/`);
+  console.log('');
+} catch (error) {
+  console.error('Failed to copy WASM files');
+  console.error(error.message);
+  process.exit(1);
 }
 
 console.log('Step 2: Compiling binaries...\n');
