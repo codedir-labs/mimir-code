@@ -84,6 +84,7 @@
     "@types/dockerode": "^3.3.33",
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
+    "@types/sql.js": "^1.4.9",
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
     "@vitest/coverage-v8": "^2.1.8",

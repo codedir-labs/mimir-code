@@ -4,7 +4,6 @@
  */
 
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
-import * as schema from './schema.js';
 import { defaultPricing } from './seed.js';
 import { dirname } from 'path';
 import type { IFileSystem } from '../platform/IFileSystem.js';
@@ -26,7 +25,6 @@ interface RunResult {
 export class DatabaseManager {
   private db!: SqlJsDatabase;
   private config: DatabaseConfig;
-  private fs!: IFileSystem;
   private SQL: any;
   private nodeFs: typeof import('fs') | null = null;
 
@@ -57,7 +55,6 @@ export class DatabaseManager {
     // Initialize sql.js
     const SQL = await initSqlJs();
     const manager = new DatabaseManager(config, SQL);
-    manager.fs = config.fileSystem!;
 
     // Load Node.js fs module for sync operations
     manager.nodeFs = await import('fs');
@@ -351,12 +348,12 @@ export class DatabaseManager {
       "SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='pricing'"
     );
 
-    if (pricingCount.length === 0 || pricingCount[0].values[0][0] === 0) {
+    if (pricingCount.length === 0 || pricingCount[0]?.values[0]?.[0] === 0) {
       this.createTablesManually();
     }
 
     const existingPricing = this.db.exec('SELECT COUNT(*) as count FROM pricing');
-    const count = existingPricing.length > 0 ? existingPricing[0].values[0][0] : 0;
+    const count = existingPricing.length > 0 ? existingPricing[0]?.values[0]?.[0] : 0;
 
     if (count === 0) {
       for (const price of defaultPricing) {
@@ -365,12 +362,18 @@ export class DatabaseManager {
            VALUES (?, ?, ?, ?, ?, ?)`
         );
         // sql.js doesn't accept undefined - convert to null or use defaults
+        const effectiveFrom = price.effectiveFrom
+          ? typeof price.effectiveFrom === 'number'
+            ? price.effectiveFrom
+            : Math.floor(price.effectiveFrom.getTime() / 1000)
+          : Math.floor(Date.now() / 1000);
+
         stmt.run([
           price.provider,
           price.model,
           price.inputPricePer1M,
           price.outputPricePer1M,
-          price.effectiveFrom ?? Math.floor(Date.now() / 1000),
+          effectiveFrom,
           price.currency ?? 'USD',
         ]);
         stmt.free();
@@ -385,7 +388,7 @@ export class DatabaseManager {
       const migrationExists = this.db.exec(
         "SELECT COUNT(*) as count FROM migrations WHERE version = '1.0.0'"
       );
-      const migCount = migrationExists.length > 0 ? migrationExists[0].values[0][0] : 0;
+      const migCount = migrationExists.length > 0 ? migrationExists[0]?.values[0]?.[0] : 0;
 
       if (migCount === 0) {
         this.db.run("INSERT INTO migrations (version) VALUES ('1.0.0')");
@@ -400,7 +403,7 @@ export class DatabaseManager {
    */
   execute(sql: string, params?: unknown[]): RunResult {
     const stmt = this.db.prepare(sql);
-    stmt.bind(params || []);
+    stmt.bind((params || []) as (string | number | null | Uint8Array)[]);
     stmt.step();
     const info = this.db.getRowsModified();
     stmt.free();
@@ -423,7 +426,7 @@ export class DatabaseManager {
    */
   query<T = unknown>(sql: string, params?: unknown[]): T[] {
     const stmt = this.db.prepare(sql);
-    stmt.bind(params || []);
+    stmt.bind((params || []) as (string | number | null | Uint8Array)[]);
     const results: T[] = [];
 
     while (stmt.step()) {
@@ -440,7 +443,7 @@ export class DatabaseManager {
   queryOne<T>(sql: string, params?: unknown[]): T | null {
     try {
       const stmt = this.db.prepare(sql);
-      stmt.bind(params || []);
+      stmt.bind((params || []) as (string | number | null | Uint8Array)[]);
       if (stmt.step()) {
         const row = stmt.getAsObject();
         stmt.free();
