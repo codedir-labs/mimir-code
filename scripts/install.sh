@@ -165,7 +165,7 @@ install_binary() {
 
     if [ "$download_success" = true ]; then
         chmod +x "${tmp_binary}"
-        print_success "Mimir Code installed from GitHub release"
+        print_success "Mimir Code binary installed from GitHub release"
         return 0
     fi
 

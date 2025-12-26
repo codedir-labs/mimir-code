@@ -3,7 +3,7 @@
  * Uses Claude's Messages API with Anthropic-specific format
  */
 
-import { encoding_for_model, type Tiktoken } from 'tiktoken';
+import { encode } from 'gpt-tokenizer';
 import { BaseLLMProvider } from './BaseLLMProvider.js';
 import { ILLMProvider, LLMTool } from './ILLMProvider.js';
 import { Message, ChatResponse, ChatChunk, LLMConfig } from '../types/index.js';
@@ -19,7 +19,6 @@ import { ConfigurationError } from '../utils/errors.js';
 
 export class AnthropicProvider extends BaseLLMProvider implements ILLMProvider {
   private apiClient: APIClient;
-  private encoder: Tiktoken;
 
   constructor(config: LLMConfig) {
     super(config);
@@ -42,9 +41,6 @@ export class AnthropicProvider extends BaseLLMProvider implements ILLMProvider {
       },
       timeout: 60000,
     });
-
-    // Use GPT-4 tokenizer as approximation (within 5% accuracy for Claude)
-    this.encoder = encoding_for_model('gpt-4');
   }
 
   async chat(messages: Message[], tools?: LLMTool[]): Promise<ChatResponse> {
@@ -104,7 +100,7 @@ export class AnthropicProvider extends BaseLLMProvider implements ILLMProvider {
   }
 
   countTokens(text: string): number {
-    return this.encoder.encode(text).length;
+    return encode(text).length;
   }
 
   calculateCost(inputTokens: number, outputTokens: number): number {

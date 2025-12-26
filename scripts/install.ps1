@@ -225,25 +225,43 @@ ui:
 function Update-Path {
     Write-Info "Checking PATH configuration..."
 
-    # npm/yarn global bin directories are usually already in PATH
-    # Just verify mimir is accessible
-    $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+    $localBin = "$env:USERPROFILE\.local\bin"
 
-    if ($mimirCmd) {
-        Write-Success "Mimir Code is accessible in PATH"
-    }
-    else {
-        Write-Warning "Mimir Code command not found in PATH"
-        Write-Info "You may need to restart your terminal or add npm global bin directory to PATH"
+    # Check if .local\bin is in User PATH
+    $userPath = [System.Environment]::GetEnvironmentVariable("PATH", "User")
+    if ($userPath -notlike "*$localBin*") {
+        Write-Info "Adding $localBin to User PATH..."
 
-        # Get npm global bin path
         try {
-            $npmBinPath = npm bin -g
-            Write-Info "npm global bin path: $npmBinPath"
+            # Add to user PATH permanently
+            $newPath = if ($userPath) { "$userPath;$localBin" } else { $localBin }
+            [System.Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
+
+            # Update current session PATH
+            $env:PATH = "$localBin;$env:PATH"
+
+            Write-Success "Added $localBin to PATH"
+            Write-Warning "You may need to restart your terminal for PATH changes to take full effect"
         }
         catch {
-            Write-Warning "Could not determine npm global bin path"
+            Write-Warning "Could not update PATH automatically"
+            Write-Info "Please add $localBin to your PATH manually"
         }
+    }
+    else {
+        # Update current session PATH just to be safe
+        $env:PATH = "$localBin;$env:PATH"
+        Write-Success "Mimir Code binary directory is in PATH"
+    }
+
+    # Verify mimir is accessible
+    $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+    if (-not $mimirCmd) {
+        Write-Warning "Mimir Code command not found in current session"
+        Write-Info "Please restart your terminal to update PATH"
+    }
+    else {
+        Write-Success "Mimir Code is accessible: $($mimirCmd.Source)"
     }
 }
 
@@ -265,6 +283,12 @@ function Test-Docker {
 # Verify installation (for CI/testing)
 function Test-Installation {
     Write-Info "Verifying installation..."
+
+    # Add .local\bin to PATH for current session
+    $localBin = "$env:USERPROFILE\.local\bin"
+    if (Test-Path $localBin) {
+        $env:PATH = "$localBin;$env:PATH"
+    }
 
     # Update PATH for current session to include npm/yarn global bin
     $npmBinPath = $null
@@ -292,7 +316,17 @@ function Test-Installation {
     if (-not $mimirCmd) {
         Write-ErrorMsg "mimir not found in PATH"
         Write-Info "PATH: $env:PATH"
-        return $false
+        Write-Info "Checking binary directly..."
+        $directBinary = "$env:USERPROFILE\.local\bin\mimir.exe"
+        if (Test-Path $directBinary) {
+            Write-Info "Binary exists at: $directBinary"
+            Write-Info "Adding to PATH for this session..."
+            $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
+            $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+        }
+        if (-not $mimirCmd) {
+            return $false
+        }
     }
     Write-Success "mimir found in PATH: $($mimirCmd.Source)"
 
