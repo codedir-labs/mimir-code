@@ -9,6 +9,7 @@ on:
     # Run security checks weekly on Monday at 9am UTC
     - cron: '0 9 * * 1'
   workflow_dispatch:
+  workflow_call:
 
 # Cancel in-progress runs when a new workflow with the same group name is triggered
 concurrency:
@@ -107,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Skip on scheduled runs and push to main (use PR scanning instead)
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
 
     steps:
       - name: Checkout repository

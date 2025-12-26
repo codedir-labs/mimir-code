@@ -4,6 +4,17 @@
   "description": "Documentation for Mimir",
   "private": true,
   "type": "module",
+  "author": "Codedir Labs",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codedir-labs/mimir-code.git",
+    "directory": "docs"
+  },
+  "homepage": "https://github.com/codedir-labs/mimir-code#readme",
+  "bugs": {
+    "url": "https://github.com/codedir-labs/mimir-code/issues"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,17 +22,25 @@
     "export": "next build && next export"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.462.0",
     "next": "^14.2.0",
+    "next-themes": "^0.4.4",
     "nextra": "^3.0.0",
     "nextra-theme-docs": "^3.0.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.0",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.7.0"
   }
 }
