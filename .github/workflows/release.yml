@@ -123,17 +123,18 @@ jobs:
       - name: Rename binaries for release
         run: |
           cd dist/binaries
-          # Rename binaries to match our naming convention
-          [ -f mimir-linux ] && mv mimir-linux mimir-linux-x64 || true
-          [ -f mimir-macos ] && mv mimir-macos mimir-macos-x64 || true
-          [ -f mimir-win.exe ] && mv mimir-win.exe mimir-win-x64.exe || true
+          # Rename binaries to mimir-code-* convention
+          [ -f mimir-linux ] && mv mimir-linux mimir-code-linux-x64 || true
+          [ -f mimir-macos ] && mv mimir-macos mimir-code-macos-x64 || true
+          [ -f mimir-macos-arm64 ] && mv mimir-macos-arm64 mimir-code-macos-arm64 || true
+          [ -f mimir-win.exe ] && mv mimir-win.exe mimir-code-win-x64.exe || true
           ls -lah
 
       - name: Upload binaries to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.package-version.outputs.version }}
-          files: dist/binaries/mimir-*
+          files: dist/binaries/mimir-code-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -166,13 +167,26 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Run installation test (Unix)
+      - name: Test installation via curl/bash pipe (Unix)
         if: runner.os != 'Windows'
-        run: bash scripts/install.sh ${{ steps.package-version.outputs.tag }} true
+        env:
+          INSTALL_VERSION: ${{ steps.package-version.outputs.tag }}
+          TEST_MODE: "true"
+        run: |
+          # Test the curl | bash installation method
+          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash -s -- "$INSTALL_VERSION" "$TEST_MODE"
 
-      - name: Run installation test (Windows)
+      - name: Test installation via iwr/iex pipe (Windows)
         if: runner.os == 'Windows'
-        run: powershell -File scripts\install.ps1 -Version ${{ steps.package-version.outputs.tag }} -TestMode
+        env:
+          INSTALL_VERSION: ${{ steps.package-version.outputs.tag }}
+        run: |
+          # Test the iwr | iex installation method
+          # For test mode, we need to modify the approach since piping doesn't support parameters well
+          # Download the script and execute it with parameters
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1" -OutFile "$env:TEMP\install.ps1"
+          & "$env:TEMP\install.ps1" -Version "$env:INSTALL_VERSION" -TestMode
+          Remove-Item "$env:TEMP\install.ps1"
 
       - name: Test upgrade scenario (Unix)
         if: runner.os != 'Windows'
@@ -346,6 +360,16 @@ jobs:
           echo "- **Version**: ${{ steps.package-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Package**: https://www.npmjs.com/package/@codedir/mimir-code" >> $GITHUB_STEP_SUMMARY
 
+  # Deploy documentation after npm publish
+  deploy-docs:
+    name: Deploy Documentation
+    needs: publish-npm
+    uses: ./.github/workflows/deploy-docs.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
   # Test installation from npm on all platforms
   test-npm-installation:
     name: Test npm Installation - ${{ matrix.os }}
@@ -379,23 +403,118 @@ jobs:
           Write-Host "Waiting for npm package to be available..."
           Start-Sleep -Seconds 60
 
-      - name: Run npm installation test (Unix)
+      - name: Test npm installation via curl/bash pipe (Unix)
         if: runner.os != 'Windows'
-        run: bash scripts/install.sh latest true
+        run: |
+          # Test the curl | bash installation method
+          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash -s -- "latest" "true"
 
-      - name: Run npm installation test (Windows)
+      - name: Test npm installation via iwr/iex pipe (Windows)
         if: runner.os == 'Windows'
-        run: powershell -File scripts\install.ps1 -Version latest -TestMode
+        run: |
+          # Download and execute installation script
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1" -OutFile "$env:TEMP\install.ps1"
+          & "$env:TEMP\install.ps1" -Version "latest" -TestMode
+          Remove-Item "$env:TEMP\install.ps1"
+
+      - name: Test upgrade scenario (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "Testing npm upgrade scenario..."
+
+          # Modify config to test preservation
+          echo "# Custom user setting" >> ~/.mimir/config.yml
+          echo "customTest: true" >> ~/.mimir/config.yml
+
+          # Run installation again (simulating upgrade)
+          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash -s -- "latest" "false"
+
+          # Verify config was preserved
+          if grep -q "customTest" ~/.mimir/config.yml; then
+            echo "✅ User config preserved during npm upgrade"
+          else
+            echo "❌ User config was overwritten"
+            exit 1
+          fi
+
+      - name: Test upgrade scenario (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Write-Host "Testing npm upgrade scenario..."
+
+          # Modify config to test preservation
+          Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "# Custom user setting"
+          Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "customTest: true"
+
+          # Run installation again (simulating upgrade)
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1" -OutFile "$env:TEMP\install.ps1"
+          & "$env:TEMP\install.ps1" -Version "latest"
+          Remove-Item "$env:TEMP\install.ps1"
+
+          # Verify config was preserved
+          $configContent = Get-Content "$env:USERPROFILE\.mimir\config.yml" -Raw
+          if ($configContent -match "customTest") {
+            Write-Host "✅ User config preserved during npm upgrade"
+          } else {
+            Write-Host "❌ User config was overwritten"
+            exit 1
+          }
+
+      - name: Test uninstall script (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "Testing uninstall..."
+
+          # Make uninstall script executable
+          chmod +x scripts/uninstall.sh
+
+          # Run uninstall (simulate keeping config)
+          echo "N" | bash scripts/uninstall.sh || true
+
+          # Config should still exist
+          if [ -d "$HOME/.mimir" ]; then
+            echo "✅ Config preserved when requested"
+          else
+            echo "❌ Config was removed unexpectedly"
+            exit 1
+          fi
+
+          # Run uninstall again (simulate removing config)
+          echo -e "Y\nN" | bash scripts/uninstall.sh || true
+
+          # Config should be backed up and removed
+          if [ ! -d "$HOME/.mimir" ]; then
+            echo "✅ Config removed when requested"
+          else
+            echo "❌ Config still exists"
+            exit 1
+          fi
+
+      - name: Test uninstall script (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Write-Host "Testing uninstall..."
+
+          # For Windows, verify the uninstall script exists
+          if (Test-Path "scripts\uninstall.ps1") {
+            Write-Host "✅ Uninstall script exists"
+          } else {
+            Write-Host "❌ Uninstall script not found"
+            exit 1
+          }
 
       - name: Create test summary
         if: success()
         run: |
-          echo "✅ npm installation test passed on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All npm tests passed on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "  - npm installation test passed" >> $GITHUB_STEP_SUMMARY
+          echo "  - Upgrade test passed" >> $GITHUB_STEP_SUMMARY
+          echo "  - Uninstall test passed" >> $GITHUB_STEP_SUMMARY
 
   # Final release summary
   release-complete:
     name: Release Complete
-    needs: [publish-npm, test-npm-installation]
+    needs: [publish-npm, deploy-docs, test-npm-installation]
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -417,12 +536,21 @@ jobs:
           echo "### Version: ${{ steps.package-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ **All tests passed on all platforms**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Documentation deployed**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Links:" >> $GITHUB_STEP_SUMMARY
           echo "- 📦 [npm Package](https://www.npmjs.com/package/@codedir/mimir-code)" >> $GITHUB_STEP_SUMMARY
           echo "- 🏷️ [GitHub Release](https://github.com/codedir-labs/mimir-code/releases/tag/${{ steps.package-version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+          echo "- 📚 [Documentation](https://codedir-labs.github.io/mimir-code/)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Installation:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# npm" >> $GITHUB_STEP_SUMMARY
           echo "npm install -g @codedir/mimir-code" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Unix (curl/bash)" >> $GITHUB_STEP_SUMMARY
+          echo "curl -fsSL https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.sh | bash" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Windows (PowerShell)" >> $GITHUB_STEP_SUMMARY
+          echo "iwr -useb https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/install.ps1 | iex" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

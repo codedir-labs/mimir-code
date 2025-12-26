@@ -125,7 +125,7 @@ function Install-Binary {
         if ($useGitHubRelease) {
             Write-Info "Attempting to download from GitHub release ${releaseTag}..."
 
-            $binaryName = "mimir-${platform}.exe"
+            $binaryName = "mimir-code-${platform}.exe"
             $downloadUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/${binaryName}"
             $binPath = "$env:USERPROFILE\.local\bin"
             $targetBinary = Join-Path $binPath "mimir.exe"
@@ -166,7 +166,8 @@ function Install-Binary {
         Write-Success "Mimir Code installed successfully"
     }
     catch {
-        Write-ErrorMsg "Installation failed: $($_.Exception.Message)"
+        $errorMessage = $_.Exception.Message
+        Write-ErrorMsg "Installation failed: $errorMessage"
         exit 1
     }
 }
@@ -429,6 +430,7 @@ try {
     Main
 }
 catch {
-    Write-ErrorMsg "Installation failed: $($_.Exception.Message)"
+    $errorMessage = $_.Exception.Message
+    Write-ErrorMsg "Installation failed: $errorMessage"
     exit 1
 }

@@ -133,7 +133,7 @@ install_binary() {
     if [ "$use_github_release" = true ]; then
         print_info "Attempting to download from GitHub release ${release_tag}..."
 
-        local binary_name="mimir-${platform}"
+        local binary_name="mimir-code-${platform}"
         local download_url="https://github.com/${GITHUB_REPO}/releases/download/${release_tag}/${binary_name}"
 
         # Try to download the binary
