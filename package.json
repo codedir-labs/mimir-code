@@ -15,7 +15,8 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "tsup",
-    "build:binary": "pkg dist/cli.cjs --targets node22-linux-x64,node22-macos-x64,node22-macos-arm64,node22-win-x64 --compress GZip --out-path dist/binaries",
+    "build:binary": "bun build src/cli.ts --compile --outfile dist/binaries/mimir",
+    "build:binary:all": "node scripts/build-binaries.js",
     "test": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -60,7 +61,6 @@
     "execa": "^9.5.2",
     "fast-glob": "^3.3.3",
     "figures": "^6.1.0",
-    "globby": "^14.0.2",
     "ink": "^5.1.0",
     "ink-select-input": "^6.0.0",
     "ink-spinner": "^5.0.0",
@@ -87,7 +87,6 @@
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
     "@vitest/coverage-v8": "^2.1.8",
-    "@yao-pkg/pkg": "^6.11.0",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
     "eslint": "^9.17.0",
@@ -118,27 +117,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "pkg": {
-    "assets": [
-      "scripts/templates/**/*",
-      "src/cli/themes/**/*",
-      "node_modules/better-sqlite3/**/*",
-      "node_modules/ink/**/*",
-      "node_modules/react/**/*",
-      "node_modules/react-dom/**/*",
-      "node_modules/yoga-layout/**/*",
-      "node_modules/ink-spinner/**/*",
-      "node_modules/ink-select-input/**/*",
-      "node_modules/ink-text-input/**/*",
-      "node_modules/ink-table/**/*"
-    ],
-    "targets": [
-      "node22-linux-x64",
-      "node22-macos-x64",
-      "node22-macos-arm64",
-      "node22-win-x64"
-    ],
-    "outputPath": "dist/binaries"
   }
 }

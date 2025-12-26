@@ -1,11 +1,11 @@
 /**
  * FileSystemAdapter - Cross-platform file system implementation
- * Uses Node.js fs/promises + globby for file operations
+ * Uses Node.js fs/promises + fast-glob for file operations
  */
 
 import { IFileSystem, Stats } from './IFileSystem.js';
 import fs from 'fs/promises';
-import { globby } from 'globby';
+import fg from 'fast-glob';
 
 export class FileSystemAdapter implements IFileSystem {
   async readFile(path: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
@@ -60,7 +60,7 @@ export class FileSystemAdapter implements IFileSystem {
   }
 
   async glob(pattern: string, options?: { cwd?: string; ignore?: string[] }): Promise<string[]> {
-    return globby(pattern, {
+    return fg(pattern, {
       cwd: options?.cwd,
       ignore: options?.ignore,
     });

@@ -96,7 +96,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js (for build script)
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -105,80 +110,49 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build TypeScript
+      - name: Build TypeScript (for npm distribution)
         run: yarn build
 
       - name: Clean old binaries
         run: rm -rf dist/binaries && mkdir -p dist/binaries
 
-      - name: Build standalone binaries (all platforms)
-        run: yarn build:binary
+      - name: Build standalone binaries (all platforms with Bun)
+        run: yarn build:binary:all
 
-      - name: List pkg output
+      - name: List Bun output
         run: ls -lah dist/binaries/ || echo "No binaries directory found"
 
       - name: Verify binaries were built
         run: |
-          if [ ! -d "dist/binaries" ] || [ -z "$(ls -A dist/binaries)" ]; then
-            echo "❌ Error: No binaries were built!"
-            echo "Expected binaries: cli-linux-x64, cli-macos-x64, cli-macos-arm64, cli-win-x64.exe"
-            exit 1
-          fi
-          echo "✅ Binaries directory exists and contains files"
-
-      - name: Rename binaries to GitHub conventions
-        run: |
-          cd dist/binaries
-          # pkg creates: cli-{linux,macos,win}-{x64,arm64}[.exe]
-          # GitHub expects: mimir-code-{linux,darwin,windows}-{amd64,arm64}[.exe]
+          EXPECTED_BINARIES=(
+            "mimir-code-linux-amd64"
+            "mimir-code-darwin-amd64"
+            "mimir-code-darwin-arm64"
+            "mimir-code-windows-amd64.exe"
+          )
 
           MISSING_COUNT=0
 
-          # Linux x64
-          if [ -f cli-linux-x64 ]; then
-            mv cli-linux-x64 mimir-code-linux-amd64
-            echo "✅ Renamed: cli-linux-x64 → mimir-code-linux-amd64"
-          else
-            echo "❌ Missing: cli-linux-x64"
-            MISSING_COUNT=$((MISSING_COUNT + 1))
-          fi
-
-          # macOS x64
-          if [ -f cli-macos-x64 ]; then
-            mv cli-macos-x64 mimir-code-darwin-amd64
-            echo "✅ Renamed: cli-macos-x64 → mimir-code-darwin-amd64"
-          else
-            echo "❌ Missing: cli-macos-x64"
-            MISSING_COUNT=$((MISSING_COUNT + 1))
-          fi
-
-          # macOS ARM64
-          if [ -f cli-macos-arm64 ]; then
-            mv cli-macos-arm64 mimir-code-darwin-arm64
-            echo "✅ Renamed: cli-macos-arm64 → mimir-code-darwin-arm64"
-          else
-            echo "❌ Missing: cli-macos-arm64"
-            MISSING_COUNT=$((MISSING_COUNT + 1))
-          fi
-
-          # Windows x64
-          if [ -f cli-win-x64.exe ]; then
-            mv cli-win-x64.exe mimir-code-windows-amd64.exe
-            echo "✅ Renamed: cli-win-x64.exe → mimir-code-windows-amd64.exe"
-          else
-            echo "❌ Missing: cli-win-x64.exe"
-            MISSING_COUNT=$((MISSING_COUNT + 1))
-          fi
-
-          echo ""
-          echo "Final binaries:"
-          ls -lah
+          for binary in "${EXPECTED_BINARIES[@]}"; do
+            if [ -f "dist/binaries/$binary" ]; then
+              echo "✅ Found: $binary"
+            else
+              echo "❌ Missing: $binary"
+              MISSING_COUNT=$((MISSING_COUNT + 1))
+            fi
+          done
 
           if [ $MISSING_COUNT -gt 0 ]; then
             echo ""
             echo "❌ Error: $MISSING_COUNT binary(ies) missing!"
             exit 1
           fi
+
+          echo ""
+          echo "✅ All binaries built successfully!"
+          echo ""
+          echo "Final binaries:"
+          ls -lah dist/binaries/
 
       - name: Get version from package.json
         id: package-version

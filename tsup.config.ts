@@ -44,36 +44,4 @@ export default defineConfig([
       'react-devtools-core',
     ],
   },
-  // Bundled CommonJS build for pkg binaries only
-  {
-    entry: ['src/cli.ts'],
-    format: ['cjs'],
-    target: 'node18',
-    outDir: 'dist',
-    clean: false,
-    sourcemap: true,
-    dts: false,
-    splitting: false,
-    bundle: true,
-    minify: false,
-    external: [
-      // Native modules (must be dynamically loaded)
-      'better-sqlite3',
-      'fsevents',
-      // UI libraries (use ESM features like top-level await)
-      'ink',
-      'react',
-      'react-dom',
-      'yoga-layout',
-      'ink-spinner',
-      'ink-select-input',
-      'ink-text-input',
-      'ink-table',
-      'react-devtools-core',
-    ],
-    // Add explicit shebang for pkg binaries (must be at line 1)
-    banner: {
-      js: '#!/usr/bin/env node',
-    },
-  },
 ]);
