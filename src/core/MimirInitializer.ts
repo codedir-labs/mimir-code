@@ -7,9 +7,7 @@ import { IFileSystem } from '../platform/IFileSystem.js';
 import { ConfigLoader } from '../config/ConfigLoader.js';
 import { getDatabaseManagerAsync, closeDatabaseManager } from '../storage/Database.js';
 import { logger } from '../utils/logger.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import path, { dirname } from 'path';
 
 export interface InitializationResult {
   success: boolean;
@@ -173,11 +171,17 @@ checkpoints/
 
     try {
       // Get the source themes directory (from installed package)
-      // In development: mimir/src/cli/themes/
-      // In production: mimir/dist/cli/themes/ or bundled
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const sourceThemesDir = path.join(__dirname, '../cli/themes');
+      // For Bun compiled binaries: use process.argv[0] to get binary location
+      // Resources are in: ~/.local/bin/resources/themes/
+      const executablePath = process.argv[0] || process.execPath;
+      const binaryDir = dirname(executablePath);
+
+      // Try multiple locations for theme files
+      const possibleSourceDirs = [
+        path.join(binaryDir, 'resources', 'themes'), // Compiled binary: ~/.local/bin/resources/themes/
+        path.join(binaryDir, '../cli/themes'), // Development: dist/core/../cli/themes
+        path.join(binaryDir, '../../src/cli/themes'), // Development: dist/core/../../src/cli/themes
+      ];
 
       for (const themeFile of defaultThemes) {
         const destPath = path.join(themesDir, themeFile);
@@ -187,17 +191,29 @@ checkpoints/
           continue;
         }
 
-        try {
-          // Read source theme file using platform abstraction
-          const sourcePath = path.join(sourceThemesDir, themeFile);
-          const themeContent = await this.fs.readFile(sourcePath, 'utf-8');
+        // Try each possible source directory
+        let copied = false;
+        for (const sourceDir of possibleSourceDirs) {
+          try {
+            const sourcePath = path.join(sourceDir, themeFile);
+            const themeContent = await this.fs.readFile(sourcePath, 'utf-8');
 
-          // Write to workspace themes directory
-          await this.fs.writeFile(destPath, themeContent);
-          result.created.push(`.mimir/themes/${themeFile}`);
-          logger.info('Copied default theme', { theme: themeFile });
-        } catch (error) {
-          logger.warn(`Failed to copy theme ${themeFile}, will use built-in fallback`, { error });
+            // Write to workspace themes directory
+            await this.fs.writeFile(destPath, themeContent);
+            result.created.push(`.mimir/themes/${themeFile}`);
+            logger.info('Copied default theme', { theme: themeFile, from: sourceDir });
+            copied = true;
+            break;
+          } catch (error) {
+            // Try next location
+            continue;
+          }
+        }
+
+        if (!copied) {
+          logger.warn(`Failed to copy theme ${themeFile}, will use built-in fallback`, {
+            triedLocations: possibleSourceDirs,
+          });
         }
       }
     } catch (error) {
@@ -219,11 +235,17 @@ checkpoints/
 
     try {
       // Get the source commands directory (from installed package)
-      // In development: mimir/scripts/templates/commands/
-      // In production: mimir/dist/templates/commands/ or bundled
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const sourceCommandsDir = path.join(__dirname, '../../scripts/templates/commands');
+      // For Bun compiled binaries: use process.argv[0] to get binary location
+      // Resources are in: ~/.local/bin/resources/commands/
+      const executablePath = process.argv[0] || process.execPath;
+      const binaryDir = dirname(executablePath);
+
+      // Try multiple locations for command files
+      const possibleSourceDirs = [
+        path.join(binaryDir, 'resources', 'commands'), // Compiled binary: ~/.local/bin/resources/commands/
+        path.join(binaryDir, '../../scripts/templates/commands'), // Development: dist/core/../../scripts/templates/commands
+        path.join(binaryDir, '../../../scripts/templates/commands'), // Alternative dev path
+      ];
 
       for (const commandFile of exampleCommands) {
         const destPath = path.join(commandsDir, commandFile);
@@ -233,17 +255,29 @@ checkpoints/
           continue;
         }
 
-        try {
-          // Read source command file using platform abstraction
-          const sourcePath = path.join(sourceCommandsDir, commandFile);
-          const commandContent = await this.fs.readFile(sourcePath, 'utf-8');
+        // Try each possible source directory
+        let copied = false;
+        for (const sourceDir of possibleSourceDirs) {
+          try {
+            const sourcePath = path.join(sourceDir, commandFile);
+            const commandContent = await this.fs.readFile(sourcePath, 'utf-8');
 
-          // Write to workspace commands directory
-          await this.fs.writeFile(destPath, commandContent);
-          result.created.push(`.mimir/commands/${commandFile}`);
-          logger.info('Copied example command', { command: commandFile });
-        } catch (error) {
-          logger.warn(`Failed to copy command ${commandFile}, continuing`, { error });
+            // Write to workspace commands directory
+            await this.fs.writeFile(destPath, commandContent);
+            result.created.push(`.mimir/commands/${commandFile}`);
+            logger.info('Copied example command', { command: commandFile, from: sourceDir });
+            copied = true;
+            break;
+          } catch (error) {
+            // Try next location
+            continue;
+          }
+        }
+
+        if (!copied) {
+          logger.warn(`Failed to copy command ${commandFile}, continuing`, {
+            triedLocations: possibleSourceDirs,
+          });
         }
       }
     } catch (error) {

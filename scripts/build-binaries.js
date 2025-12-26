@@ -78,12 +78,42 @@ for (const { platform, output } of targets) {
   const binaryDest = join(stagingDir, isWindows ? 'mimir.exe' : 'mimir');
   copyFileSync(binarySource, binaryDest);
 
-  // Create resources directory and copy WASM
+  // Create resources directory and copy required files
   const resourcesDir = join(stagingDir, 'resources');
   mkdirSync(resourcesDir, { recursive: true });
+
+  // Copy WASM file
   const wasmSource = join(rootDir, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
   const wasmDest = join(resourcesDir, 'sql-wasm.wasm');
   copyFileSync(wasmSource, wasmDest);
+
+  // Copy theme files
+  const themesSourceDir = join(rootDir, 'src', 'cli', 'themes');
+  const themesDestDir = join(resourcesDir, 'themes');
+  mkdirSync(themesDestDir, { recursive: true });
+  const themeFiles = [
+    'mimir.json',
+    'dark.json',
+    'light.json',
+    'dark-colorblind.json',
+    'light-colorblind.json',
+  ];
+  for (const themeFile of themeFiles) {
+    const src = join(themesSourceDir, themeFile);
+    const dest = join(themesDestDir, themeFile);
+    copyFileSync(src, dest);
+  }
+
+  // Copy command template files
+  const commandsSourceDir = join(rootDir, 'scripts', 'templates', 'commands');
+  const commandsDestDir = join(resourcesDir, 'commands');
+  mkdirSync(commandsDestDir, { recursive: true });
+  const commandFiles = ['update-docs.yml'];
+  for (const commandFile of commandFiles) {
+    const src = join(commandsSourceDir, commandFile);
+    const dest = join(commandsDestDir, commandFile);
+    copyFileSync(src, dest);
+  }
 
   // Copy README
   const readmeContent = `# Mimir Code v${version}
@@ -115,7 +145,15 @@ irm https://raw.githubusercontent.com/codedir-labs/mimir-code/main/scripts/insta
 ${isWindows ? '.local/bin/' : '~/.local/bin/'}
 ├── mimir${isWindows ? '.exe' : ''}
 └── resources/
-    └── sql-wasm.wasm
+    ├── sql-wasm.wasm
+    ├── themes/
+    │   ├── mimir.json
+    │   ├── dark.json
+    │   ├── light.json
+    │   ├── dark-colorblind.json
+    │   └── light-colorblind.json
+    └── commands/
+        └── update-docs.yml
 \`\`\`
 
 ## Documentation

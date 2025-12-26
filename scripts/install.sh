@@ -343,8 +343,21 @@ verify_installation() {
     print_info "PATH: $PATH"
     print_info "Which mimir: $(which mimir)"
 
-    init_output=$(timeout 30s mimir init --no-interactive --quiet 2>&1)
-    init_exit_code=$?
+    # Check if timeout command exists (not available on macOS by default)
+    if command -v timeout &> /dev/null; then
+        # Use timeout if available
+        init_output=$(timeout 30s mimir init --no-interactive --quiet 2>&1)
+        init_exit_code=$?
+    elif command -v gtimeout &> /dev/null; then
+        # Use gtimeout on macOS if coreutils is installed
+        init_output=$(gtimeout 30s mimir init --no-interactive --quiet 2>&1)
+        init_exit_code=$?
+    else
+        # No timeout available - run without it (mostly affects macOS)
+        print_info "timeout command not available, running without timeout"
+        init_output=$(mimir init --no-interactive --quiet 2>&1)
+        init_exit_code=$?
+    fi
 
     if [ $init_exit_code -ne 0 ]; then
         print_error "mimir init failed with exit code $init_exit_code"
