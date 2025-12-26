@@ -104,9 +104,49 @@ function Install-Binary {
     Write-Info "Installing Mimir Code..."
 
     try {
-        # For now, we'll use npm install since binaries aren't published yet
-        # In the future, this will download platform-specific binaries from GitHub releases
+        $platform = Get-Platform
+        Write-Info "Detected platform: $platform"
 
+        # Check if we should install from GitHub release (binaries)
+        $useGitHubRelease = $false
+        $releaseTag = $null
+
+        # If Version starts with 'v' or is a specific version tag, try GitHub release first
+        if ($Version -match '^v\d+\.\d+\.\d+') {
+            $useGitHubRelease = $true
+            $releaseTag = $Version
+        }
+        elseif ($Version -match '^\d+\.\d+\.\d+') {
+            $useGitHubRelease = $true
+            $releaseTag = "v$Version"
+        }
+
+        # Try to download from GitHub release if applicable
+        if ($useGitHubRelease) {
+            Write-Info "Attempting to download from GitHub release ${releaseTag}..."
+
+            $binaryName = "mimir-${platform}.exe"
+            $downloadUrl = "https://github.com/${GithubRepo}/releases/download/${releaseTag}/${binaryName}"
+            $binPath = "$env:USERPROFILE\.local\bin"
+            $targetBinary = Join-Path $binPath "mimir.exe"
+
+            # Create directory if it doesn't exist
+            if (-not (Test-Path $binPath)) {
+                New-Item -ItemType Directory -Path $binPath -Force | Out-Null
+            }
+
+            try {
+                # Try to download the binary
+                Invoke-WebRequest -Uri $downloadUrl -OutFile $targetBinary -ErrorAction Stop
+                Write-Success "Mimir Code installed from GitHub release"
+                return
+            }
+            catch {
+                Write-Warning "Binary not found in GitHub release, falling back to npm..."
+            }
+        }
+
+        # Install from npm (fallback or default for 'latest')
         if ($Version -eq "latest") {
             # Check if yarn is available
             if (Get-Command yarn -ErrorAction SilentlyContinue) {
@@ -221,6 +261,27 @@ function Test-Docker {
 function Test-Installation {
     Write-Info "Verifying installation..."
 
+    # Update PATH for current session to include npm/yarn global bin
+    $npmBinPath = $null
+    $yarnBinPath = $null
+
+    try {
+        $npmBinPath = (npm bin -g 2>$null)
+        if ($npmBinPath) {
+            $env:PATH = "$npmBinPath;$env:PATH"
+        }
+    } catch {}
+
+    try {
+        $yarnBinPath = (yarn global bin 2>$null)
+        if ($yarnBinPath) {
+            $env:PATH = "$yarnBinPath;$env:PATH"
+        }
+    } catch {}
+
+    # Refresh environment variables
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+
     # Check if mimir is in PATH
     $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
     if (-not $mimirCmd) {
@@ -236,7 +297,13 @@ function Test-Installation {
         Write-Success "mimir version: $installedVersion"
     }
     catch {
-        Write-ErrorMsg "mimir --version failed"
+        Write-ErrorMsg "mimir --version failed: $_"
+        # Show the actual error
+        try {
+            & mimir --version 2>&1
+        } catch {
+            Write-Host $_.Exception.Message
+        }
         return $false
     }
 

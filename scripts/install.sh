@@ -117,9 +117,49 @@ install_binary() {
     local platform=$(detect_platform)
     print_info "Detected platform: ${platform}"
 
-    # For now, we'll use npm install since binaries aren't published yet
-    # In the future, this will download platform-specific binaries from GitHub releases
+    # Check if we should install from GitHub release (binaries)
+    local use_github_release=false
 
+    # If VERSION starts with 'v' or is a specific version tag, try GitHub release first
+    if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        use_github_release=true
+        local release_tag="$VERSION"
+    elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        use_github_release=true
+        local release_tag="v$VERSION"
+    fi
+
+    # Try to download from GitHub release if applicable
+    if [ "$use_github_release" = true ]; then
+        print_info "Attempting to download from GitHub release ${release_tag}..."
+
+        local binary_name="mimir-${platform}"
+        local download_url="https://github.com/${GITHUB_REPO}/releases/download/${release_tag}/${binary_name}"
+
+        # Try to download the binary
+        local tmp_binary="${BIN_DIR}/mimir"
+        mkdir -p "${BIN_DIR}"
+
+        if command -v curl &> /dev/null; then
+            if curl -L -f -o "${tmp_binary}" "${download_url}" 2>/dev/null; then
+                chmod +x "${tmp_binary}"
+                print_success "Mimir Code installed from GitHub release"
+                return 0
+            else
+                print_warning "Binary not found in GitHub release, falling back to npm..."
+            fi
+        elif command -v wget &> /dev/null; then
+            if wget -O "${tmp_binary}" "${download_url}" 2>/dev/null; then
+                chmod +x "${tmp_binary}"
+                print_success "Mimir Code installed from GitHub release"
+                return 0
+            else
+                print_warning "Binary not found in GitHub release, falling back to npm..."
+            fi
+        fi
+    fi
+
+    # Install from npm (fallback or default for 'latest')
     if [ "$VERSION" = "latest" ]; then
         print_info "Installing latest version via npm..."
         if command -v yarn &> /dev/null; then
@@ -211,6 +251,16 @@ update_shell_profile() {
 verify_installation() {
     print_info "Verifying installation..."
 
+    # Update PATH for current shell session to include npm/yarn global bin
+    if command -v yarn &> /dev/null; then
+        export PATH="$(yarn global bin):$PATH"
+    elif command -v npm &> /dev/null; then
+        export PATH="$(npm bin -g):$PATH"
+    fi
+
+    # Also add common locations
+    export PATH="${BIN_DIR}:${HOME}/.yarn/bin:${HOME}/.config/yarn/global/node_modules/.bin:$PATH"
+
     # Check if mimir is in PATH
     if ! command -v mimir &> /dev/null; then
         print_error "mimir not found in PATH"
@@ -222,6 +272,7 @@ verify_installation() {
     # Check if mimir runs
     if ! mimir --version &> /dev/null; then
         print_error "mimir --version failed"
+        mimir --version 2>&1 || true  # Show the error
         return 1
     fi
     local installed_version=$(mimir --version)

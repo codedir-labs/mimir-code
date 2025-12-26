@@ -85,16 +85,12 @@ jobs:
           echo "  Tag: ${{ steps.package-version.outputs.tag }}"
           echo "  URL: ${{ steps.create-release.outputs.url }}"
 
-  # Test installation from draft release on all platforms
-  test-draft-installation:
-    name: Test Installation - ${{ matrix.os }}
+  # Build standalone binaries for all platforms
+  build-binaries:
+    name: Build Binaries
     needs: create-draft-release
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: true  # Stop all if any platform fails
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -104,15 +100,70 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build TypeScript
+        run: yarn build
+
+      - name: Build standalone binaries (all platforms)
+        run: yarn build:binary
+
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: List built binaries
+        run: ls -lah dist/binaries/
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.package-version.outputs.version }}
+          files: dist/binaries/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Test installation from draft release on all platforms
+  test-draft-installation:
+    name: Test Installation - ${{ matrix.os }}
+    needs: [create-draft-release, build-binaries]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false  # Run all tests even if one fails
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: package-version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
           cache: 'npm'
 
       - name: Run installation test (Unix)
         if: runner.os != 'Windows'
-        run: bash scripts/install.sh latest true
+        run: bash scripts/install.sh ${{ steps.package-version.outputs.tag }} true
 
       - name: Run installation test (Windows)
         if: runner.os == 'Windows'
-        run: powershell -File scripts\install.ps1 -Version latest -TestMode
+        run: powershell -File scripts\install.ps1 -Version ${{ steps.package-version.outputs.tag }} -TestMode
 
       - name: Create test summary
         if: success()
