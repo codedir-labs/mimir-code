@@ -114,20 +114,53 @@ jobs:
       - name: Build standalone binaries (all platforms)
         run: yarn build:binary
 
+      - name: List pkg output
+        run: ls -lah dist/binaries/ || echo "No binaries directory found"
+
+      - name: Rename binaries to GitHub conventions
+        run: |
+          cd dist/binaries
+          # pkg creates: mimir-code-{linux,macos,win}-{x64,arm64}[.exe]
+          # GitHub expects: mimir-code-{linux,darwin,windows}-{amd64,arm64}[.exe]
+
+          # Linux
+          if [ -f mimir-code-linux-x64 ]; then
+            mv mimir-code-linux-x64 mimir-code-linux-amd64
+          fi
+
+          # macOS x64
+          if [ -f mimir-code-macos-x64 ]; then
+            mv mimir-code-macos-x64 mimir-code-darwin-amd64
+          fi
+
+          # macOS ARM64
+          if [ -f mimir-code-macos-arm64 ]; then
+            mv mimir-code-macos-arm64 mimir-code-darwin-arm64
+          fi
+
+          # Windows
+          if [ -f mimir-code-win-x64.exe ]; then
+            mv mimir-code-win-x64.exe mimir-code-windows-amd64.exe
+          fi
+
+          echo "Renamed binaries:"
+          ls -lah
+
       - name: Get version from package.json
         id: package-version
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: List built binaries
-        run: ls -lah dist/binaries/
-
       - name: Upload binaries to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.package-version.outputs.version }}
-          files: dist/binaries/mimir-code-*
+          files: |
+            dist/binaries/mimir-code-linux-amd64
+            dist/binaries/mimir-code-darwin-amd64
+            dist/binaries/mimir-code-darwin-arm64
+            dist/binaries/mimir-code-windows-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

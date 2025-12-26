@@ -42,10 +42,10 @@ detect_platform() {
     local os=""
     local arch=""
 
-    # Detect OS
+    # Detect OS (GitHub convention: darwin for macOS, linux for Linux)
     case "$(uname -s)" in
         Darwin*)
-            os="macos"
+            os="darwin"
             ;;
         Linux*)
             os="linux"
@@ -56,10 +56,10 @@ detect_platform() {
             ;;
     esac
 
-    # Detect architecture
+    # Detect architecture (GitHub convention: amd64 for x86_64, arm64 for ARM)
     case "$(uname -m)" in
         x86_64|amd64)
-            arch="x64"
+            arch="amd64"
             ;;
         arm64|aarch64)
             arch="arm64"

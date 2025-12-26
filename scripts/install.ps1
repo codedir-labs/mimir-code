@@ -39,13 +39,13 @@ function Test-Administrator {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-# Detect platform
+# Detect platform (GitHub convention: windows-amd64, windows-arm64)
 function Get-Platform {
     $arch = $env:PROCESSOR_ARCHITECTURE
 
     switch ($arch) {
-        "AMD64" { return "win-x64" }
-        "ARM64" { return "win-arm64" }
+        "AMD64" { return "windows-amd64" }
+        "ARM64" { return "windows-arm64" }
         default {
             Write-ErrorMsg "Unsupported architecture: $arch"
             exit 1
