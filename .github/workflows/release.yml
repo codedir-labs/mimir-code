@@ -492,11 +492,23 @@ jobs:
           # Verify installation
           if command -v mimir &> /dev/null; then
             echo "✅ mimir command available"
-            mimir --version
           else
             echo "❌ mimir command not found"
             exit 1
           fi
+
+          # Test that mimir can execute
+          mimir --version || {
+            echo "❌ mimir --version failed"
+            exit 1
+          }
+          echo "✅ mimir executes successfully"
+
+          # Initialize config directory
+          mimir init --no-interactive --quiet || {
+            echo "❌ mimir init failed"
+            exit 1
+          }
 
           # Verify config directory created
           if [ -d "$HOME/.mimir" ]; then
@@ -518,9 +530,23 @@ jobs:
           $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
           if ($mimirCmd) {
             Write-Host "✅ mimir command available"
-            mimir --version
           } else {
             Write-Host "❌ mimir command not found"
+            exit 1
+          }
+
+          # Test that mimir can execute
+          mimir --version
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ mimir --version failed"
+            exit 1
+          }
+          Write-Host "✅ mimir executes successfully"
+
+          # Initialize config directory
+          mimir init --no-interactive --quiet
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ mimir init failed"
             exit 1
           }
 

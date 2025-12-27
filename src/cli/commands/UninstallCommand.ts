@@ -4,6 +4,7 @@
  */
 
 import { IFileSystem } from '../../platform/IFileSystem.js';
+import { IProcessExecutor } from '../../platform/IProcessExecutor.js';
 import { logger } from '../../utils/logger.js';
 import path from 'path';
 import os from 'os';
@@ -27,7 +28,10 @@ export interface UninstallOptions {
 }
 
 export class UninstallCommand {
-  constructor(private fs: IFileSystem) {}
+  constructor(
+    private fs: IFileSystem,
+    private executor?: IProcessExecutor
+  ) {}
 
   async execute(options: UninstallOptions = {}): Promise<void> {
     try {
@@ -213,19 +217,16 @@ export class UninstallCommand {
         await this.removeBinaryInstallation(homeDir, result, quiet);
       }
 
-      // 3. Remove global config if requested
+      // 3. For npm installations, run npm uninstall
+      if (installType === 'npm') {
+        await this.removeNpmInstallation(result, quiet);
+      }
+
+      // 4. Remove global config if requested
       if (!keepConfig) {
         await this.removeGlobalConfig(homeDir, result, quiet);
       } else if (!quiet) {
         logger.info('Keeping global configuration at ~/.mimir');
-      }
-
-      // 4. For npm installations, provide instructions
-      if (installType === 'npm' && !quiet) {
-        logger.info('');
-        logger.info('Note: Mimir was installed via npm.');
-        logger.info('To complete uninstallation, run:');
-        logger.info('  npm uninstall -g @codedir/mimir-code');
       }
     } catch (error) {
       result.success = false;
@@ -270,6 +271,47 @@ export class UninstallCommand {
       return 'unknown';
     } catch {
       return 'unknown';
+    }
+  }
+
+  private async removeNpmInstallation(result: UninstallResult, quiet = false): Promise<void> {
+    if (!this.executor) {
+      if (!quiet) {
+        logger.warn('Cannot automatically uninstall npm package.');
+        logger.info('Please run manually: npm uninstall -g @codedir/mimir-code');
+      }
+      return;
+    }
+
+    try {
+      if (!quiet) {
+        logger.info('Removing npm global package...');
+      }
+
+      const npmResult = await this.executor.execute(
+        'npm',
+        ['uninstall', '-g', '@codedir/mimir-code'],
+        {
+          cwd: process.cwd(),
+        }
+      );
+
+      if (npmResult.exitCode === 0) {
+        result.removed.push('npm global package (@codedir/mimir-code)');
+        if (!quiet) {
+          logger.info('Successfully uninstalled npm package');
+        }
+      } else {
+        throw new Error(`npm uninstall failed: ${npmResult.stderr}`);
+      }
+    } catch (error) {
+      if (!quiet) {
+        logger.error('Failed to uninstall npm package', { error });
+        logger.info('Please run manually: npm uninstall -g @codedir/mimir-code');
+      }
+      result.errors.push(
+        `npm uninstall failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

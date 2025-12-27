@@ -8,6 +8,7 @@
 
 import { Command } from 'commander';
 import { FileSystemAdapter } from './platform/FileSystemAdapter.js';
+import { ProcessExecutorAdapter } from './platform/ProcessExecutorAdapter.js';
 import { ConfigLoader } from './config/ConfigLoader.js';
 import { FirstRunDetector } from './cli/utils/firstRunDetector.js';
 import { SetupCommand } from './cli/commands/SetupCommand.js';
@@ -18,12 +19,13 @@ import { logger } from './utils/logger.js';
 
 // Initialize dependencies
 const fs = new FileSystemAdapter();
+const executor = new ProcessExecutorAdapter();
 const configLoader = new ConfigLoader(fs);
 const firstRunDetector = new FirstRunDetector(fs);
 const setupCommand = new SetupCommand(configLoader);
 const chatCommand = new ChatCommand(configLoader, firstRunDetector, setupCommand, fs);
 const initCommand = new InitCommand(fs, configLoader);
-const uninstallCommand = new UninstallCommand(fs);
+const uninstallCommand = new UninstallCommand(fs, executor);
 
 const program = new Command();
 
