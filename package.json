@@ -1,6 +1,6 @@
 {
   "name": "@codedir/mimir-code",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Platform-agnostic, BYOK AI coding agent CLI",
   "main": "dist/index.js",
   "bin": {

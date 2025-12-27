@@ -594,17 +594,25 @@ jobs:
           }
           echo "✅ mimir executes successfully"
 
-          # Initialize config directory
+          # Initialize config directories (both global and local)
           mimir init --no-interactive --quiet || {
             echo "❌ mimir init failed"
             exit 1
           }
 
-          # Verify config directory created
+          # Verify global config directory created
           if [ -d "$HOME/.mimir" ]; then
-            echo "✅ Config directory created"
+            echo "✅ Global config directory created at ~/.mimir"
           else
-            echo "❌ Config directory not found"
+            echo "❌ Global config directory not found at ~/.mimir"
+            exit 1
+          fi
+
+          # Verify local config directory created
+          if [ -d ".mimir" ]; then
+            echo "✅ Local config directory created at ./.mimir"
+          else
+            echo "❌ Local config directory not found at ./.mimir"
             exit 1
           fi
 
@@ -642,18 +650,26 @@ jobs:
           }
           Write-Host "✅ mimir executes successfully"
 
-          # Initialize config directory
+          # Initialize config directories (both global and local)
           mimir init --no-interactive --quiet
           if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ mimir init failed"
             exit 1
           }
 
-          # Verify config directory created
+          # Verify global config directory created
           if (Test-Path "$env:USERPROFILE\.mimir") {
-            Write-Host "✅ Config directory created"
+            Write-Host "✅ Global config directory created at ~/.mimir"
           } else {
-            Write-Host "❌ Config directory not found"
+            Write-Host "❌ Global config directory not found at ~/.mimir"
+            exit 1
+          }
+
+          # Verify local config directory created
+          if (Test-Path ".mimir") {
+            Write-Host "✅ Local config directory created at ./.mimir"
+          } else {
+            Write-Host "❌ Local config directory not found at ./.mimir"
             exit 1
           }
 

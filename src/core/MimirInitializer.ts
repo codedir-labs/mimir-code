@@ -16,6 +16,8 @@ export interface InitializationResult {
   errors: string[];
   dbInitialized: boolean;
   configCreated: boolean;
+  globalCreated: boolean;
+  localCreated: boolean;
 }
 
 export class MimirInitializer {
@@ -25,8 +27,69 @@ export class MimirInitializer {
   ) {}
 
   /**
+   * Initialize global user directory at ~/.mimir
+   * Contains: global config, global commands, themes (shared resources)
+   */
+  async initializeGlobalDirectory(homeDir: string): Promise<InitializationResult> {
+    const result: InitializationResult = {
+      success: true,
+      created: [],
+      errors: [],
+      dbInitialized: false,
+      configCreated: false,
+      globalCreated: false,
+      localCreated: false,
+    };
+
+    try {
+      const globalMimirDir = path.join(homeDir, '.mimir');
+
+      // 1. Create ~/.mimir directory
+      if (!(await this.fs.exists(globalMimirDir))) {
+        await this.fs.mkdir(globalMimirDir, { recursive: true });
+        result.created.push('~/.mimir/');
+        result.globalCreated = true;
+        logger.info('Created global .mimir directory', { path: globalMimirDir });
+      }
+
+      // 2. Create global subdirectories
+      const globalSubdirs = [
+        { name: 'commands', purpose: 'Global custom slash commands' },
+        { name: 'themes', purpose: 'Global UI theme definitions' },
+      ];
+
+      for (const { name, purpose } of globalSubdirs) {
+        const subdir = path.join(globalMimirDir, name);
+        if (!(await this.fs.exists(subdir))) {
+          await this.fs.mkdir(subdir, { recursive: true });
+          result.created.push(`~/.mimir/${name}/`);
+          logger.info(`Created global ${name} directory`, { path: subdir, purpose });
+        }
+      }
+
+      // 3. Copy default themes to global directory
+      await this.copyDefaultThemes(globalMimirDir, result);
+
+      // 4. Copy example commands to global directory
+      await this.copyExampleCommands(globalMimirDir, result);
+
+      // 5. Create global config if it doesn't exist
+      await this.createConfigIfNeeded(globalMimirDir, result);
+    } catch (error) {
+      result.success = false;
+      result.errors.push(
+        `Global directory initialization failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      logger.error('Global directory initialization failed', { error });
+    }
+
+    return result;
+  }
+
+  /**
    * Initialize workspace with full Mimir setup
    * Creates directories, database, config, and gitignore
+   * This is for project-local configuration
    */
   async initializeWorkspace(workspaceRoot: string): Promise<InitializationResult> {
     const result: InitializationResult = {
@@ -35,10 +98,13 @@ export class MimirInitializer {
       errors: [],
       dbInitialized: false,
       configCreated: false,
+      globalCreated: false,
+      localCreated: false,
     };
 
     try {
       const mimirDir = path.join(workspaceRoot, '.mimir');
+      result.localCreated = true;
 
       // 1. Create .mimir directory
       if (!(await this.fs.exists(mimirDir))) {
@@ -178,15 +244,6 @@ checkpoints/
       const executablePath = process.argv[0] || process.execPath;
       const binaryDir = dirname(executablePath);
 
-      // Debug logging
-      logger.info('Theme copy - path debugging', {
-        'import.meta.url': import.meta.url,
-        currentDir,
-        executablePath,
-        binaryDir,
-        'process.cwd()': process.cwd(),
-      });
-
       // Try multiple locations for theme files
       // PRIORITY: Check npm package paths first (more common)
       const possibleSourceDirs = [
@@ -257,15 +314,6 @@ checkpoints/
       // Get binary directory for standalone installations
       const executablePath = process.argv[0] || process.execPath;
       const binaryDir = dirname(executablePath);
-
-      // Debug logging
-      logger.info('Command copy - path debugging', {
-        'import.meta.url': import.meta.url,
-        currentDir,
-        executablePath,
-        binaryDir,
-        'process.cwd()': process.cwd(),
-      });
 
       // Try multiple locations for command files
       // PRIORITY: Check npm package paths first (more common)

@@ -33,13 +33,6 @@ function locateWasmFile(): ArrayBuffer {
   // Get module directory for npm package installations
   const currentDir = dirname(fileURLToPath(import.meta.url));
 
-  // Debug logging (simplified - no logger available here)
-  console.log('WASM file search - debugging:', {
-    'import.meta.url': import.meta.url,
-    currentDir,
-    'process.cwd()': process.cwd(),
-  });
-
   // Location 1: node_modules (for npm global/local installs and development)
   // PRIORITY: Check this first because npm installs are more common
   const nodeModulesPaths = [
@@ -52,10 +45,8 @@ function locateWasmFile(): ArrayBuffer {
   ];
 
   for (const modulePath of nodeModulesPaths) {
-    console.log(`  Checking: ${modulePath} - ${existsSync(modulePath) ? 'FOUND' : 'not found'}`);
     if (existsSync(modulePath)) {
       const buffer = readFileSync(modulePath);
-      console.log('  ✅ Loaded WASM from node_modules');
       // Convert Node.js Buffer to ArrayBuffer
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     }
@@ -77,12 +68,8 @@ function locateWasmFile(): ArrayBuffer {
   ];
 
   for (const resourcePath of resourcesPaths) {
-    console.log(
-      `  Checking: ${resourcePath} - ${existsSync(resourcePath) ? 'FOUND' : 'not found'}`
-    );
     if (existsSync(resourcePath)) {
       const buffer = readFileSync(resourcePath);
-      console.log('  ✅ Loaded WASM from resources/');
       // Convert Node.js Buffer to ArrayBuffer
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     }
