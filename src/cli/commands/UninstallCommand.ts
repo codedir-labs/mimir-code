@@ -331,7 +331,7 @@ export class UninstallCommand {
     }
   }
 
-  private async removeNpmInstallation(result: UninstallResult, quiet = false): Promise<void> {
+  private async removeNpmInstallation(_result: UninstallResult, quiet = false): Promise<void> {
     // For npm installations, we cannot uninstall ourselves (the running script is part of the package)
     // Instead, provide instructions to the user
     if (!quiet) {

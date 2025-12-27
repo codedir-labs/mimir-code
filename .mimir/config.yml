@@ -35,7 +35,7 @@ docker:
   enabled: true
   baseImage: alpine:latest
 ui:
-  theme: mimir
+  theme: dark-colorblind
   syntaxHighlighting: true
   showLineNumbers: true
   compactMode: false
