@@ -24,20 +24,38 @@ interface RunResult {
 /**
  * Locate sql.js WASM file
  * Tries multiple locations in order:
- * 1. resources/ directory (for standalone binaries)
- * 2. node_modules/sql.js/dist/ (for development)
+ * 1. node_modules/sql.js/dist/ (for npm installs and development)
+ * 2. resources/ directory (for standalone binaries)
  */
 function locateWasmFile(): ArrayBuffer {
   const wasmFileName = 'sql-wasm.wasm';
 
-  // Determine the binary directory
+  // Get module directory for npm package installations
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+
+  // Location 1: node_modules (for npm global/local installs and development)
+  // PRIORITY: Check this first because npm installs are more common
+  const nodeModulesPaths = [
+    // Relative to the built module (dist/storage/Database.js)
+    join(currentDir, '..', '..', 'node_modules', 'sql.js', 'dist', wasmFileName),
+    // Relative to current working directory (for local development)
+    join(process.cwd(), 'node_modules', 'sql.js', 'dist', wasmFileName),
+  ];
+
+  for (const modulePath of nodeModulesPaths) {
+    if (existsSync(modulePath)) {
+      const buffer = readFileSync(modulePath);
+      // Convert Node.js Buffer to ArrayBuffer
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    }
+  }
+
+  // Location 2: resources directory (for standalone binaries)
   // For Bun compiled binaries, process.argv[0] is the executable path
-  // For Node.js, use process.execPath
+  // Standalone binaries will have: /path/to/mimir (executable) + /path/to/resources/sql-wasm.wasm
   const executablePath = process.argv[0] || process.execPath;
   const binaryDir = dirname(executablePath);
 
-  // Location 1: resources directory (for production binaries)
-  // Standalone binaries will have: /path/to/mimir (executable) + /path/to/resources/sql-wasm.wasm
   const resourcesPaths = [
     // Next to the binary (same directory) - most common for our installers
     join(binaryDir, 'resources', wasmFileName),
@@ -55,34 +73,20 @@ function locateWasmFile(): ArrayBuffer {
     }
   }
 
-  // Location 2: node_modules (for development only)
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-  const nodeModulesPaths = [
-    join(currentDir, '..', '..', 'node_modules', 'sql.js', 'dist', wasmFileName),
-    join(process.cwd(), 'node_modules', 'sql.js', 'dist', wasmFileName),
-  ];
-
-  for (const modulePath of nodeModulesPaths) {
-    if (existsSync(modulePath)) {
-      const buffer = readFileSync(modulePath);
-      // Convert Node.js Buffer to ArrayBuffer
-      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    }
-  }
-
   // Enhanced error message with diagnostic information
   const diagnostics = [
+    `import.meta.url: ${import.meta.url}`,
+    `currentDir: ${currentDir}`,
     `process.argv[0]: ${process.argv[0]}`,
     `process.execPath: ${process.execPath}`,
     `executablePath: ${executablePath}`,
     `binaryDir: ${binaryDir}`,
-    `currentDir: ${currentDir}`,
     `process.cwd(): ${process.cwd()}`,
   ];
 
   throw new Error(
     `Could not locate ${wasmFileName}.\n\nDiagnostics:\n${diagnostics.join('\n')}\n\nTried:\n` +
-      [...resourcesPaths, ...nodeModulesPaths].map((p) => `  - ${p}`).join('\n')
+      [...nodeModulesPaths, ...resourcesPaths].map((p) => `  - ${p}`).join('\n')
   );
 }
 
