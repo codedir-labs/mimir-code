@@ -178,10 +178,21 @@ checkpoints/
       const executablePath = process.argv[0] || process.execPath;
       const binaryDir = dirname(executablePath);
 
+      // Debug logging
+      logger.info('Theme copy - path debugging', {
+        'import.meta.url': import.meta.url,
+        currentDir,
+        executablePath,
+        binaryDir,
+        'process.cwd()': process.cwd(),
+      });
+
       // Try multiple locations for theme files
       // PRIORITY: Check npm package paths first (more common)
       const possibleSourceDirs = [
-        // npm package: <package-root>/src/cli/themes/
+        // npm package (bundled CLI): <package-root>/src/cli/themes/
+        path.join(currentDir, '../src/cli/themes'), // From dist/ -> src/cli/themes (bundled)
+        // npm package (unbundled): <package-root>/src/cli/themes/
         path.join(currentDir, '../../src/cli/themes'), // From dist/core/ -> src/cli/themes
         // Development: dist/core/../cli/themes
         path.join(currentDir, '../cli/themes'),
@@ -247,10 +258,21 @@ checkpoints/
       const executablePath = process.argv[0] || process.execPath;
       const binaryDir = dirname(executablePath);
 
+      // Debug logging
+      logger.info('Command copy - path debugging', {
+        'import.meta.url': import.meta.url,
+        currentDir,
+        executablePath,
+        binaryDir,
+        'process.cwd()': process.cwd(),
+      });
+
       // Try multiple locations for command files
       // PRIORITY: Check npm package paths first (more common)
       const possibleSourceDirs = [
-        // npm package: <package-root>/scripts/templates/commands/
+        // npm package (bundled CLI): <package-root>/scripts/templates/commands/
+        path.join(currentDir, '../scripts/templates/commands'), // From dist/ -> scripts/templates/commands (bundled)
+        // npm package (unbundled): <package-root>/scripts/templates/commands/
         path.join(currentDir, '../../scripts/templates/commands'), // From dist/core/ -> scripts/templates/commands
         // Development: dist/core/../../scripts/templates/commands
         path.join(currentDir, '../../../scripts/templates/commands'),
@@ -336,10 +358,14 @@ checkpoints/
         result.errors.push('Database file was not created on disk');
       }
     } catch (error) {
-      result.errors.push(
-        `Database initialization failed: ${error instanceof Error ? error.message : String(error)}`
-      );
-      logger.error('Failed to initialize database', { error });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      result.errors.push(`Database initialization failed: ${errorMessage}`);
+      logger.error('Failed to initialize database', {
+        errorMessage,
+        errorStack,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+      });
     }
   }
 
