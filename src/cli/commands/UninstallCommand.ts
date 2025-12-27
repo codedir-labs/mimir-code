@@ -249,6 +249,10 @@ export class UninstallCommand {
       // Check if this script is running from npm global modules
       const scriptPath = process.argv[1];
 
+      if (!scriptPath) {
+        return 'unknown';
+      }
+
       // npm installations are typically in node_modules
       if (scriptPath.includes('node_modules')) {
         return 'npm';
@@ -303,26 +307,17 @@ export class UninstallCommand {
     const mimirDir = path.join(homeDir, '.mimir');
 
     if (await this.fs.exists(mimirDir)) {
-      // Create a backup before removing
-      const backupDir = path.join(homeDir, `.mimir.backup.${Date.now()}`);
-      try {
-        await this.fs.rename(mimirDir, backupDir);
-        result.removed.push('~/.mimir/ (backed up)');
-        if (!quiet) {
-          logger.info(`Backed up configuration to ${backupDir}`);
-          logger.info('You can safely delete this backup if you no longer need it.');
-        }
-      } catch (error) {
-        // If rename fails, try direct removal
-        if (!quiet) {
-          logger.warn('Failed to backup configuration, removing directly...');
-        }
-        await this.fs.rmdir(mimirDir, { recursive: true });
-        result.removed.push('~/.mimir/');
+      // Remove the directory
+      await this.fs.rmdir(mimirDir, { recursive: true });
+      result.removed.push('~/.mimir/');
+      if (!quiet) {
+        logger.info('Removed configuration directory: ~/.mimir');
+        logger.info('All Mimir data has been deleted.');
       }
     }
   }
 
+  /* eslint-disable no-console */
   printSummary(result: UninstallResult): void {
     console.log('');
     console.log('═══════════════════════════════════════════════════════');
@@ -343,11 +338,12 @@ export class UninstallCommand {
 
     if (result.keepConfig) {
       console.log('');
-      console.log('Kept configuration:');
+      console.log('Configuration preserved:');
       console.log('  - ~/.mimir/ (your settings and data)');
       console.log('');
-      console.log('To remove configuration manually, run:');
-      console.log('  rm -rf ~/.mimir');
+      console.log('To remove it later, run:');
+      console.log('  mimir uninstall --yes --remove-config');
+      console.log('  or manually: rm -rf ~/.mimir');
     }
 
     if (result.errors.length > 0) {
@@ -360,4 +356,5 @@ export class UninstallCommand {
     console.log('Thank you for using Mimir! 👋');
     console.log('');
   }
+  /* eslint-enable no-console */
 }
