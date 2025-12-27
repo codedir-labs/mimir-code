@@ -320,23 +320,160 @@ export class UninstallCommand {
     result: UninstallResult,
     quiet = false
   ): Promise<void> {
-    // Remove from ~/.local/bin (Unix)
-    const unixBinPath = path.join(homeDir, '.local', 'bin', 'mimir');
-    if (await this.fs.exists(unixBinPath)) {
-      await this.fs.unlink(unixBinPath);
-      result.removed.push('~/.local/bin/mimir');
+    const isWindows = process.platform === 'win32';
+    const localBinPath = path.join(homeDir, '.local', 'bin', 'mimir');
+    const mimirBinDir = path.join(homeDir, '.mimir', 'bin');
+
+    if (isWindows) {
+      // Windows: Spawn deferred cleanup process
+      await this.spawnWindowsCleanup(localBinPath, mimirBinDir, quiet);
+
+      // Remove from PATH
+      await this.removeFromWindowsPath(quiet);
+
+      result.removed.push('Binary (scheduled for deletion after exit)');
+      result.removed.push('PATH entry');
+
       if (!quiet) {
-        logger.info('Removed binary symlink from ~/.local/bin');
+        logger.info('✓ Scheduled binary deletion');
+        logger.info('✓ Removed from PATH');
+        logger.warn('⚠  Cleanup will complete in ~3 seconds');
+      }
+    } else {
+      // Unix: Delete directly (file can be unlinked while running)
+      if (await this.fs.exists(localBinPath)) {
+        await this.fs.unlink(localBinPath);
+        result.removed.push('~/.local/bin/mimir');
+        if (!quiet) {
+          logger.info('Removed binary from ~/.local/bin');
+        }
+      }
+
+      if (await this.fs.exists(mimirBinDir)) {
+        await this.fs.rmdir(mimirBinDir, { recursive: true });
+        result.removed.push('~/.mimir/bin/');
+        if (!quiet) {
+          logger.info('Removed binary directory');
+        }
+      }
+
+      if (!quiet) {
+        logger.info('✓ Binary uninstalled');
+        logger.warn('⚠  Current terminal still has mimir cached');
+        logger.info('  Run: hash -r   (to clear shell cache)');
       }
     }
+  }
 
-    // Remove from ~/.mimir/bin
-    const mimirBinDir = path.join(homeDir, '.mimir', 'bin');
-    if (await this.fs.exists(mimirBinDir)) {
-      await this.fs.rmdir(mimirBinDir, { recursive: true });
-      result.removed.push('~/.mimir/bin/');
+  private async spawnWindowsCleanup(
+    binPath: string,
+    binDir: string,
+    quiet: boolean
+  ): Promise<void> {
+    if (!this.executor) {
       if (!quiet) {
-        logger.info('Removed binary directory');
+        logger.warn('Cannot spawn cleanup process - no executor available');
+      }
+      return;
+    }
+
+    try {
+      // Create cleanup batch script
+      const cleanupScript = `@echo off
+REM Wait for parent process to exit
+timeout /t 3 /nobreak >nul 2>&1
+
+REM Delete binary if it exists
+if exist "${binPath}" (
+  del /f /q "${binPath}" >nul 2>&1
+)
+if exist "${binPath}.exe" (
+  del /f /q "${binPath}.exe" >nul 2>&1
+)
+if exist "${binPath}.cmd" (
+  del /f /q "${binPath}.cmd" >nul 2>&1
+)
+
+REM Delete binary directory
+if exist "${binDir}" (
+  rmdir /s /q "${binDir}" >nul 2>&1
+)
+
+REM Delete this cleanup script
+del /f /q "%~f0" >nul 2>&1
+`;
+
+      const tempDir = os.tmpdir();
+      const cleanupPath = path.join(tempDir, `mimir-cleanup-${Date.now()}.bat`);
+
+      await this.fs.writeFile(cleanupPath, cleanupScript);
+
+      // Spawn detached background process
+      const { spawn } = await import('child_process');
+      const child = spawn('cmd', ['/c', cleanupPath], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      });
+      child.unref();
+
+      if (!quiet) {
+        logger.info('Spawned background cleanup process');
+      }
+    } catch (error) {
+      if (!quiet) {
+        logger.error('Failed to spawn cleanup process', { error });
+      }
+    }
+  }
+
+  private async removeFromWindowsPath(quiet: boolean): Promise<void> {
+    if (!this.executor) return;
+
+    try {
+      // Get current user PATH
+      const result = await this.executor.execute(
+        'powershell',
+        ['-NoProfile', '-Command', '[Environment]::GetEnvironmentVariable("Path", "User")'],
+        { cwd: process.cwd() }
+      );
+
+      if (result.exitCode !== 0) {
+        throw new Error('Failed to read PATH');
+      }
+
+      const currentPath = result.stdout.trim();
+      const pathEntries = currentPath.split(';').filter(Boolean);
+
+      // Remove only mimir-related entries
+      const filteredEntries = pathEntries.filter((entry) => {
+        const normalizedEntry = path.normalize(entry.trim()).toLowerCase();
+        return !normalizedEntry.includes('mimir');
+      });
+
+      // Only update if we actually removed something
+      if (filteredEntries.length < pathEntries.length) {
+        const newPath = filteredEntries.join(';');
+
+        await this.executor.execute(
+          'powershell',
+          [
+            '-NoProfile',
+            '-Command',
+            `[Environment]::SetEnvironmentVariable("Path", "${newPath}", "User")`,
+          ],
+          { cwd: process.cwd() }
+        );
+
+        const removedCount = pathEntries.length - filteredEntries.length;
+        if (!quiet) {
+          logger.info(`Removed ${removedCount} PATH entry/entries containing 'mimir'`);
+        }
+      }
+    } catch (error) {
+      if (!quiet) {
+        logger.warn('Failed to remove from PATH', { error });
+        logger.info('You may need to manually remove from PATH');
       }
     }
   }

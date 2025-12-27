@@ -305,12 +305,32 @@ jobs:
           # Test with keeping config (using --yes and --keep-config flags)
           mimir uninstall --yes --keep-config
 
-          # Verify binary is removed
-          if ! command -v mimir &> /dev/null; then
-            echo "✅ mimir command removed"
+          # On Unix, binary is deleted immediately but shell cache remains
+          # Clear shell cache
+          hash -r
+
+          # Verify binary file is removed
+          if [ ! -f "$HOME/.local/bin/mimir" ]; then
+            echo "✅ Binary file removed from ~/.local/bin"
           else
-            echo "❌ mimir command still available"
+            echo "❌ Binary file still exists"
             exit 1
+          fi
+
+          # Verify binary directory is removed
+          if [ ! -d "$HOME/.mimir/bin" ]; then
+            echo "✅ Binary directory removed"
+          else
+            echo "❌ Binary directory still exists"
+            exit 1
+          fi
+
+          # Start new shell to verify command is truly gone
+          if bash -c 'command -v mimir' &> /dev/null; then
+            echo "❌ mimir command still available in new shell"
+            exit 1
+          else
+            echo "✅ mimir command not found in new shell"
           fi
 
           # Config should still exist (we chose to keep it)
@@ -326,15 +346,76 @@ jobs:
         run: |
           Write-Host "Testing mimir uninstall..."
 
+          # Save PATH before uninstall for comparison
+          $pathBefore = [Environment]::GetEnvironmentVariable("Path", "User")
+          $pathEntriesBefore = $pathBefore -split ';' | Where-Object { $_ }
+          Write-Host "PATH entries before: $($pathEntriesBefore.Count)"
+
           # Test with keeping config (using --yes and --keep-config flags)
           mimir uninstall --yes --keep-config
 
-          # Verify binary is removed
-          $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
-          if (-not $mimirCmd) {
-            Write-Host "✅ mimir command removed"
+          Write-Host "Waiting 5 seconds for deferred cleanup to complete..."
+          Start-Sleep -Seconds 5
+
+          # Verify binary file is removed
+          $localBinPath = "$env:USERPROFILE\.local\bin\mimir"
+          if (-not (Test-Path $localBinPath) -and -not (Test-Path "$localBinPath.exe") -and -not (Test-Path "$localBinPath.cmd")) {
+            Write-Host "✅ Binary file removed from .local/bin"
           } else {
-            Write-Host "❌ mimir command still available"
+            Write-Host "❌ Binary file still exists"
+            if (Test-Path $localBinPath) { Write-Host "  Found: $localBinPath" }
+            if (Test-Path "$localBinPath.exe") { Write-Host "  Found: $localBinPath.exe" }
+            if (Test-Path "$localBinPath.cmd") { Write-Host "  Found: $localBinPath.cmd" }
+            exit 1
+          }
+
+          # Verify binary directory is removed
+          if (-not (Test-Path "$env:USERPROFILE\.mimir\bin")) {
+            Write-Host "✅ Binary directory removed"
+          } else {
+            Write-Host "❌ Binary directory still exists"
+            exit 1
+          }
+
+          # Verify PATH was updated (mimir entries removed)
+          $pathAfter = [Environment]::GetEnvironmentVariable("Path", "User")
+          $pathEntriesAfter = $pathAfter -split ';' | Where-Object { $_ }
+          Write-Host "PATH entries after: $($pathEntriesAfter.Count)"
+
+          # Check that mimir-related entries were removed
+          $mimirEntriesBefore = $pathEntriesBefore | Where-Object { $_ -like '*mimir*' }
+          $mimirEntriesAfter = $pathEntriesAfter | Where-Object { $_ -like '*mimir*' }
+
+          if ($mimirEntriesBefore.Count -gt 0 -and $mimirEntriesAfter.Count -eq 0) {
+            Write-Host "✅ Removed $($mimirEntriesBefore.Count) mimir PATH entry/entries"
+          } elseif ($mimirEntriesBefore.Count -eq 0) {
+            Write-Host "✅ No mimir entries were in PATH (expected for this test)"
+          } else {
+            Write-Host "❌ mimir entries still in PATH"
+            Write-Host "  Before: $($mimirEntriesBefore.Count)"
+            Write-Host "  After: $($mimirEntriesAfter.Count)"
+            exit 1
+          }
+
+          # Verify non-mimir PATH entries were preserved
+          $nonMimirBefore = $pathEntriesBefore | Where-Object { $_ -notlike '*mimir*' }
+          $nonMimirAfter = $pathEntriesAfter | Where-Object { $_ -notlike '*mimir*' }
+
+          if ($nonMimirBefore.Count -eq $nonMimirAfter.Count) {
+            Write-Host "✅ Non-mimir PATH entries preserved ($($nonMimirBefore.Count) entries)"
+          } else {
+            Write-Host "⚠️  WARNING: Non-mimir PATH entries changed"
+            Write-Host "  Before: $($nonMimirBefore.Count)"
+            Write-Host "  After: $($nonMimirAfter.Count)"
+            # Don't fail - might be OK depending on setup
+          }
+
+          # Verify command is not found in new PowerShell session
+          $mimirExists = pwsh -NoProfile -Command "Get-Command mimir -ErrorAction SilentlyContinue"
+          if (-not $mimirExists) {
+            Write-Host "✅ mimir command not found in new PowerShell session"
+          } else {
+            Write-Host "❌ mimir command still available in new PowerShell session"
             exit 1
           }
 
