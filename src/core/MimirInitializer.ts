@@ -8,6 +8,7 @@ import { ConfigLoader } from '../config/ConfigLoader.js';
 import { getDatabaseManagerAsync, closeDatabaseManager } from '../storage/Database.js';
 import { logger } from '../utils/logger.js';
 import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 export interface InitializationResult {
   success: boolean;
@@ -170,17 +171,22 @@ checkpoints/
     ];
 
     try {
-      // Get the source themes directory (from installed package)
-      // For Bun compiled binaries: use process.argv[0] to get binary location
-      // Resources are in: ~/.local/bin/resources/themes/
+      // Get the module directory for npm package installations
+      const currentDir = dirname(fileURLToPath(import.meta.url));
+
+      // Get binary directory for standalone installations
       const executablePath = process.argv[0] || process.execPath;
       const binaryDir = dirname(executablePath);
 
       // Try multiple locations for theme files
+      // PRIORITY: Check npm package paths first (more common)
       const possibleSourceDirs = [
-        path.join(binaryDir, 'resources', 'themes'), // Compiled binary: ~/.local/bin/resources/themes/
-        path.join(binaryDir, '../cli/themes'), // Development: dist/core/../cli/themes
-        path.join(binaryDir, '../../src/cli/themes'), // Development: dist/core/../../src/cli/themes
+        // npm package: <package-root>/src/cli/themes/
+        path.join(currentDir, '../../src/cli/themes'), // From dist/core/ -> src/cli/themes
+        // Development: dist/core/../cli/themes
+        path.join(currentDir, '../cli/themes'),
+        // Compiled binary: ~/.local/bin/resources/themes/
+        path.join(binaryDir, 'resources', 'themes'),
       ];
 
       for (const themeFile of defaultThemes) {
@@ -234,17 +240,22 @@ checkpoints/
     const exampleCommands = ['update-docs.yml'];
 
     try {
-      // Get the source commands directory (from installed package)
-      // For Bun compiled binaries: use process.argv[0] to get binary location
-      // Resources are in: ~/.local/bin/resources/commands/
+      // Get the module directory for npm package installations
+      const currentDir = dirname(fileURLToPath(import.meta.url));
+
+      // Get binary directory for standalone installations
       const executablePath = process.argv[0] || process.execPath;
       const binaryDir = dirname(executablePath);
 
       // Try multiple locations for command files
+      // PRIORITY: Check npm package paths first (more common)
       const possibleSourceDirs = [
-        path.join(binaryDir, 'resources', 'commands'), // Compiled binary: ~/.local/bin/resources/commands/
-        path.join(binaryDir, '../../scripts/templates/commands'), // Development: dist/core/../../scripts/templates/commands
-        path.join(binaryDir, '../../../scripts/templates/commands'), // Alternative dev path
+        // npm package: <package-root>/scripts/templates/commands/
+        path.join(currentDir, '../../scripts/templates/commands'), // From dist/core/ -> scripts/templates/commands
+        // Development: dist/core/../../scripts/templates/commands
+        path.join(currentDir, '../../../scripts/templates/commands'),
+        // Compiled binary: ~/.local/bin/resources/commands/
+        path.join(binaryDir, 'resources', 'commands'),
       ];
 
       for (const commandFile of exampleCommands) {
