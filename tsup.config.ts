@@ -34,6 +34,9 @@ export default defineConfig([
     splitting: false,
     bundle: true,
     minify: false,
+    banner: {
+      js: '#!/usr/bin/env node',
+    },
     external: [
       // Native modules
       'fsevents',

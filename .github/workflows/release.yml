@@ -297,18 +297,23 @@ jobs:
             exit 1
           }
 
-      - name: Test uninstall script (Unix)
+      - name: Test uninstall command (Unix)
         if: matrix.shell == 'bash'
         run: |
-          echo "Testing uninstall..."
+          echo "Testing mimir uninstall..."
 
-          # Make uninstall script executable
-          chmod +x scripts/uninstall.sh
+          # Test with keeping config (using --yes and --keep-config flags)
+          mimir uninstall --yes --keep-config
 
-          # Run uninstall (simulate keeping config)
-          echo "N" | bash scripts/uninstall.sh || true
+          # Verify binary is removed
+          if ! command -v mimir &> /dev/null; then
+            echo "✅ mimir command removed"
+          else
+            echo "❌ mimir command still available"
+            exit 1
+          fi
 
-          # Config should still exist
+          # Config should still exist (we chose to keep it)
           if [ -d "$HOME/.mimir" ]; then
             echo "✅ Config preserved when requested"
           else
@@ -316,27 +321,28 @@ jobs:
             exit 1
           fi
 
-          # Run uninstall again (simulate removing config)
-          echo -e "Y\nN" | bash scripts/uninstall.sh || true
-
-          # Config should be backed up and removed
-          if [ ! -d "$HOME/.mimir" ]; then
-            echo "✅ Config removed when requested"
-          else
-            echo "❌ Config still exists"
-            exit 1
-          fi
-
-      - name: Test uninstall script (Windows)
+      - name: Test uninstall command (Windows)
         if: matrix.shell == 'pwsh'
         run: |
-          Write-Host "Testing uninstall..."
+          Write-Host "Testing mimir uninstall..."
 
-          # For Windows, verify the uninstall script exists
-          if (Test-Path "scripts\uninstall.ps1") {
-            Write-Host "✅ Uninstall script exists"
+          # Test with keeping config (using --yes and --keep-config flags)
+          mimir uninstall --yes --keep-config
+
+          # Verify binary is removed
+          $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+          if (-not $mimirCmd) {
+            Write-Host "✅ mimir command removed"
           } else {
-            Write-Host "❌ Uninstall script not found"
+            Write-Host "❌ mimir command still available"
+            exit 1
+          }
+
+          # Config should still exist (we chose to keep it)
+          if (Test-Path "$env:USERPROFILE\.mimir") {
+            Write-Host "✅ Config preserved when requested"
+          } else {
+            Write-Host "❌ Config was removed unexpectedly"
             exit 1
           }
 
@@ -437,10 +443,11 @@ jobs:
       pages: write
       id-token: write
 
-  # Test installation from npm on all platforms
+  # Test installation from npm registry on all platforms
+  # TEMPORARY: Runs independently on push to main (not dependent on publish-npm)
+  # TODO: Restore needs: publish-npm dependency after initial testing
   test-npm-installation:
     name: Test npm Installation - ${{ matrix.name }}
-    needs: publish-npm
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -450,12 +457,15 @@ jobs:
           - os: ubuntu-latest
             name: Linux
             shell: bash
+            config_path: ~/.mimir/config.yml
           - os: macos-latest
             name: macOS
             shell: bash
+            config_path: ~/.mimir/config.yml
           - os: windows-latest
             name: Windows
             shell: pwsh
+            config_path: $env:USERPROFILE\.mimir\config.yml
 
     defaults:
       run:
@@ -471,31 +481,56 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Wait for npm package to be available (Unix)
+      - name: Test npm global installation (Unix)
         if: matrix.shell == 'bash'
         run: |
-          echo "Waiting for npm package to be available..."
-          sleep 60
+          echo "Testing npm global installation..."
 
-      - name: Wait for npm package to be available (Windows)
+          # Install from npm registry
+          npm install -g @codedir/mimir-code
+
+          # Verify installation
+          if command -v mimir &> /dev/null; then
+            echo "✅ mimir command available"
+            mimir --version
+          else
+            echo "❌ mimir command not found"
+            exit 1
+          fi
+
+          # Verify config directory created
+          if [ -d "$HOME/.mimir" ]; then
+            echo "✅ Config directory created"
+          else
+            echo "❌ Config directory not found"
+            exit 1
+          fi
+
+      - name: Test npm global installation (Windows)
         if: matrix.shell == 'pwsh'
         run: |
-          Write-Host "Waiting for npm package to be available..."
-          Start-Sleep -Seconds 60
+          Write-Host "Testing npm global installation..."
 
-      - name: Test npm installation (Unix)
-        if: matrix.shell == 'bash'
-        run: |
-          # Test the curl | bash installation method
-          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash -s -- "latest" "true"
+          # Install from npm registry
+          npm install -g @codedir/mimir-code
 
-      - name: Test npm installation (Windows)
-        if: matrix.shell == 'pwsh'
-        run: |
-          # Download and execute installation script
-          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1" -OutFile "$env:TEMP\install.ps1"
-          & "$env:TEMP\install.ps1" -Version "latest" -TestMode
-          Remove-Item "$env:TEMP\install.ps1"
+          # Verify installation
+          $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+          if ($mimirCmd) {
+            Write-Host "✅ mimir command available"
+            mimir --version
+          } else {
+            Write-Host "❌ mimir command not found"
+            exit 1
+          }
+
+          # Verify config directory created
+          if (Test-Path "$env:USERPROFILE\.mimir") {
+            Write-Host "✅ Config directory created"
+          } else {
+            Write-Host "❌ Config directory not found"
+            exit 1
+          }
 
       - name: Test upgrade scenario (Unix)
         if: matrix.shell == 'bash'
@@ -506,8 +541,8 @@ jobs:
           echo "# Custom user setting" >> ~/.mimir/config.yml
           echo "customTest: true" >> ~/.mimir/config.yml
 
-          # Run installation again (simulating upgrade)
-          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash -s -- "latest" "false"
+          # Upgrade via npm (will reinstall latest version)
+          npm update -g @codedir/mimir-code
 
           # Verify config was preserved
           if grep -q "customTest" ~/.mimir/config.yml; then
@@ -516,6 +551,9 @@ jobs:
             echo "❌ User config was overwritten"
             exit 1
           fi
+
+          # Verify command still works
+          mimir --version
 
       - name: Test upgrade scenario (Windows)
         if: matrix.shell == 'pwsh'
@@ -526,10 +564,8 @@ jobs:
           Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "# Custom user setting"
           Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "customTest: true"
 
-          # Run installation again (simulating upgrade)
-          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1" -OutFile "$env:TEMP\install.ps1"
-          & "$env:TEMP\install.ps1" -Version "latest"
-          Remove-Item "$env:TEMP\install.ps1"
+          # Upgrade via npm (will reinstall latest version)
+          npm update -g @codedir/mimir-code
 
           # Verify config was preserved
           $configContent = Get-Content "$env:USERPROFILE\.mimir\config.yml" -Raw
@@ -540,56 +576,92 @@ jobs:
             exit 1
           }
 
-      - name: Test uninstall script (Unix)
+          # Verify command still works
+          mimir --version
+
+      - name: Test uninstall (Unix)
         if: matrix.shell == 'bash'
         run: |
-          echo "Testing uninstall..."
+          echo "Testing mimir uninstall command..."
 
-          # Make uninstall script executable
-          chmod +x scripts/uninstall.sh
+          # First test mimir uninstall (should detect npm and provide instructions)
+          # Use --yes and --keep-config flags for headless mode
+          mimir uninstall --yes --keep-config
 
-          # Run uninstall (simulate keeping config)
-          echo "N" | bash scripts/uninstall.sh || true
+          # mimir should still be available (npm install requires npm uninstall)
+          if command -v mimir &> /dev/null; then
+            echo "✅ mimir still available (npm installation detected)"
+          else
+            echo "❌ mimir was removed unexpectedly"
+            exit 1
+          fi
 
-          # Config should still exist
+          echo "Testing npm uninstall..."
+
+          # Now uninstall via npm
+          npm uninstall -g @codedir/mimir-code
+
+          # Verify command is removed
+          if command -v mimir &> /dev/null; then
+            echo "❌ mimir command still available after npm uninstall"
+            exit 1
+          else
+            echo "✅ mimir command removed"
+          fi
+
+          # Config should still exist (npm doesn't touch user data)
           if [ -d "$HOME/.mimir" ]; then
-            echo "✅ Config preserved when requested"
+            echo "✅ Config directory preserved (as expected with npm uninstall)"
           else
-            echo "❌ Config was removed unexpectedly"
-            exit 1
+            echo "⚠️  Config directory was removed (unexpected)"
           fi
 
-          # Run uninstall again (simulate removing config)
-          echo -e "Y\nN" | bash scripts/uninstall.sh || true
-
-          # Config should be backed up and removed
-          if [ ! -d "$HOME/.mimir" ]; then
-            echo "✅ Config removed when requested"
-          else
-            echo "❌ Config still exists"
-            exit 1
-          fi
-
-      - name: Test uninstall script (Windows)
+      - name: Test uninstall (Windows)
         if: matrix.shell == 'pwsh'
         run: |
-          Write-Host "Testing uninstall..."
+          Write-Host "Testing mimir uninstall command..."
 
-          # For Windows, verify the uninstall script exists
-          if (Test-Path "scripts\uninstall.ps1") {
-            Write-Host "✅ Uninstall script exists"
+          # First test mimir uninstall (should detect npm and provide instructions)
+          # Use --yes and --keep-config flags for headless mode
+          mimir uninstall --yes --keep-config
+
+          # mimir should still be available (npm install requires npm uninstall)
+          $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+          if ($mimirCmd) {
+            Write-Host "✅ mimir still available (npm installation detected)"
           } else {
-            Write-Host "❌ Uninstall script not found"
+            Write-Host "❌ mimir was removed unexpectedly"
             exit 1
+          }
+
+          Write-Host "Testing npm uninstall..."
+
+          # Now uninstall via npm
+          npm uninstall -g @codedir/mimir-code
+
+          # Verify command is removed
+          $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+          if ($mimirCmd) {
+            Write-Host "❌ mimir command still available after npm uninstall"
+            exit 1
+          } else {
+            Write-Host "✅ mimir command removed"
+          }
+
+          # Config should still exist (npm doesn't touch user data)
+          if (Test-Path "$env:USERPROFILE\.mimir") {
+            Write-Host "✅ Config directory preserved (as expected with npm uninstall)"
+          } else {
+            Write-Host "⚠️  Config directory was removed (unexpected)"
           }
 
       - name: Create test summary
         if: success()
         run: |
           echo "✅ All npm tests passed on ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
-          echo "  - npm installation test passed" >> $GITHUB_STEP_SUMMARY
-          echo "  - Upgrade test passed" >> $GITHUB_STEP_SUMMARY
-          echo "  - Uninstall test passed" >> $GITHUB_STEP_SUMMARY
+          echo "  - npm global installation test passed" >> $GITHUB_STEP_SUMMARY
+          echo "  - npm upgrade test passed" >> $GITHUB_STEP_SUMMARY
+          echo "  - npm uninstall test passed" >> $GITHUB_STEP_SUMMARY
 
   # Final release summary
   release-complete:

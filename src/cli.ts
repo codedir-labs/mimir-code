@@ -13,6 +13,7 @@ import { FirstRunDetector } from './cli/utils/firstRunDetector.js';
 import { SetupCommand } from './cli/commands/SetupCommand.js';
 import { ChatCommand } from './cli/commands/ChatCommand.js';
 import { InitCommand } from './cli/commands/InitCommand.js';
+import { UninstallCommand } from './cli/commands/UninstallCommand.js';
 import { logger } from './utils/logger.js';
 
 // Initialize dependencies
@@ -22,6 +23,7 @@ const firstRunDetector = new FirstRunDetector(fs);
 const setupCommand = new SetupCommand(configLoader);
 const chatCommand = new ChatCommand(configLoader, firstRunDetector, setupCommand, fs);
 const initCommand = new InitCommand(fs, configLoader);
+const uninstallCommand = new UninstallCommand(fs);
 
 const program = new Command();
 
@@ -55,6 +57,26 @@ program
     await initCommand.execute(undefined, options);
     process.exit(0);
   });
+
+// Uninstall
+program
+  .command('uninstall')
+  .description('Uninstall Mimir from your system')
+  .option('-y, --yes', 'Skip confirmation prompts')
+  .option('--keep-config', 'Keep configuration directory (~/.mimir)')
+  .option('--remove-config', 'Remove configuration directory (~/.mimir)')
+  .option('-q, --quiet', 'Suppress output (implies --yes)')
+  .action(
+    async (options: {
+      yes?: boolean;
+      keepConfig?: boolean;
+      removeConfig?: boolean;
+      quiet?: boolean;
+    }) => {
+      await uninstallCommand.execute(options);
+      process.exit(0);
+    }
+  );
 
 // History management
 const history = program.command('history').description('Manage conversation history');
