@@ -283,9 +283,14 @@ export class UninstallCommand {
 
       // Check if the binary files exist (fallback detection)
       const binaryPaths = [
+        // Unix binary locations
         path.join(homeDir, '.local', 'bin', 'mimir'),
         path.join(homeDir, '.mimir', 'bin', 'mimir'),
+        // Windows binary locations (.exe, .cmd variants)
+        path.join(homeDir, '.local', 'bin', 'mimir.exe'),
+        path.join(homeDir, '.local', 'bin', 'mimir.cmd'),
         path.join(homeDir, '.mimir', 'bin', 'mimir.exe'),
+        path.join(homeDir, '.mimir', 'bin', 'mimir.cmd'),
       ];
 
       for (const binPath of binaryPaths) {
