@@ -251,25 +251,54 @@ export class UninstallCommand {
       const scriptPath = process.argv[1];
 
       if (!scriptPath) {
+        logger.debug('No script path found in process.argv[1]');
         return 'unknown';
       }
 
+      logger.debug(`Detecting install type from script path: ${scriptPath}`);
+
+      // Normalize path for comparison (handle Windows backslashes)
+      const normalizedPath = path.normalize(scriptPath).toLowerCase();
+
       // npm installations are typically in node_modules
-      if (scriptPath.includes('node_modules')) {
+      if (normalizedPath.includes('node_modules')) {
+        logger.debug('Detected npm installation (node_modules in path)');
         return 'npm';
       }
 
-      // Binary installations are typically in ~/.mimir or ~/.local/bin
+      // Binary installations are typically in ~/.mimir/bin or ~/.local/bin
       const homeDir = os.homedir();
-      if (
-        scriptPath.includes(path.join(homeDir, '.mimir')) ||
-        scriptPath.includes(path.join(homeDir, '.local', 'bin'))
-      ) {
+      const mimirBinPath = path.normalize(path.join(homeDir, '.mimir', 'bin')).toLowerCase();
+      const localBinPath = path.normalize(path.join(homeDir, '.local', 'bin')).toLowerCase();
+
+      if (normalizedPath.includes(mimirBinPath)) {
+        logger.debug('Detected binary installation (.mimir/bin in path)');
         return 'binary';
       }
 
+      if (normalizedPath.includes(localBinPath)) {
+        logger.debug('Detected binary installation (.local/bin in path)');
+        return 'binary';
+      }
+
+      // Check if the binary files exist (fallback detection)
+      const binaryPaths = [
+        path.join(homeDir, '.local', 'bin', 'mimir'),
+        path.join(homeDir, '.mimir', 'bin', 'mimir'),
+        path.join(homeDir, '.mimir', 'bin', 'mimir.exe'),
+      ];
+
+      for (const binPath of binaryPaths) {
+        if (await this.fs.exists(binPath)) {
+          logger.debug(`Detected binary installation (found file at ${binPath})`);
+          return 'binary';
+        }
+      }
+
+      logger.debug('Could not detect installation type - defaulting to unknown');
       return 'unknown';
-    } catch {
+    } catch (error) {
+      logger.debug('Error detecting installation type', { error });
       return 'unknown';
     }
   }

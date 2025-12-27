@@ -607,12 +607,20 @@ jobs:
           # Install from npm registry
           npm install -g @codedir/mimir-code
 
+          # Refresh PATH to include npm global binaries
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
           # Verify installation
           $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
           if ($mimirCmd) {
             Write-Host "✅ mimir command available"
+            Write-Host "  Path: $($mimirCmd.Source)"
           } else {
             Write-Host "❌ mimir command not found"
+            Write-Host "Debugging info:"
+            Write-Host "  npm prefix: $(npm prefix -g)"
+            Write-Host "  npm bin: $(npm bin -g)"
+            Write-Host "  Current PATH: $env:Path"
             exit 1
           }
 
@@ -727,6 +735,9 @@ jobs:
         if: matrix.shell == 'pwsh'
         run: |
           Write-Host "Testing mimir uninstall command..."
+
+          # Refresh PATH to ensure mimir command is available
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
           # First test mimir uninstall (should detect npm and provide instructions)
           # Use --yes and --keep-config flags for headless mode
