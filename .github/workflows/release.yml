@@ -281,12 +281,18 @@ jobs:
         run: |
           Write-Host "Testing upgrade scenario..."
 
+          # Refresh PATH from environment (previous install.ps1 updated User PATH)
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
           # Modify config to test preservation
           Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "# Custom user setting"
           Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "customTest: true"
 
           # Run installation again (simulating upgrade)
           & scripts\install.ps1 -Version ${{ steps.package-version.outputs.tag }}
+
+          # Refresh PATH again (in case install.ps1 changed it)
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
           # Verify config was preserved
           $configContent = Get-Content "$env:USERPROFILE\.mimir\config.yml" -Raw
@@ -345,6 +351,9 @@ jobs:
         if: matrix.shell == 'pwsh'
         run: |
           Write-Host "Testing mimir uninstall..."
+
+          # Refresh PATH from environment (install.ps1 updated User PATH, but current session doesn't have it)
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
           # Save PATH before uninstall for comparison
           $pathBefore = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -525,10 +534,10 @@ jobs:
       id-token: write
 
   # Test installation from npm registry on all platforms
-  # TEMPORARY: Runs independently on push to main (not dependent on publish-npm)
-  # TODO: Restore needs: publish-npm dependency after initial testing
+  # Runs only after npm package is successfully published
   test-npm-installation:
     name: Test npm Installation - ${{ matrix.name }}
+    needs: [publish-npm]  # Only run after npm package is published
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -607,8 +616,9 @@ jobs:
           # Install from npm registry
           npm install -g @codedir/mimir-code
 
-          # Refresh PATH to include npm global binaries
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          # Get npm global bin directory and add to PATH
+          $npmBin = npm bin -g
+          $env:Path = "$npmBin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
           # Verify installation
           $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
@@ -619,7 +629,7 @@ jobs:
             Write-Host "❌ mimir command not found"
             Write-Host "Debugging info:"
             Write-Host "  npm prefix: $(npm prefix -g)"
-            Write-Host "  npm bin: $(npm bin -g)"
+            Write-Host "  npm bin: $npmBin"
             Write-Host "  Current PATH: $env:Path"
             exit 1
           }
@@ -675,12 +685,20 @@ jobs:
         run: |
           Write-Host "Testing npm upgrade scenario..."
 
+          # Get npm global bin directory and add to PATH
+          $npmBin = npm bin -g
+          $env:Path = "$npmBin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
           # Modify config to test preservation
           Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "# Custom user setting"
           Add-Content -Path "$env:USERPROFILE\.mimir\config.yml" -Value "customTest: true"
 
           # Upgrade via npm (will reinstall latest version)
           npm update -g @codedir/mimir-code
+
+          # Refresh PATH again after upgrade (in case npm changed it)
+          $npmBin = npm bin -g
+          $env:Path = "$npmBin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
           # Verify config was preserved
           $configContent = Get-Content "$env:USERPROFILE\.mimir\config.yml" -Raw
@@ -736,8 +754,25 @@ jobs:
         run: |
           Write-Host "Testing mimir uninstall command..."
 
-          # Refresh PATH to ensure mimir command is available
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          # Get npm global bin directory and add to PATH
+          $npmBin = npm bin -g
+          $env:Path = "$npmBin;" + [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+          # Debug: Show where npm global binaries are located
+          Write-Host "npm prefix: $(npm prefix -g)"
+          Write-Host "npm bin: $npmBin"
+
+          # Debug: Check if mimir is available
+          $mimirCmd = Get-Command mimir -ErrorAction SilentlyContinue
+          if ($mimirCmd) {
+            Write-Host "✅ mimir command found at: $($mimirCmd.Source)"
+          } else {
+            Write-Host "❌ mimir command not found after PATH refresh"
+            Write-Host "Current PATH: $env:Path"
+            Write-Host "Searching for mimir in npm global..."
+            Get-ChildItem -Path "$(npm prefix -g)" -Recurse -Filter "mimir*" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  Found: $($_.FullName)" }
+            exit 1
+          }
 
           # First test mimir uninstall (should detect npm and provide instructions)
           # Use --yes and --keep-config flags for headless mode
