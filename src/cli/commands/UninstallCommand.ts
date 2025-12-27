@@ -18,6 +18,7 @@ interface UninstallResult {
   removed: string[];
   errors: string[];
   keepConfig: boolean;
+  isNpmInstall?: boolean;
 }
 
 export interface UninstallOptions {
@@ -217,8 +218,9 @@ export class UninstallCommand {
         await this.removeBinaryInstallation(homeDir, result, quiet);
       }
 
-      // 3. For npm installations, run npm uninstall
+      // 3. For npm installations, provide instructions
       if (installType === 'npm') {
+        result.isNpmInstall = true;
         await this.removeNpmInstallation(result, quiet);
       }
 
@@ -266,6 +268,27 @@ export class UninstallCommand {
         return 'npm';
       }
 
+      // On Unix, npm creates symlinks that might not show node_modules in argv[1]
+      // Walk up the directory tree looking for package.json
+      let currentPath = path.dirname(scriptPath);
+      for (let i = 0; i < 5; i++) {
+        const packageJsonPath = path.join(currentPath, 'package.json');
+        if (await this.fs.exists(packageJsonPath)) {
+          try {
+            const packageJson = JSON.parse(await this.fs.readFile(packageJsonPath, 'utf-8'));
+            if (packageJson.name === '@codedir/mimir-code') {
+              logger.debug('Detected npm installation (found package.json)');
+              return 'npm';
+            }
+          } catch (error) {
+            // Ignore parse errors
+          }
+        }
+        const parentPath = path.dirname(currentPath);
+        if (parentPath === currentPath) break; // Reached root
+        currentPath = parentPath;
+      }
+
       // Binary installations are typically in ~/.mimir/bin or ~/.local/bin
       const homeDir = os.homedir();
       const mimirBinPath = path.normalize(path.join(homeDir, '.mimir', 'bin')).toLowerCase();
@@ -309,44 +332,16 @@ export class UninstallCommand {
   }
 
   private async removeNpmInstallation(result: UninstallResult, quiet = false): Promise<void> {
-    if (!this.executor) {
-      if (!quiet) {
-        logger.warn('Cannot automatically uninstall npm package.');
-        logger.info('Please run manually: npm uninstall -g @codedir/mimir-code');
-      }
-      return;
+    // For npm installations, we cannot uninstall ourselves (the running script is part of the package)
+    // Instead, provide instructions to the user
+    if (!quiet) {
+      logger.warn('Detected npm installation');
+      logger.info('To uninstall, please run: npm uninstall -g @codedir/mimir-code');
     }
-
-    try {
-      if (!quiet) {
-        logger.info('Removing npm global package...');
-      }
-
-      const npmResult = await this.executor.execute(
-        'npm',
-        ['uninstall', '-g', '@codedir/mimir-code'],
-        {
-          cwd: process.cwd(),
-        }
-      );
-
-      if (npmResult.exitCode === 0) {
-        result.removed.push('npm global package (@codedir/mimir-code)');
-        if (!quiet) {
-          logger.info('Successfully uninstalled npm package');
-        }
-      } else {
-        throw new Error(`npm uninstall failed: ${npmResult.stderr}`);
-      }
-    } catch (error) {
-      if (!quiet) {
-        logger.error('Failed to uninstall npm package', { error });
-        logger.info('Please run manually: npm uninstall -g @codedir/mimir-code');
-      }
-      result.errors.push(
-        `npm uninstall failed: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    // Note: We do NOT actually run npm uninstall here because:
+    // 1. This script is part of the package being uninstalled (race condition)
+    // 2. npm handles package removal properly when user runs npm uninstall
+    // 3. The config will be preserved (npm doesn't touch ~/.mimir)
   }
 
   private async removeBinaryInstallation(
@@ -535,13 +530,24 @@ del /f /q "%~f0" >nul 2>&1
     console.log('');
     console.log('═══════════════════════════════════════════════════════');
 
-    if (result.success) {
+    if (result.isNpmInstall) {
+      console.log('ℹ️  npm Installation Detected');
+    } else if (result.success) {
       console.log('✅ Mimir has been uninstalled');
     } else {
       console.log('❌ Uninstall completed with errors');
     }
 
     console.log('═══════════════════════════════════════════════════════');
+
+    if (result.isNpmInstall) {
+      console.log('');
+      console.log('To uninstall the npm package, run:');
+      console.log('  npm uninstall -g @codedir/mimir-code');
+      console.log('');
+      console.log('or with yarn:');
+      console.log('  yarn global remove @codedir/mimir-code');
+    }
 
     if (result.removed.length > 0) {
       console.log('');
@@ -554,9 +560,14 @@ del /f /q "%~f0" >nul 2>&1
       console.log('Configuration preserved:');
       console.log('  - ~/.mimir/ (your settings and data)');
       console.log('');
-      console.log('To remove it later, run:');
-      console.log('  mimir uninstall --yes --remove-config');
-      console.log('  or manually: rm -rf ~/.mimir');
+      if (!result.isNpmInstall) {
+        console.log('To remove it later, run:');
+        console.log('  mimir uninstall --yes --remove-config');
+        console.log('  or manually: rm -rf ~/.mimir');
+      } else {
+        console.log('Note: npm uninstall will not remove your configuration');
+        console.log('To remove it manually: rm -rf ~/.mimir');
+      }
     }
 
     if (result.errors.length > 0) {

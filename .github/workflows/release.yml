@@ -750,9 +750,15 @@ jobs:
           # Now uninstall via npm
           npm uninstall -g @codedir/mimir-code
 
-          # Verify command is removed
-          if command -v mimir &> /dev/null; then
+          # Clear shell command hash cache
+          hash -r
+
+          # Verify command is removed (use fresh shell to avoid caching)
+          if bash -c 'command -v mimir' &> /dev/null; then
             echo "❌ mimir command still available after npm uninstall"
+            # Debug info
+            echo "Debug: which mimir = $(which mimir 2>&1 || echo 'not found')"
+            echo "Debug: command -v mimir = $(command -v mimir 2>&1 || echo 'not found')"
             exit 1
           else
             echo "✅ mimir command removed"
