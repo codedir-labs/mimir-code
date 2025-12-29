@@ -4,14 +4,31 @@
  */
 
 export * from './types/index.js';
-export * from './core/Agent.js';
-export * from './core/Tool.js';
-export * from './core/PermissionManager.js';
-export * from './providers/ILLMProvider.js';
-export * from './providers/BaseLLMProvider.js';
-export * from './providers/ProviderFactory.js';
-export * from './config/ConfigLoader.js';
-export { FileSystemAdapter } from './platform/FileSystemAdapter.js';
-export { IFileSystem } from './platform/IFileSystem.js';
-export * from './utils/logger.js';
-export * from './utils/errors.js';
+
+// Export Agent from mimir-agents package
+export { Agent } from '@codedir/mimir-agents/core';
+export type {
+  IAgent,
+  AgentConfig,
+  AgentResult,
+  AgentBudget,
+  AgentStatus,
+} from '@codedir/mimir-agents/core';
+
+// Export other modules
+export { ToolRegistry, BaseTool } from '@codedir/mimir-agents/tools';
+export type { ITool } from '@codedir/mimir-agents/tools';
+export { PermissionManager, RiskAssessor } from '@codedir/mimir-agents/core';
+export type {
+  RiskLevel,
+  RiskAssessment,
+  PermissionRequest,
+  PermissionResult,
+} from '@codedir/mimir-agents/core';
+export type { ILLMProvider } from '@codedir/mimir-agents';
+export * from '@codedir/mimir-agents-node/providers';
+export * from '@/shared/config/ConfigLoader.js';
+export { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
+export type { IFileSystem } from '@codedir/mimir-agents';
+export * from '@/shared/utils/logger.js';
+export * from '@/shared/utils/errors.js';

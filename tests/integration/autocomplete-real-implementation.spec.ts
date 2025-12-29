@@ -4,14 +4,14 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SlashCommandRegistry } from '../../src/core/SlashCommand.js';
-import { ModeCommand } from '../../src/cli/commands/slashCommands/ModeCommand.js';
-import { ThemeCommand } from '../../src/cli/commands/slashCommands/ThemeCommand.js';
-import { ModelCommand } from '../../src/cli/commands/slashCommands/ModelCommand.js';
-import { NewCommand } from '../../src/cli/commands/slashCommands/NewCommand.js';
-import { HelpCommand } from '../../src/cli/commands/slashCommands/HelpCommand.js';
-import { getAllThemes } from '../../src/config/themes/index.js';
-import { SlashCommandParser } from '../../src/core/SlashCommandParser.js';
+import { SlashCommandRegistry } from '@/features/chat/slash-commands/SlashCommand.js';
+import { ModeCommand } from '@/features/chat/slash-commands/ModeCommand.js';
+import { ThemeCommand } from '@/features/chat/slash-commands/ThemeCommand.js';
+import { ModelCommand } from '@/features/chat/slash-commands/ModelCommand.js';
+import { NewCommand } from '@/features/chat/slash-commands/NewCommand.js';
+import { HelpCommand } from '@/features/chat/slash-commands/HelpCommand.js';
+import { getAllThemes } from '@/shared/config/themes/index.js';
+import { SlashCommandParser } from '@/features/custom-commands/parser/SlashCommandParser.js';
 
 describe('Autocomplete - Real Implementation Integration', () => {
   let registry: SlashCommandRegistry;
@@ -116,7 +116,7 @@ describe('Autocomplete - Real Implementation Integration', () => {
       console.log('All themes:', themes);
 
       expect(themes).toContain('mimir');
-      expect(themes).toHaveLength(7); // mimir, dark, light, dark-colorblind, light-colorblind, dark-ansi, light-ansi
+      expect(themes).toHaveLength(13); // Updated: now have 13 themes including dracula, catppuccin variants, etc.
     });
 
     it('should return all themes including mimir from ThemeCommand', () => {
@@ -128,7 +128,7 @@ describe('Autocomplete - Real Implementation Integration', () => {
       console.log('Theme suggestions:', suggestions);
 
       expect(suggestions).toContain('mimir');
-      expect(suggestions).toHaveLength(7);
+      expect(suggestions).toHaveLength(13); // Updated: now have 13 themes
       expect(suggestions).toEqual(
         expect.arrayContaining([
           'mimir',
@@ -138,6 +138,7 @@ describe('Autocomplete - Real Implementation Integration', () => {
           'light-colorblind',
           'dark-ansi',
           'light-ansi',
+          'dracula',
         ])
       );
     });
@@ -156,7 +157,7 @@ describe('Autocomplete - Real Implementation Integration', () => {
       // Empty filter should return all (including mimir)
       const emptyFilter = filterSuggestions('');
       expect(emptyFilter).toContain('mimir');
-      expect(emptyFilter).toHaveLength(7);
+      expect(emptyFilter).toHaveLength(13); // Updated: now have 13 themes
 
       // Filter by 'm' should return only 'mimir'
       expect(filterSuggestions('m')).toEqual(['mimir']);
@@ -169,7 +170,8 @@ describe('Autocomplete - Real Implementation Integration', () => {
       expect(darkThemes).toContain('dark');
       expect(darkThemes).toContain('dark-colorblind');
       expect(darkThemes).toContain('dark-ansi');
-      expect(darkThemes).toHaveLength(3);
+      expect(darkThemes).toContain('dracula');
+      expect(darkThemes).toHaveLength(4); // Updated: now have 4 themes starting with 'd'
 
       // Filter by 'l' should return light themes
       const lightThemes = filterSuggestions('l');
@@ -344,7 +346,7 @@ describe('Autocomplete - Real Implementation Integration', () => {
 
       console.log('Theme suggestions for "/theme ":', filteredSuggestions);
 
-      expect(filteredSuggestions).toHaveLength(7);
+      expect(filteredSuggestions).toHaveLength(13); // Updated: now have 13 themes
       expect(filteredSuggestions).toContain('mimir');
       expect(filteredSuggestions).toContain('dark');
       expect(filteredSuggestions).toContain('light');

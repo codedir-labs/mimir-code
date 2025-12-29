@@ -3,32 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PermissionManager } from '../../../src/core/PermissionManager.js';
-import { RiskAssessor } from '../../../src/core/RiskAssessor.js';
-
-describe('RiskAssessor', () => {
-  const assessor = new RiskAssessor();
-
-  it('should assess critical risk for dangerous commands', () => {
-    expect(assessor.assess('rm -rf /').level).toBe('critical');
-    expect(assessor.assess('format c:').level).toBe('critical');
-  });
-
-  it('should assess high risk for destructive commands', () => {
-    expect(assessor.assess('rm -rf node_modules').level).toBe('high');
-    expect(assessor.assess('git push --force').level).toBe('high');
-  });
-
-  it('should assess medium risk for install commands', () => {
-    expect(assessor.assess('npm install axios').level).toBe('medium');
-    expect(assessor.assess('yarn add react').level).toBe('medium');
-  });
-
-  it('should assess low risk for safe commands', () => {
-    expect(assessor.assess('ls -la').level).toBe('low');
-    expect(assessor.assess('git status').level).toBe('low');
-  });
-});
+import { PermissionManager } from '@/features/permissions/manager/PermissionManager.js';
 
 describe('PermissionManager', () => {
   let manager: PermissionManager;

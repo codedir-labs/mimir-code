@@ -1,0 +1,107 @@
+# Dark Theme - Modern dark color scheme
+name: Dark
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#1a1a1a'
+    fg: '#ffffff'
+  headerText:
+    fg: '#e0e0e0'
+  footerBg:
+    bg: '#2d2d2d'
+  footerText:
+    fg: '#888888'
+  inputPrompt:
+    fg: '#00d4ff'
+  inputText:
+    fg: '#ffffff'
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#2d2d2d'
+  autocompleteText:
+    fg: '#ffffff'
+  autocompleteSelectedBg:
+    bg: '#00d4ff'
+    fg: '#000000'
+  autocompleteSelectedText:
+    fg: '#000000'
+  autocompleteHeaderText:
+    fg: '#00d4ff'
+    bold: true
+  autocompleteFooterText:
+    fg: '#666666'
+  autocompleteMoreIndicator:
+    fg: '#666666'
+
+  # Mode indicators
+  modePlan:
+    fg: '#2196F3'
+  modeAct:
+    fg: '#4CAF50'
+  modeDiscuss:
+    fg: '#C792EA'
+
+  # Message roles
+  userMessage:
+    fg: '#4CAF50'
+  assistantMessage:
+    fg: '#2196F3'
+  systemMessage:
+    fg: '#FF9800'
+
+  # Syntax highlighting
+  keyword:
+    fg: '#C792EA'
+  string:
+    fg: '#C3E88D'
+  number:
+    fg: '#F78C6C'
+  comment:
+    fg: '#546E7A'
+  function:
+    fg: '#82AAFF'
+  variable:
+    fg: '#EEFFFF'
+
+  # Status indicators
+  success:
+    fg: '#4CAF50'
+  warning:
+    fg: '#FFC107'
+  error:
+    fg: '#F44336'
+  info:
+    fg: '#2196F3'
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#666666'
+  statusReasoning:
+    fg: '#00d4ff'
+  statusActing:
+    fg: '#4CAF50'
+  statusObserving:
+    fg: '#2196F3'
+  statusInterrupted:
+    fg: '#FFC107'
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#444444'
+  wizardTitle:
+    fg: '#00d4ff'
+  wizardAccent:
+    fg: '#2196F3'
+  paramDescription:
+    fg: '#888888'
+
+  # Diff colors
+  diffAddLine:
+    bg: '#22863a'
+    fg: '#ffffff'
+  diffRemoveLine:
+    bg: '#cb2431'
+    fg: '#ffffff'

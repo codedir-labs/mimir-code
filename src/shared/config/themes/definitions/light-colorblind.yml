@@ -1,0 +1,107 @@
+# Light Colorblind Theme - Accessible light color scheme
+name: Light Colorblind
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#f5f5f5'
+    fg: '#000000'
+  headerText:
+    fg: '#424242'
+  footerBg:
+    bg: '#e0e0e0'
+  footerText:
+    fg: '#757575'
+  inputPrompt:
+    fg: '#1976D2'
+  inputText:
+    fg: '#212121'
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#e0e0e0'
+  autocompleteText:
+    fg: '#212121'
+  autocompleteSelectedBg:
+    bg: '#1976D2'
+    fg: '#ffffff'
+  autocompleteSelectedText:
+    fg: '#ffffff'
+  autocompleteHeaderText:
+    fg: '#1976D2'
+    bold: true
+  autocompleteFooterText:
+    fg: '#9E9E9E'
+  autocompleteMoreIndicator:
+    fg: '#9E9E9E'
+
+  # Mode indicators
+  modePlan:
+    fg: '#1976D2'
+  modeAct:
+    fg: '#388E3C'
+  modeDiscuss:
+    fg: '#7B1FA2'
+
+  # Message roles
+  userMessage:
+    fg: '#1976D2'
+  assistantMessage:
+    fg: '#F57C00'
+  systemMessage:
+    fg: '#7B1FA2'
+
+  # Syntax highlighting
+  keyword:
+    fg: '#8E24AA'
+  string:
+    fg: '#F9A825'
+  number:
+    fg: '#D84315'
+  comment:
+    fg: '#9E9E9E'
+  function:
+    fg: '#1565C0'
+  variable:
+    fg: '#424242'
+
+  # Status indicators
+  success:
+    fg: '#388E3C'
+  warning:
+    fg: '#F57C00'
+  error:
+    fg: '#D32F2F'
+  info:
+    fg: '#1976D2'
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#9E9E9E'
+  statusReasoning:
+    fg: '#1976D2'
+  statusActing:
+    fg: '#388E3C'
+  statusObserving:
+    fg: '#1565C0'
+  statusInterrupted:
+    fg: '#F57C00'
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#BDBDBD'
+  wizardTitle:
+    fg: '#1976D2'
+  wizardAccent:
+    fg: '#1565C0'
+  paramDescription:
+    fg: '#757575'
+
+  # Diff colors
+  diffAddLine:
+    bg: '#BBDEFB'
+    fg: '#000000'
+  diffRemoveLine:
+    bg: '#FFE0B2'
+    fg: '#000000'

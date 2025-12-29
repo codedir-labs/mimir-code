@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LRUCache, TokenCache, FileCache } from '../../../src/utils/cache.js';
+import { LRUCache, TokenCache, FileCache } from '@/shared/utils/cache.js';
 
 describe('LRUCache', () => {
   let cache: LRUCache<string>;
@@ -137,6 +137,8 @@ describe('LRUCache', () => {
     });
 
     it('should evict expired entries manually', () => {
+      vi.useFakeTimers();
+
       const cache = new LRUCache<string>({
         maxSize: 1000,
         maxAge: 100,
@@ -145,11 +147,13 @@ describe('LRUCache', () => {
       cache.set('key1', 'value1');
       cache.set('key2', 'value2');
 
-      // Wait and evict
-      setTimeout(() => {
-        const evicted = cache.evictExpired();
-        expect(evicted).toBe(2);
-      }, 150);
+      // Advance time past maxAge
+      vi.advanceTimersByTime(150);
+
+      const evicted = cache.evictExpired();
+      expect(evicted).toBe(2);
+
+      vi.useRealTimers();
     });
   });
 

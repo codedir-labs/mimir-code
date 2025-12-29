@@ -27,7 +27,7 @@ export function getModifierKey(): 'Cmd' | 'Ctrl' {
 
 /**
  * Get platform-specific key combination
- * Example: getPlatformKey('Ctrl+C') returns 'Cmd+C' on macOS, 'Ctrl+C' elsewhere
+ * Example: getPlatformKey('ctrl+C') returns 'cmd+C' on macOS, 'ctrl+C' elsewhere
  */
 export function getPlatformKey(key: string): string {
   if (isMacOS) {

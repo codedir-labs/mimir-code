@@ -1,0 +1,108 @@
+# Catppuccin Latte Theme - Soothing pastel light theme
+# Official colors from catppuccin.com/palette
+name: Catppuccin Latte
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#eff1f5'  # Base
+    fg: '#4c4f69'  # Text
+  headerText:
+    fg: '#5c5f77'  # Subtext1
+  footerBg:
+    bg: '#e6e9ef'  # Mantle
+  footerText:
+    fg: '#9ca0b0'  # Overlay0
+  inputPrompt:
+    fg: '#04a5e5'  # Sky
+  inputText:
+    fg: '#4c4f69'  # Text
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#e6e9ef'  # Mantle
+  autocompleteText:
+    fg: '#4c4f69'  # Text
+  autocompleteSelectedBg:
+    bg: '#1e66f5'  # Blue
+    fg: '#eff1f5'  # Base
+  autocompleteSelectedText:
+    fg: '#eff1f5'  # Base
+  autocompleteHeaderText:
+    fg: '#1e66f5'  # Blue
+    bold: true
+  autocompleteFooterText:
+    fg: '#9ca0b0'  # Overlay0
+  autocompleteMoreIndicator:
+    fg: '#9ca0b0'  # Overlay0
+
+  # Mode indicators
+  modePlan:
+    fg: '#1e66f5'  # Blue
+  modeAct:
+    fg: '#40a02b'  # Green
+  modeDiscuss:
+    fg: '#8839ef'  # Mauve
+
+  # Message roles
+  userMessage:
+    fg: '#179299'  # Teal
+  assistantMessage:
+    fg: '#1e66f5'  # Blue
+  systemMessage:
+    fg: '#df8e1d'  # Yellow
+
+  # Syntax highlighting
+  keyword:
+    fg: '#8839ef'  # Mauve
+  string:
+    fg: '#40a02b'  # Green
+  number:
+    fg: '#fe640b'  # Peach
+  comment:
+    fg: '#9ca0b0'  # Overlay0
+  function:
+    fg: '#1e66f5'  # Blue
+  variable:
+    fg: '#4c4f69'  # Text
+
+  # Status indicators
+  success:
+    fg: '#40a02b'  # Green
+  warning:
+    fg: '#df8e1d'  # Yellow
+  error:
+    fg: '#d20f39'  # Red
+  info:
+    fg: '#1e66f5'  # Blue
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#9ca0b0'  # Overlay0
+  statusReasoning:
+    fg: '#04a5e5'  # Sky
+  statusActing:
+    fg: '#40a02b'  # Green
+  statusObserving:
+    fg: '#1e66f5'  # Blue
+  statusInterrupted:
+    fg: '#df8e1d'  # Yellow
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#ccd0da'  # Surface0
+  wizardTitle:
+    fg: '#1e66f5'  # Blue
+  wizardAccent:
+    fg: '#8839ef'  # Mauve
+  paramDescription:
+    fg: '#9ca0b0'  # Overlay0
+
+  # Diff colors
+  diffAddLine:
+    bg: '#40a02b'  # Green
+    fg: '#eff1f5'  # Base
+  diffRemoveLine:
+    bg: '#d20f39'  # Red
+    fg: '#4c4f69'  # Text

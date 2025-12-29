@@ -8,7 +8,7 @@ Extend Mimir with custom slash commands defined as YAML files in `.mimir/command
 
 Create `.mimir/commands/my-command.yml`:
 
-```yaml
+```yaml filename=".mimir/commands/my-command.yml"
 name: my-command
 description: Brief description
 prompt: |
@@ -24,7 +24,7 @@ Use in chat:
 
 ### Command File Format
 
-```yaml
+```yaml filename=".mimir/commands/<command-name>.yml"
 name: command-name          # Required: lowercase, hyphens allowed
 description: Short desc     # Required: one-line description
 usage: /cmd [args]          # Optional: usage example
@@ -42,8 +42,7 @@ prompt: |                   # Required: AI agent instructions
 
 #### Security Analysis
 
-`.mimir/commands/security.yml`:
-```yaml
+```yaml filename=".mimir/commands/security.yml"
 name: security
 description: Analyze code for security vulnerabilities
 usage: /security [file-or-commit]
@@ -65,8 +64,7 @@ prompt: |
 
 #### Test Generation
 
-`.mimir/commands/test.yml`:
-```yaml
+```yaml filename=".mimir/commands/test.yml"
 name: test
 description: Generate comprehensive test cases
 usage: /test [file-or-function]
@@ -84,8 +82,7 @@ prompt: |
 
 #### Code Review
 
-`.mimir/commands/review.yml`:
-```yaml
+```yaml filename=".mimir/commands/review.yml"
 name: review
 description: Perform code review
 usage: /review [file-or-commit]
@@ -125,8 +122,7 @@ Project commands override global ones. Custom commands cannot override built-in 
 
 Track `.mimir/commands/` in git:
 
-```bash
-# .gitignore
+```bash filename=".gitignore"
 /.mimir/mimir.db
 /.mimir/logs/
 /.mimir/checkpoints/

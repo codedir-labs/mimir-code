@@ -1,5 +1,5 @@
 export default {
   'custom-commands': 'Custom Commands',
-  keyboards: 'Keyboard Shortcuts',
+  keybinds: 'Keyboard Shortcuts',
   themes: 'Themes',
 };

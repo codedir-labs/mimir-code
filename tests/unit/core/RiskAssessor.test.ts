@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { RiskAssessor } from '../../../src/core/RiskAssessor.js';
+import { RiskAssessor } from '@/features/permissions/assessor/RiskAssessor.js';
 
 describe('RiskAssessor', () => {
   const assessor = new RiskAssessor();

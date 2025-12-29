@@ -3,11 +3,19 @@ llm:
   model: deepseek-chat
   temperature: 0.7
   maxTokens: 4096
+autoSwitch:
+  enabled: false
+  promptBeforeSwitch: true
+  preferQualityOverCost: true
+  maxCostTier: 3
 permissions:
   autoAccept: false
   acceptRiskLevel: medium
   alwaysAcceptCommands: []
 keyBindings:
+  leader: null
+  leaderTimeout: 1000
+  enabled: true
   interrupt:
     - Ctrl+C
     - Escape
@@ -23,6 +31,14 @@ keyBindings:
     - ArrowUp
   navigateDown:
     - ArrowDown
+  navigateLeft:
+    - alt+arrowleft
+  navigateRight:
+    - alt+arrowright
+  removeAttachment:
+    - alt+backspace
+  pasteFromClipboard:
+    - ctrl+v
   help:
     - "?"
   clearScreen:
@@ -31,11 +47,35 @@ keyBindings:
     - Ctrl+Z
   redo:
     - Ctrl+Y
+  newSession:
+    - n
+  listSessions:
+    - l
+  resumeSession:
+    - r
+  cursorToLineStart:
+    - home
+  cursorToLineEnd:
+    - end
+  cursorWordLeft:
+    - ctrl+arrowleft
+  cursorWordRight:
+    - ctrl+arrowright
+  deleteWordLeft:
+    - ctrl+w
+    - ctrl+backspace
+  deleteWordRight:
+    - ctrl+delete
+  deleteToLineEnd:
+    - ctrl+k
+  deleteToLineStart:
+    - ctrl+u
+  deleteEntireLine: []
 docker:
   enabled: true
   baseImage: alpine:latest
 ui:
-  theme: dark-colorblind
+  theme: mimir
   syntaxHighlighting: true
   showLineNumbers: true
   compactMode: false
@@ -56,3 +96,11 @@ rateLimit:
   toolExecutionsPerMinute: 30
   llmCallsPerMinute: 20
   maxFileSizeMB: 100
+paste:
+  enabled: true
+  bracketedPasteMode: true
+  textThreshold:
+    minChars: 500
+    minLines: 10
+  imageSupport: true
+  maxAttachments: 10

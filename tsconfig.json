@@ -29,8 +29,18 @@
     "declarationMap": true,
     "sourceMap": true,
     "jsx": "react-jsx",
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@/features/*": ["./src/features/*"],
+      "@/shared/*": ["./src/shared/*"],
+      "@/types/*": ["./src/types/*"]
+    }
   },
+  "references": [
+    { "path": "./packages/mimir-agents" },
+    { "path": "./packages/mimir-agents-runtime" },
+    { "path": "./packages/mimir-teams-contracts" }
+  ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "build", "tests"]
 }

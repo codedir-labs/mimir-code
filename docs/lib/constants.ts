@@ -4,6 +4,7 @@ export const MIMIR_LOGO_TEXT = 'MIMIR CODE';
 export const ORG_NAME = 'Code Directory';
 export const GITHUB_URL = 'https://github.com/codedir-labs/mimir-code';
 export const DOCS_REPO_URL = 'https://github.com/codedir-labs/mimir-code/tree/main/docs';
+export const TEAMS_URL = process.env.NEXT_PUBLIC_TEAMS_URL;
 
 // Project Information
 export const PROJECT_NAME = 'Mimir Code';

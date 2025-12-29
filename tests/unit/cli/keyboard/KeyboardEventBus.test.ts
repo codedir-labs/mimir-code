@@ -3,10 +3,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { KeyboardEventBus } from '../../../../src/cli/keyboard/KeyboardEventBus.js';
-import { KeyBindingsManager } from '../../../../src/utils/KeyBindings.js';
-import { KeyBindingsConfig } from '../../../../src/config/schemas.js';
-import { IFileSystem } from '../../../../src/platform/IFileSystem.js';
+import { KeyboardEventBus } from '@/shared/keyboard/KeyboardEventBus.js';
+import { KeyBindingsManager } from '@/shared/utils/KeyBindings.js';
+import { KeyBindingsConfig } from '@/shared/config/schemas.js';
+import { IFileSystem } from '@codedir/mimir-agents';
 import { getPlatformKey } from '../../../helpers/platformHelpers.js';
 
 describe('KeyboardEventBus', () => {
@@ -31,18 +31,18 @@ describe('KeyboardEventBus', () => {
     } as unknown as IFileSystem;
 
     const config: KeyBindingsConfig = {
-      interrupt: ['Ctrl+C', 'Escape'],
-      accept: ['Enter'],
-      reject: ['Escape'],
-      modeSwitch: ['Shift+Tab'],
-      editCommand: ['Ctrl+E'],
-      showTooltip: ['Ctrl+Space', 'Tab'],
-      navigateUp: ['ArrowUp'],
-      navigateDown: ['ArrowDown'],
+      interrupt: ['ctrl+C', 'escape'],
+      accept: ['enter'],
+      reject: ['escape'],
+      modeSwitch: ['shift+Tab'],
+      editCommand: ['ctrl+E'],
+      showTooltip: ['ctrl+Space', 'tab'],
+      navigateUp: ['arrowup'],
+      navigateDown: ['arrowdown'],
       help: ['?'],
-      clearScreen: ['Ctrl+L'],
-      undo: ['Ctrl+Z'],
-      redo: ['Ctrl+Y'],
+      clearScreen: ['ctrl+L'],
+      undo: ['ctrl+Z'],
+      redo: ['ctrl+Y'],
     };
 
     bindingsManager = new KeyBindingsManager(config, mockFs);
@@ -139,7 +139,7 @@ describe('KeyboardEventBus', () => {
   describe('Event Dispatching', () => {
     it('should dispatch action to handlers', () => {
       const handler = vi.fn();
-      const interruptKey = getPlatformKey('Ctrl+C');
+      const interruptKey = getPlatformKey('ctrl+C');
 
       eventBus.subscribe('interrupt', handler);
       eventBus.dispatchAction('interrupt', interruptKey);
@@ -309,7 +309,7 @@ describe('KeyboardEventBus', () => {
       const handler = vi.fn();
       eventBus.subscribe('interrupt', handler);
 
-      const interruptKey = getPlatformKey('Ctrl+C');
+      const interruptKey = getPlatformKey('ctrl+C');
       const result = eventBus.dispatch(interruptKey);
 
       expect(result).toBe(true);
@@ -320,13 +320,86 @@ describe('KeyboardEventBus', () => {
       const handler = vi.fn();
       eventBus.subscribe('interrupt', handler);
 
-      const interruptKey = getPlatformKey('Ctrl+C');
+      const interruptKey = getPlatformKey('ctrl+C');
 
-      // Both Ctrl+C (or Cmd+C on Mac) and Escape map to 'interrupt'
+      // Both ctrl+C (or cmd+C on Mac) and Escape map to 'interrupt'
       eventBus.dispatch(interruptKey);
-      eventBus.dispatch('Escape');
+      eventBus.dispatch('escape');
 
       expect(handler).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Context-Aware Action Filtering', () => {
+    describe('navigateUp/navigateDown', () => {
+      it('should be relevant when autocomplete is visible', () => {
+        eventBus.updateContext({ isAutocompleteVisible: true });
+
+        expect(eventBus.isActionRelevantInContext('navigateUp')).toBe(true);
+        expect(eventBus.isActionRelevantInContext('navigateDown')).toBe(true);
+      });
+
+      it('should NOT be relevant when autocomplete is hidden', () => {
+        eventBus.updateContext({ isAutocompleteVisible: false });
+
+        expect(eventBus.isActionRelevantInContext('navigateUp')).toBe(false);
+        expect(eventBus.isActionRelevantInContext('navigateDown')).toBe(false);
+      });
+    });
+
+    describe('showTooltip', () => {
+      it('should be relevant when input is focused', () => {
+        eventBus.updateContext({ isInputFocused: true });
+
+        expect(eventBus.isActionRelevantInContext('showTooltip')).toBe(true);
+      });
+
+      it('should NOT be relevant when input is not focused', () => {
+        eventBus.updateContext({ isInputFocused: false });
+
+        expect(eventBus.isActionRelevantInContext('showTooltip')).toBe(false);
+      });
+    });
+
+    describe('interrupt', () => {
+      it('should be relevant when agent is running', () => {
+        eventBus.updateContext({ isAgentRunning: true });
+
+        expect(eventBus.isActionRelevantInContext('interrupt')).toBe(true);
+      });
+
+      it('should NOT be relevant when agent is not running', () => {
+        eventBus.updateContext({ isAgentRunning: false });
+
+        expect(eventBus.isActionRelevantInContext('interrupt')).toBe(false);
+      });
+    });
+
+    describe('accept', () => {
+      it('should always be relevant (context-independent)', () => {
+        // Test different contexts
+        eventBus.updateContext({ isAutocompleteVisible: true });
+        expect(eventBus.isActionRelevantInContext('accept')).toBe(true);
+
+        eventBus.updateContext({ isAutocompleteVisible: false });
+        expect(eventBus.isActionRelevantInContext('accept')).toBe(true);
+      });
+    });
+
+    describe('global actions', () => {
+      it('should always be relevant for help, clearScreen, undo, redo', () => {
+        // Test different contexts
+        eventBus.updateContext({
+          isAutocompleteVisible: false,
+          isAgentRunning: false,
+          isInputFocused: false,
+        });
+
+        expect(eventBus.isActionRelevantInContext('help')).toBe(true);
+        expect(eventBus.isActionRelevantInContext('clearScreen')).toBe(true);
+        expect(eventBus.isActionRelevantInContext('undo')).toBe(true);
+        expect(eventBus.isActionRelevantInContext('redo')).toBe(true);
+      });
     });
   });
 });

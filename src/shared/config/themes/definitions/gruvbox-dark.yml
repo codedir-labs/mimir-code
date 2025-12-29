@@ -1,0 +1,108 @@
+# Gruvbox Dark Theme - Retro groove color scheme
+# Based on Gruvbox by morhetz
+name: Gruvbox Dark
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#282828'  # bg0
+    fg: '#ebdbb2'  # fg0
+  headerText:
+    fg: '#d5c4a1'  # fg1
+  footerBg:
+    bg: '#3c3836'  # bg1
+  footerText:
+    fg: '#928374'  # gray
+  inputPrompt:
+    fg: '#83a598'  # bright_blue
+  inputText:
+    fg: '#ebdbb2'  # fg0
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#3c3836'  # bg1
+  autocompleteText:
+    fg: '#ebdbb2'  # fg0
+  autocompleteSelectedBg:
+    bg: '#458588'  # blue
+    fg: '#ebdbb2'  # fg0
+  autocompleteSelectedText:
+    fg: '#ebdbb2'  # fg0
+  autocompleteHeaderText:
+    fg: '#83a598'  # bright_blue
+    bold: true
+  autocompleteFooterText:
+    fg: '#928374'  # gray
+  autocompleteMoreIndicator:
+    fg: '#928374'  # gray
+
+  # Mode indicators
+  modePlan:
+    fg: '#83a598'  # bright_blue
+  modeAct:
+    fg: '#b8bb26'  # bright_green
+  modeDiscuss:
+    fg: '#d3869b'  # bright_purple
+
+  # Message roles
+  userMessage:
+    fg: '#8ec07c'  # bright_aqua
+  assistantMessage:
+    fg: '#83a598'  # bright_blue
+  systemMessage:
+    fg: '#fabd2f'  # bright_yellow
+
+  # Syntax highlighting
+  keyword:
+    fg: '#d3869b'  # bright_purple
+  string:
+    fg: '#b8bb26'  # bright_green
+  number:
+    fg: '#fe8019'  # bright_orange
+  comment:
+    fg: '#928374'  # gray
+  function:
+    fg: '#83a598'  # bright_blue
+  variable:
+    fg: '#ebdbb2'  # fg0
+
+  # Status indicators
+  success:
+    fg: '#b8bb26'  # bright_green
+  warning:
+    fg: '#fabd2f'  # bright_yellow
+  error:
+    fg: '#fb4934'  # bright_red
+  info:
+    fg: '#83a598'  # bright_blue
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#928374'  # gray
+  statusReasoning:
+    fg: '#8ec07c'  # bright_aqua
+  statusActing:
+    fg: '#b8bb26'  # bright_green
+  statusObserving:
+    fg: '#83a598'  # bright_blue
+  statusInterrupted:
+    fg: '#fabd2f'  # bright_yellow
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#504945'  # bg2
+  wizardTitle:
+    fg: '#83a598'  # bright_blue
+  wizardAccent:
+    fg: '#458588'  # blue
+  paramDescription:
+    fg: '#928374'  # gray
+
+  # Diff colors
+  diffAddLine:
+    bg: '#b8bb26'  # bright_green
+    fg: '#282828'  # bg0
+  diffRemoveLine:
+    bg: '#fb4934'  # bright_red
+    fg: '#ebdbb2'  # fg0

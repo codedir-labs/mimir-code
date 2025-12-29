@@ -7,15 +7,19 @@
  */
 
 import { Command } from 'commander';
-import { FileSystemAdapter } from './platform/FileSystemAdapter.js';
-import { ProcessExecutorAdapter } from './platform/ProcessExecutorAdapter.js';
-import { ConfigLoader } from './config/ConfigLoader.js';
-import { FirstRunDetector } from './cli/utils/firstRunDetector.js';
-import { SetupCommand } from './cli/commands/SetupCommand.js';
-import { ChatCommand } from './cli/commands/ChatCommand.js';
-import { InitCommand } from './cli/commands/InitCommand.js';
-import { UninstallCommand } from './cli/commands/UninstallCommand.js';
-import { logger } from './utils/logger.js';
+import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
+import { ProcessExecutorAdapter } from '@codedir/mimir-agents-node/platform';
+import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
+import { FirstRunDetector } from '@/features/init/components/firstRunDetector.js';
+import { SetupCommand } from '@/features/init/commands/SetupCommand.js';
+import { ChatCommand } from '@/features/chat/commands/ChatCommand.js';
+import { InitCommand } from '@/features/init/commands/InitCommand.js';
+import { UninstallCommand } from '@/features/init/commands/UninstallCommand.js';
+import { createAuthCommand } from '@/features/auth/commands/auth.js';
+import { createOrgsCommand } from '@/features/teams/commands/orgs.js';
+import { createTeamsCommand } from '@/features/teams/commands/teams.js';
+import { createConnectCommand, createProvidersCommand } from '@/features/providers/index.js';
+import { logger } from '@/shared/utils/logger.js';
 
 // Initialize dependencies
 const fs = new FileSystemAdapter();
@@ -173,5 +177,14 @@ permissions
   .action((pattern: string) => {
     logger.warn(`Removing ${pattern} from allowlist... (not implemented yet)`);
   });
+
+// Provider management and configuration
+program.addCommand(createConnectCommand());
+program.addCommand(createProvidersCommand());
+
+// Teams integration commands
+program.addCommand(createAuthCommand());
+program.addCommand(createOrgsCommand());
+program.addCommand(createTeamsCommand());
 
 program.parse();

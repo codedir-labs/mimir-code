@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { PROJECT_NAME, INSTALL_COMMANDS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { LinuxIcon, AppleIcon } from '@/components/InstallTabs';
+import { LinuxIcon, AppleIcon, NpmIcon as NpmIconComponent, WindowsIcon as WindowsIconComponent } from '@/components/InstallTabs';
+import { GameOfLifeBackground } from './GameOfLifeBackground';
 
 interface TerminalLineProps {
   command: string;
@@ -31,7 +32,7 @@ function TerminalLine({ command, prompt = '$', comment }: TerminalLineProps) {
   return (
     <div
       className={cn(
-        'group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
+        'group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors pointer-events-auto',
         'hover:bg-muted/50'
       )}
       onClick={handleLineClick}
@@ -80,22 +81,6 @@ function TerminalWindow({ children, platform = 'unix' }: { children: React.React
   );
 }
 
-// Icon components
-function NpmIcon() {
-  return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M0 7.334v8h6.666v1.332H12v-1.332h12v-8H0zm6.666 6.664H5.334v-4H3.999v4H1.335V8.667h5.331v5.331zm4 0v1.336H8.001V8.667h5.334v5.332h-2.669v-.001zm12.001 0h-1.33v-4h-1.336v4h-1.335v-4h-1.33v4h-2.671V8.667h8.002v5.331zM10.665 10H12v2.667h-1.335V10z" />
-    </svg>
-  );
-}
-
-function WindowsIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
-    </svg>
-  );
-}
 
 
 export function Hero() {
@@ -103,23 +88,33 @@ export function Hero() {
 
   return (
     <section className="relative min-h-[calc(100vh-60px)] flex items-center justify-center overflow-hidden bg-background">
-      {/* Minimal dot pattern background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--muted))_1px,transparent_1px)] bg-[size:24px_24px] opacity-40 dark:opacity-20" />
+      {/* Game of Life background */}
+      <GameOfLifeBackground />
 
-      <div className="relative w-full max-w-5xl mx-auto px-4 py-20 sm:px-6 lg:px-8">
+      <div className="relative w-full max-w-5xl mx-auto px-4 py-20 sm:px-6 lg:px-8 pointer-events-none">
         {/* Title */}
-        <div className="text-center mb-16">
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tighter mb-6 text-foreground">
+        <div className="text-center mb-16 pointer-events-none">
+          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tighter mb-6 text-foreground pointer-events-none">
             {PROJECT_NAME}
           </h1>
-          <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
-            Open source, model agnostic CLI tool for agentic work
+          <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed pointer-events-none">
+            Iterate faster. Security by design.
           </p>
         </div>
 
         {/* Installation Section */}
-        <div className="w-full max-w-3xl mx-auto">
-          <div className="relative border-b-2 border-border">
+        <div className="w-full max-w-3xl mx-auto relative pointer-events-none">
+          {/* Blur background - positioned behind but not affecting content */}
+          <div
+            className="absolute -inset-8 bg-background/80 rounded-3xl pointer-events-none"
+            style={{
+              backdropFilter: 'blur(32px)',
+              WebkitBackdropFilter: 'blur(32px)',
+              zIndex: 0
+            }}
+          />
+
+          <div className="relative border-b-2 border-border z-10 pointer-events-auto">
             {/* Tabs and WIP badge on same row */}
             <div className="flex items-center justify-between">
               {/* Tabs */}
@@ -127,39 +122,39 @@ export function Hero() {
                 <button
                   onClick={() => setActiveTab('npm')}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-3 border-b-2 transition-colors select-none outline-none',
+                    'flex items-center gap-2 px-4 py-3 border-b-2 transition-colors select-none outline-none pointer-events-auto',
                     'hover:bg-muted/50 hover:text-foreground',
                     activeTab === 'npm'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground'
                   )}
                 >
-                  <NpmIcon />
+                  <NpmIconComponent className="h-8 w-8" />
                 </button>
                 <button
                   onClick={() => setActiveTab('unix')}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-3 border-b-2 transition-colors select-none outline-none',
+                    'flex items-center gap-2 px-4 py-3 border-b-2 transition-colors select-none outline-none pointer-events-auto',
                     'hover:bg-muted/50 hover:text-foreground',
                     activeTab === 'unix'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground'
                   )}
                 >
-                  <LinuxIcon />
-                  <AppleIcon />
+                  <LinuxIcon className="h-5 w-5" />
+                  <AppleIcon className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => setActiveTab('windows')}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-3 border-b-2 transition-colors select-none outline-none',
+                    'flex items-center gap-2 px-4 py-3 border-b-2 transition-colors select-none outline-none pointer-events-auto',
                     'hover:bg-muted/50 hover:text-foreground',
                     activeTab === 'windows'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted-foreground'
                   )}
                 >
-                  <WindowsIcon />
+                  <WindowsIconComponent className="h-5 w-5" />
                 </button>
               </div>
 
@@ -172,7 +167,7 @@ export function Hero() {
           </div>
 
           {/* Terminal content */}
-          <div className="py-6">
+          <div className="relative py-6 z-10 pointer-events-auto">
             {activeTab === 'npm' && (
               <TerminalWindow platform="unix">
                 <TerminalLine command={INSTALL_COMMANDS.npm} />

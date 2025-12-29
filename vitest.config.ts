@@ -30,13 +30,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@/features': path.resolve(__dirname, './src/features'),
+      '@/shared': path.resolve(__dirname, './src/shared'),
+      '@/types': path.resolve(__dirname, './src/types'),
       '@': path.resolve(__dirname, './src'),
-      '@platform': path.resolve(__dirname, './src/platform'),
-      '@core': path.resolve(__dirname, './src/core'),
-      '@config': path.resolve(__dirname, './src/config'),
-      '@providers': path.resolve(__dirname, './src/providers'),
-      '@utils': path.resolve(__dirname, './src/utils'),
-      '@types': path.resolve(__dirname, './src/types'),
+      // Package aliases for tests
+      '@codedir/mimir-agents': path.resolve(__dirname, './packages/mimir-agents/src'),
+      '@codedir/mimir-agents-node': path.resolve(__dirname, './packages/mimir-agents-runtime/src'),
     },
   },
 });

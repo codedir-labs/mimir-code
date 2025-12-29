@@ -29,7 +29,28 @@
       "Bash(npx tsc:*)",
       "WebFetch(domain:nextra.site)",
       "WebFetch(domain:docs.npmjs.com)",
-      "Bash(npm search:*)"
+      "Bash(npm search:*)",
+      "Bash(git mv:*)",
+      "Bash(git add:*)",
+      "Bash(node:*)",
+      "WebFetch(domain:www.anthropic.com)",
+      "Bash(tsx:*)",
+      "WebFetch(domain:opencode.ai)",
+      "Bash(tree:*)",
+      "WebFetch(domain:www.cssscript.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(test:*)",
+      "Bash(tee:*)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:ai-sdk.dev)",
+      "Bash(npx shadcn@latest init)",
+      "Bash(npx shadcn@latest init --yes --defaults)",
+      "Bash(findstr:*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(timeout 5 yarn dev:*)",
+      "Bash(timeout 3 yarn dev:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

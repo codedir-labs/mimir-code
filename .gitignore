@@ -25,6 +25,7 @@ coverage/
 .mimir/*.db-shm
 .mimir/*.db-wal
 .mimir/checkpoints/
+.mimir/themes/
 
 # Environment
 .env

@@ -1,0 +1,108 @@
+# Dracula Theme - Popular dark theme for 400+ apps
+# Official colors from draculatheme.com/spec
+name: Dracula
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#282A36'  # Background
+    fg: '#F8F8F2'  # Foreground
+  headerText:
+    fg: '#F8F8F2'  # Foreground
+  footerBg:
+    bg: '#44475A'  # Current Line
+  footerText:
+    fg: '#6272A4'  # Comment
+  inputPrompt:
+    fg: '#8BE9FD'  # Cyan
+  inputText:
+    fg: '#F8F8F2'  # Foreground
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#44475A'  # Current Line
+  autocompleteText:
+    fg: '#F8F8F2'  # Foreground
+  autocompleteSelectedBg:
+    bg: '#BD93F9'  # Purple
+    fg: '#282A36'  # Background
+  autocompleteSelectedText:
+    fg: '#282A36'  # Background
+  autocompleteHeaderText:
+    fg: '#BD93F9'  # Purple
+    bold: true
+  autocompleteFooterText:
+    fg: '#6272A4'  # Comment
+  autocompleteMoreIndicator:
+    fg: '#6272A4'  # Comment
+
+  # Mode indicators
+  modePlan:
+    fg: '#BD93F9'  # Purple
+  modeAct:
+    fg: '#50FA7B'  # Green
+  modeDiscuss:
+    fg: '#FF79C6'  # Pink
+
+  # Message roles
+  userMessage:
+    fg: '#8BE9FD'  # Cyan
+  assistantMessage:
+    fg: '#BD93F9'  # Purple
+  systemMessage:
+    fg: '#F1FA8C'  # Yellow
+
+  # Syntax highlighting
+  keyword:
+    fg: '#FF79C6'  # Pink
+  string:
+    fg: '#50FA7B'  # Green
+  number:
+    fg: '#FFB86C'  # Orange
+  comment:
+    fg: '#6272A4'  # Comment
+  function:
+    fg: '#F1FA8C'  # Yellow
+  variable:
+    fg: '#F8F8F2'  # Foreground
+
+  # Status indicators
+  success:
+    fg: '#50FA7B'  # Green
+  warning:
+    fg: '#F1FA8C'  # Yellow
+  error:
+    fg: '#FF5555'  # Red
+  info:
+    fg: '#8BE9FD'  # Cyan
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#6272A4'  # Comment
+  statusReasoning:
+    fg: '#8BE9FD'  # Cyan
+  statusActing:
+    fg: '#50FA7B'  # Green
+  statusObserving:
+    fg: '#BD93F9'  # Purple
+  statusInterrupted:
+    fg: '#F1FA8C'  # Yellow
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#44475A'  # Current Line
+  wizardTitle:
+    fg: '#BD93F9'  # Purple
+  wizardAccent:
+    fg: '#FF79C6'  # Pink
+  paramDescription:
+    fg: '#6272A4'  # Comment
+
+  # Diff colors
+  diffAddLine:
+    bg: '#50FA7B'  # Green
+    fg: '#282A36'  # Background
+  diffRemoveLine:
+    bg: '#FF5555'  # Red
+    fg: '#F8F8F2'  # Foreground

@@ -1,0 +1,107 @@
+# Dark ANSI Theme - Basic ANSI colors for legacy terminals
+name: Dark ANSI
+supportsFullColor: false
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#000000'
+    fg: '#FFFFFF'
+  headerText:
+    fg: '#FFFFFF'
+  footerBg:
+    bg: '#000000'
+  footerText:
+    fg: '#808080'
+  inputPrompt:
+    fg: '#00FFFF'
+  inputText:
+    fg: '#FFFFFF'
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#000000'
+  autocompleteText:
+    fg: '#FFFFFF'
+  autocompleteSelectedBg:
+    bg: '#00FFFF'
+    fg: '#000000'
+  autocompleteSelectedText:
+    fg: '#000000'
+  autocompleteHeaderText:
+    fg: '#00FFFF'
+    bold: true
+  autocompleteFooterText:
+    fg: '#808080'
+  autocompleteMoreIndicator:
+    fg: '#808080'
+
+  # Mode indicators
+  modePlan:
+    fg: '#0000FF'
+  modeAct:
+    fg: '#00FF00'
+  modeDiscuss:
+    fg: '#FF00FF'
+
+  # Message roles
+  userMessage:
+    fg: '#00FF00'
+  assistantMessage:
+    fg: '#0000FF'
+  systemMessage:
+    fg: '#FFFF00'
+
+  # Syntax highlighting
+  keyword:
+    fg: '#FF00FF'
+  string:
+    fg: '#00FF00'
+  number:
+    fg: '#FF0000'
+  comment:
+    fg: '#808080'
+  function:
+    fg: '#0000FF'
+  variable:
+    fg: '#FFFFFF'
+
+  # Status indicators
+  success:
+    fg: '#00FF00'
+  warning:
+    fg: '#FFFF00'
+  error:
+    fg: '#FF0000'
+  info:
+    fg: '#0000FF'
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#808080'
+  statusReasoning:
+    fg: '#00FFFF'
+  statusActing:
+    fg: '#00FF00'
+  statusObserving:
+    fg: '#0000FF'
+  statusInterrupted:
+    fg: '#FFFF00'
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#808080'
+  wizardTitle:
+    fg: '#00FFFF'
+  wizardAccent:
+    fg: '#0000FF'
+  paramDescription:
+    fg: '#808080'
+
+  # Diff colors
+  diffAddLine:
+    bg: '#008000'
+    fg: '#FFFFFF'
+  diffRemoveLine:
+    bg: '#800000'
+    fg: '#FFFFFF'

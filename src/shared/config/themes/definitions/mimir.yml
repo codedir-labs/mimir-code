@@ -1,0 +1,108 @@
+# Mimir Theme - Nord-based color scheme
+# Official Mimir theme featuring Nord colors
+name: Mimir
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#2E3440'  # Nord Polar Night 1
+    fg: '#ECEFF4'  # Nord Snow Storm 3
+  headerText:
+    fg: '#D8DEE9'  # Nord Snow Storm 1
+  footerBg:
+    bg: '#3B4252'  # Nord Polar Night 2
+  footerText:
+    fg: '#4C566A'  # Nord Polar Night 4
+  inputPrompt:
+    fg: '#88C0D0'  # Nord Frost 2
+  inputText:
+    fg: '#ECEFF4'  # Nord Snow Storm 3
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#3B4252'  # Nord Polar Night 2
+  autocompleteText:
+    fg: '#ECEFF4'  # Nord Snow Storm 3
+  autocompleteSelectedBg:
+    bg: '#88C0D0'  # Nord Frost 2
+    fg: '#2E3440'  # Nord Polar Night 1
+  autocompleteSelectedText:
+    fg: '#2E3440'  # Nord Polar Night 1
+  autocompleteHeaderText:
+    fg: '#88C0D0'  # Nord Frost 2
+    bold: true
+  autocompleteFooterText:
+    fg: '#616E88'  # Nord Polar Night (dimmed)
+  autocompleteMoreIndicator:
+    fg: '#616E88'  # Nord Polar Night (dimmed)
+
+  # Mode indicators
+  modePlan:
+    fg: '#5E81AC'  # Nord Frost 4 (Blue)
+  modeAct:
+    fg: '#A3BE8C'  # Nord Aurora Green
+  modeDiscuss:
+    fg: '#B48EAD'  # Nord Aurora Purple
+
+  # Message roles
+  userMessage:
+    fg: '#8FBCBB'  # Nord Frost 1
+  assistantMessage:
+    fg: '#81A1C1'  # Nord Frost 3
+  systemMessage:
+    fg: '#5E81AC'  # Nord Frost 4
+
+  # Syntax highlighting
+  keyword:
+    fg: '#81A1C1'  # Nord Frost 3
+  string:
+    fg: '#A3BE8C'  # Nord Aurora Green
+  number:
+    fg: '#B48EAD'  # Nord Aurora Purple
+  comment:
+    fg: '#616E88'  # Nord Polar Night (dimmed)
+  function:
+    fg: '#88C0D0'  # Nord Frost 2
+  variable:
+    fg: '#D8DEE9'  # Nord Snow Storm 1
+
+  # Status indicators
+  success:
+    fg: '#A3BE8C'  # Nord Aurora Green
+  warning:
+    fg: '#EBCB8B'  # Nord Aurora Yellow
+  error:
+    fg: '#BF616A'  # Nord Aurora Red
+  info:
+    fg: '#88C0D0'  # Nord Frost 2
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#616E88'  # Nord Polar Night (dimmed) - waiting
+  statusReasoning:
+    fg: '#88C0D0'  # Nord Frost 2 - thinking
+  statusActing:
+    fg: '#A3BE8C'  # Nord Aurora Green - running
+  statusObserving:
+    fg: '#81A1C1'  # Nord Frost 3 - reading output
+  statusInterrupted:
+    fg: '#EBCB8B'  # Nord Aurora Yellow - paused
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#4C566A'  # Nord Polar Night 4
+  wizardTitle:
+    fg: '#88C0D0'  # Nord Frost 2
+  wizardAccent:
+    fg: '#5E81AC'  # Nord Frost 4
+  paramDescription:
+    fg: '#8b95a8'  # Nord Polar Night (medium)
+
+  # Diff colors
+  diffAddLine:
+    bg: '#A3BE8C'  # Nord Aurora Green
+    fg: '#FFFFFF'
+  diffRemoveLine:
+    bg: '#D08770'  # Nord Aurora Orange
+    fg: '#FFFFFF'

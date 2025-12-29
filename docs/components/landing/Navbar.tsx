@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
-import { GITHUB_URL } from '@/lib/constants';
+import { GITHUB_URL, TEAMS_URL } from '@/lib/constants';
 
 export function LandingNavbar() {
   return (
@@ -30,6 +30,19 @@ export function LandingNavbar() {
               </Link>
             </div>
           </div>
+
+          {TEAMS_URL && (
+            <div className="landing-nav-right">
+              <a
+                href={TEAMS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="landing-teams-btn"
+              >
+                Teams
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </nav>

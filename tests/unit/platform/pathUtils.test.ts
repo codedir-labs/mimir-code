@@ -18,7 +18,7 @@ import {
   getPathSeparator,
   parsePath,
   formatPath,
-} from '../../../src/platform/pathUtils.js';
+} from '@codedir/mimir-agents-node/platform';
 import { platform } from 'os';
 
 describe('pathUtils', () => {

@@ -3,17 +3,56 @@ title: Themes
 description: Customize the UI theme in Mimir
 ---
 
-import { Callout } from 'nextra/components';
-
 # Themes
 
-<Callout type="warning">
-  **TODO**: This page is under construction. Theme customization documentation will be added soon.
-</Callout>
-
-Configuration for themes can be found in `.mimir/config.yml` under the `ui` section.
+Configure your UI theme in `.mimir/config.yml`:
 
 ```yaml filename=".mimir/config.yml"
 ui:
-  theme: default  # Options: default, nord, dracula, etc.
+  theme: mimir  # See available themes below
 ```
+
+Or use `/theme <name>` to switch at runtime.
+
+## Available Themes
+
+| Theme | Type |
+|-------|------|
+| `mimir` | Dark (default) |
+| `tokyo-night` | Dark |
+| `dracula` | Dark |
+| `catppuccin-mocha` | Dark |
+| `catppuccin-latte` | Light |
+| `gruvbox-dark` | Dark |
+| `gruvbox-light` | Light |
+| `dark` | Dark |
+| `light` | Light |
+| `dark-colorblind` | Dark |
+| `light-colorblind` | Light |
+| `dark-ansi` | Dark (ANSI) |
+| `light-ansi` | Light (ANSI) |
+
+## Custom Themes
+
+Create YAML files in `~/.mimir/themes/` (global) or `.mimir/themes/` (project-specific).
+
+### Required Structure
+
+```yaml filename="~/.mimir/themes/my-theme.yml"
+name: My Theme
+supportsFullColor: true  # false for ANSI-only terminals
+
+colors:
+  # 47 required properties - see built-in themes for reference
+  headerBg: { bg: '#1a1a1a', fg: '#ffffff' }
+  headerText: { fg: '#e0e0e0' }
+  # ... (all properties must be defined)
+```
+
+### Color Properties
+
+- `fg` - Foreground color (hex: `#RRGGBB`)
+- `bg` - Background color (hex: `#RRGGBB`)
+- `bold`, `dim`, `italic`, `underline` - Text modifiers (optional)
+
+View built-in theme files in `src/shared/config/themes/definitions/` for complete examples.

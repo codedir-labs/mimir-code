@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { FileSystemAdapter } from '../../../src/platform/FileSystemAdapter.js';
+import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -29,7 +29,7 @@ describe('FileSystemAdapter', () => {
       const content = 'Hello, Mimir!';
 
       await fs.writeFile(filePath, content);
-      const readContent = await fs.readFile(filePath);
+      const readContent = await fs.readFile(filePath, 'utf-8');
 
       expect(readContent).toBe(content);
     });
@@ -39,7 +39,7 @@ describe('FileSystemAdapter', () => {
       const content = 'Hello 世界 🌍';
 
       await fs.writeFile(filePath, content);
-      const readContent = await fs.readFile(filePath);
+      const readContent = await fs.readFile(filePath, 'utf-8');
 
       expect(readContent).toBe(content);
     });
@@ -93,32 +93,7 @@ describe('FileSystemAdapter', () => {
     });
   });
 
-  describe('stat', () => {
-    it('should get file stats', async () => {
-      const filePath = join(testDir, 'stats.txt');
-      const content = 'test content';
-      await fs.writeFile(filePath, content);
-
-      const stats = await fs.stat(filePath);
-
-      expect(stats.isFile()).toBe(true);
-      expect(stats.isDirectory()).toBe(false);
-      expect(stats.size).toBeGreaterThan(0);
-      expect(stats.mtime).toBeInstanceOf(Date);
-    });
-
-    it('should get directory stats', async () => {
-      const dirPath = join(testDir, 'statsdir');
-      await fs.mkdir(dirPath);
-
-      const stats = await fs.stat(dirPath);
-
-      expect(stats.isFile()).toBe(false);
-      expect(stats.isDirectory()).toBe(true);
-    });
-  });
-
-  describe('unlink / rmdir', () => {
+  describe('unlink', () => {
     it('should delete file', async () => {
       const filePath = join(testDir, 'delete.txt');
       await fs.writeFile(filePath, 'content');
@@ -128,67 +103,28 @@ describe('FileSystemAdapter', () => {
 
       expect(exists).toBe(false);
     });
+  });
 
-    it('should remove directory', async () => {
+  describe('remove', () => {
+    it('should remove directory recursively', async () => {
       const dirPath = join(testDir, 'deletedir');
       await fs.mkdir(dirPath);
+      await fs.writeFile(join(dirPath, 'file.txt'), 'content');
 
-      await fs.rmdir(dirPath);
+      await fs.remove(dirPath);
       const exists = await fs.exists(dirPath);
 
       expect(exists).toBe(false);
     });
-  });
 
-  describe('copyFile', () => {
-    it('should copy file', async () => {
-      const srcPath = join(testDir, 'src.txt');
-      const destPath = join(testDir, 'dest.txt');
-      const content = 'copy me';
+    it('should remove file', async () => {
+      const filePath = join(testDir, 'remove.txt');
+      await fs.writeFile(filePath, 'content');
 
-      await fs.writeFile(srcPath, content);
-      await fs.copyFile(srcPath, destPath);
+      await fs.remove(filePath);
+      const exists = await fs.exists(filePath);
 
-      const destContent = await fs.readFile(destPath);
-      expect(destContent).toBe(content);
-    });
-  });
-
-  describe('glob', () => {
-    beforeEach(async () => {
-      // Create test file structure
-      await fs.writeFile(join(testDir, 'file1.ts'), 'content');
-      await fs.writeFile(join(testDir, 'file2.ts'), 'content');
-      await fs.writeFile(join(testDir, 'file3.js'), 'content');
-      await fs.mkdir(join(testDir, 'subdir'));
-      await fs.writeFile(join(testDir, 'subdir', 'file4.ts'), 'content');
-    });
-
-    it('should find files by glob pattern', async () => {
-      const files = await fs.glob('*.ts', { cwd: testDir });
-
-      expect(files).toContain('file1.ts');
-      expect(files).toContain('file2.ts');
-      expect(files).not.toContain('file3.js');
-    });
-
-    it('should find files recursively', async () => {
-      const files = await fs.glob('**/*.ts', { cwd: testDir });
-
-      expect(files).toContain('file1.ts');
-      expect(files).toContain('file2.ts');
-      expect(files).toContain('subdir/file4.ts');
-    });
-
-    it('should respect ignore patterns', async () => {
-      const files = await fs.glob('**/*.ts', {
-        cwd: testDir,
-        ignore: ['subdir/**'],
-      });
-
-      expect(files).toContain('file1.ts');
-      expect(files).toContain('file2.ts');
-      expect(files).not.toContain('subdir/file4.ts');
+      expect(exists).toBe(false);
     });
   });
 });

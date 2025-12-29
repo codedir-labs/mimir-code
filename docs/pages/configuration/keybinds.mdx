@@ -1,0 +1,198 @@
+---
+title: Keybinds
+description: Configure keyboard shortcuts
+---
+
+import { Callout } from 'nextra/components';
+
+# Keybinds
+
+All keyboard shortcuts are customizable in `.mimir/config.yml` under `keyBindings`.
+
+## Quick Start
+
+```yaml filename=".mimir/config.yml"
+keyBindings:
+  # Leader key (optional) - prefix for shortcuts
+  leader: none          # Set to "ctrl+x" to enable
+  leaderTimeout: 1000   # Timeout in milliseconds
+
+  # Core actions
+  interrupt: [ctrl+c, escape]
+  accept: enter
+  modeSwitch: shift+tab
+  editCommand: ctrl+e
+
+  # Navigation
+  showTooltip: tab
+  navigateUp: arrowup
+  navigateDown: arrowdown
+
+  # Utility
+  help: "?"
+  clearScreen: ctrl+l
+  undo: ctrl+z
+  redo: ctrl+y
+
+  # Session management (typically used with leader)
+  newSession: <leader>n
+  listSessions: <leader>l
+  resumeSession: <leader>r
+```
+
+<Callout type="info">
+**Format:** All lowercase (`ctrl+c`, `shift+tab`, `enter`, `escape`, `arrowup`).
+</Callout>
+
+## Leader Key
+
+The leader key is a prefix that helps avoid conflicts with terminal shortcuts.
+
+**How it works:**
+1. Press leader key (e.g., `ctrl+x`)
+2. Press action key (e.g., `n`)
+3. Action executes (new session)
+
+**Enable it:**
+
+```yaml filename="config.yml"
+keyBindings:
+  leader: ctrl+x      # Press ctrl+x first
+  leaderTimeout: 1000 # Wait up to 1 second for action
+
+  # Use <leader> placeholder in shortcuts
+  newSession: <leader>n     # ctrl+x → n
+  help: [<leader>h, "?"]    # ctrl+x → h OR ? (direct)
+```
+
+**Disable it:**
+
+```yaml filename="config.yml"
+keyBindings:
+  leader: none
+
+  # Without leader, actions work directly
+  newSession: n  # Just press 'n'
+```
+
+## Customization
+
+**Single shortcut:**
+```yaml filename="config.yml"
+accept: enter
+```
+
+**Multiple shortcuts:**
+```yaml filename="config.yml"
+interrupt: [ctrl+c, escape, ctrl+d]
+```
+
+**Disable a shortcut:**
+```yaml filename="config.yml"
+help: none
+```
+
+**Leader + direct shortcuts:**
+```yaml filename="config.yml"
+leader: ctrl+x
+help: [<leader>h, "?"]  # Both ctrl+x → h AND ? work
+```
+
+**Disable all keybinds:**
+```yaml filename="config.yml"
+keyBindings:
+  enabled: false  # Use slash commands only
+```
+
+## Default Shortcuts
+
+| Action | Default | Description |
+|--------|---------|-------------|
+| `interrupt` | `ctrl+c`, `escape` | Cancel operation |
+| `accept` | `enter` | Confirm action |
+| `modeSwitch` | `shift+tab` | Switch modes |
+| `editCommand` | `ctrl+e` | Edit instruction |
+| `showTooltip` | `tab` | Show autocomplete |
+| `navigateUp` | `arrowup` | Navigate up |
+| `navigateDown` | `arrowdown` | Navigate down |
+| `help` | `?` | Show help |
+| `clearScreen` | `ctrl+l` | Clear screen |
+| `undo` | `ctrl+z` | Undo |
+| `redo` | `ctrl+y` (macOS: `cmd+shift+z`) | Redo |
+| `newSession` | `n` (with leader) | New session |
+| `listSessions` | `l` (with leader) | List sessions |
+| `resumeSession` | `r` (with leader) | Resume session |
+
+<Callout type="info">
+**macOS:** `ctrl` is automatically converted to `cmd`.
+</Callout>
+
+## Modifier Keys
+
+Supported modifiers:
+- `ctrl` (auto-converts to `cmd` on macOS)
+- `cmd` (macOS only)
+- `alt` / `option`
+- `shift`
+
+Combine with `+`:
+```yaml filename="config.yml"
+customAction: ctrl+shift+k
+anotherAction: ctrl+alt+t
+```
+
+## Special Keys
+
+All lowercase:
+- Arrows: `arrowup`, `arrowdown`, `arrowleft`, `arrowright`
+- Function: `f1`-`f12`
+- Special: `enter`, `escape`, `tab`, `space`, `backspace`, `delete`
+
+## Windows Terminal Setup
+
+<Callout type="warning">
+Windows Terminal doesn't transmit modified `enter` keys by default. Configure it manually if needed.
+</Callout>
+
+To enable `shift+enter` in Windows Terminal:
+
+1. Open settings (`ctrl+,`)
+2. Click "Open JSON file"
+3. Add to `actions`:
+
+```json filename="settings.json"
+{
+  "actions": [
+    {
+      "command": {
+        "action": "sendInput",
+        "input": "\u001b[13;2u"
+      },
+      "keys": "shift+enter"
+    }
+  ]
+}
+```
+
+4. Restart Windows Terminal
+
+## Troubleshooting
+
+**Shortcut not working?**
+1. Check `enabled: true` is set
+2. Ensure action isn't set to `none`
+3. Try a different key (avoid terminal conflicts)
+
+**Leader key not working?**
+1. Ensure `leader` is set (not `none`)
+2. Increase `leaderTimeout` if too fast
+3. Press leader, then action key within timeout
+
+<Callout type="warning">
+**Windows Terminal / PowerShell:** Some keys (Backspace, Delete, Home, End) may not work correctly due to terminal escape sequence differences. Use WSL or a different terminal emulator for full keybind support.
+</Callout>
+
+## See Also
+
+- [Custom Commands](/configuration/custom-commands)
+- [Themes](/configuration/themes)

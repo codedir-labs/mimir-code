@@ -19,7 +19,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "export": "next build && next export"
+    "export": "next build && next export",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:chromium": "playwright test --project=chromium"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -33,6 +37,7 @@
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.0",
     "autoprefixer": "^10.4.20",

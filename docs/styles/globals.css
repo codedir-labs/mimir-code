@@ -1,3 +1,6 @@
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
 /* Tailwind CSS directives */
 @tailwind base;
 @tailwind components;
@@ -6,51 +9,69 @@
 /* Nextra theme styles */
 @import 'nextra-theme-docs/style.css';
 
-/* Default shadcn/ui theme with slate base color */
+/* Nordic (Nord) theme inspired by Mimir CLI theme */
 @layer base {
   :root {
+    /* Light theme - subtle Nord palette */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 220 16% 22%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 16% 22%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 220 16% 22%;
+    --primary: 193 43% 67%;        /* Nord frost cyan #88C0D0 */
+    --primary-foreground: 220 16% 22%;
+    --secondary: 213 32% 52%;
+    --secondary-foreground: 220 16% 22%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 13% 46%;
+    --accent: 193 43% 67%;         /* Nord frost cyan */
+    --accent-foreground: 220 16% 22%;
+    --destructive: 354 42% 56%;    /* Nord red #BF616A */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 193 43% 67%;
+    --radius: 0.25rem; /* Reduced from 0.5rem - more square corners */
+
+    /* Nordic specific colors */
+    --nord-frost: 193 43% 67%;     /* #88C0D0 - frost cyan */
+    --nord-blue: 213 32% 52%;      /* #81A1C1 - aurora blue */
+    --nord-teal: 179 25% 65%;      /* #8FBCBB - frost teal */
+    --nord-green: 92 28% 65%;      /* #A3BE8C - aurora green */
+    --nord-yellow: 40 71% 73%;     /* #EBCB8B - aurora yellow */
+    --nord-red: 354 42% 56%;       /* #BF616A - aurora red */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Dark theme - Darker Nord palette with higher contrast */
+    --background: 220 17% 11%;     /* Much darker: #1A1F2E (darker than polar night) */
+    --foreground: 218 27% 98%;     /* Brighter snow storm #F8FAFC */
+    --card: 220 16% 18%;           /* Darker card #252932 */
+    --card-foreground: 218 27% 98%;
+    --popover: 220 17% 11%;
+    --popover-foreground: 218 27% 98%;
+    --primary: 193 43% 67%;        /* Nord frost cyan #88C0D0 */
+    --primary-foreground: 220 17% 11%;
+    --secondary: 220 16% 22%;      /* Darker #2E3440 */
+    --secondary-foreground: 218 27% 98%;
+    --muted: 220 16% 22%;
+    --muted-foreground: 220 16% 65%; /* Higher contrast: lighter gray */
+    --accent: 193 43% 67%;
+    --accent-foreground: 220 17% 11%;
+    --destructive: 354 42% 56%;
+    --destructive-foreground: 218 27% 98%;
+    --border: 220 13% 35%;         /* More visible borders */
+    --input: 220 16% 22%;
+    --ring: 193 43% 67%;
+
+    /* Nordic specific colors (same as light) */
+    --nord-frost: 193 43% 67%;
+    --nord-blue: 213 32% 52%;
+    --nord-teal: 179 25% 65%;
+    --nord-green: 92 28% 65%;
+    --nord-yellow: 40 71% 73%;
+    --nord-red: 354 42% 56%;
   }
 }
 
@@ -60,6 +81,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+  code, pre, kbd, samp {
+    font-family: 'IBM Plex Mono', 'Courier New', Consolas, Monaco, monospace;
   }
 }
 
@@ -89,10 +114,138 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
+/* ============================================
+   Code Block Headers - Unified Style
+   ============================================ */
 
-/* Code block enhancements */
-pre {
-  border-radius: 8px !important;
+/* Style Nextra's built-in header (when filename is provided) */
+.nextra-code > div[class*="_h-12"] {
+  background: #2E3440 !important;
+  border-color: #4C566A !important;
+  border-bottom: 1px solid #4C566A !important;
+  padding: 0 1rem !important;
+  height: 3rem !important;
+}
+
+/* Style the filename text in Nextra's header */
+.nextra-code > div[class*="_h-12"] > span {
+  color: #88C0D0 !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Light mode - Nextra header */
+:root:not(.dark) .nextra-code > div[class*="_h-12"] {
+  background: #E5E9F0 !important;
+  border-color: #D8DEE9 !important;
+  border-bottom-color: #D8DEE9 !important;
+}
+
+:root:not(.dark) .nextra-code > div[class*="_h-12"] > span {
+  color: #5E81AC !important;
+}
+
+/* Style code blocks */
+.nextra-code > pre,
+article pre,
+main pre {
+  position: relative;
+  background-color: #1A1F2E !important;
+  border: 1px solid #4C566A !important;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
+}
+
+/* Code blocks with Nextra headers - round only bottom corners */
+.nextra-code > pre {
+  border-radius: 0 0 4px 4px !important;
+  border-top: none !important;
+}
+
+/* Standalone pre blocks (no Nextra wrapper) */
+article pre:not(.nextra-code pre),
+main pre:not(.nextra-code pre) {
+  border-radius: 4px !important;
+}
+
+/* Light mode - code block backgrounds */
+:root:not(.dark) .nextra-code > pre,
+:root:not(.dark) article pre,
+:root:not(.dark) main pre {
+  background-color: #ECEFF4 !important;
+  border-color: #D8DEE9 !important;
+}
+
+/* Style copy and word wrap buttons */
+.nextra-code button[title*="Copy"],
+.nextra-code button[title*="word wrap"] {
+  background: transparent !important;
+  border: 1px solid #4C566A !important;
+  border-radius: 0.25rem !important;
+  color: #88C0D0 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  opacity: 0.9 !important;
+}
+
+.nextra-code button[title*="Copy"]:hover,
+.nextra-code button[title*="word wrap"]:hover {
+  background: #4C566A !important;
+  border-color: #88C0D0 !important;
+  opacity: 1 !important;
+}
+
+/* Style the button icons */
+.nextra-code button svg {
+  width: 1rem !important;
+  height: 1rem !important;
+  color: inherit !important;
+}
+
+/* Light mode - buttons */
+:root:not(.dark) .nextra-code button[title*="Copy"],
+:root:not(.dark) .nextra-code button[title*="word wrap"] {
+  border-color: #D8DEE9 !important;
+  color: #5E81AC !important;
+}
+
+:root:not(.dark) .nextra-code button[title*="Copy"]:hover,
+:root:not(.dark) .nextra-code button[title*="word wrap"]:hover {
+  background: #D8DEE9 !important;
+  border-color: #5E81AC !important;
+}
+
+/* Code block content spacing */
+.nextra-code > pre code,
+article pre code,
+main pre code {
+  display: block;
+  padding: 1rem !important;
+  line-height: 1.6;
+  font-size: 0.875rem;
+}
+
+/* Dark mode - code blocks and text */
+.dark .nextra-code > pre,
+.dark article pre,
+.dark main pre {
+  background-color: #1A1F2E !important;
+  border-color: #4C566A !important;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
+}
+
+.dark .nextra-code > pre code,
+.dark article pre code,
+.dark main pre code {
+  color: #ECEFF4 !important;
+}
+
+/* Light mode - code blocks and text */
+:root:not(.dark) .nextra-code > pre code,
+:root:not(.dark) article pre code,
+:root:not(.dark) main pre code {
+  color: #2E3440 !important;
 }
 
 /* Custom admonition/callout styling */
@@ -158,10 +311,15 @@ table {
 }
 
 .logo-text {
-  font-weight: 900;
+  font-family: 'IBM Plex Mono', monospace; /* Terminal font for logo */
+  font-weight: 700;
   font-size: 1.25rem;
-  letter-spacing: 0.1em;
-  color: hsl(var(--nextra-primary-hue), 100%, 50%);
+  letter-spacing: 0.15em;
+  color: hsl(var(--primary));
+}
+
+.dark .logo-text {
+  color: hsl(var(--primary));
 }
 
 /* Landing Navbar */
@@ -170,11 +328,12 @@ table {
   top: 0;
   z-index: 50;
   background: hsl(var(--background));
-  border-bottom: 1px solid hsl(var(--border));
+  border-bottom: 2px solid hsl(var(--border));
 }
 
 .dark .landing-navbar {
-  background: hsl(var(--background));
+  background: hsl(var(--card));
+  border-bottom-color: hsl(var(--border));
 }
 
 .landing-navbar-container {
@@ -226,6 +385,29 @@ table {
 
 .landing-nav-link:hover {
   color: hsl(var(--foreground));
+}
+
+.landing-nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.landing-teams-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.landing-teams-btn:hover {
+  opacity: 0.9;
 }
 
 /* Landing Footer */
@@ -343,6 +525,100 @@ table {
 }
 
 /* ============================================
+   Terminal-Style Animations
+   ============================================ */
+
+/* Fade in animation for page loads */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Typing cursor blink */
+@keyframes cursorBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Terminal text appear (fade in) */
+@keyframes terminalAppear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Glow effect for accent elements */
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px hsl(var(--nord-frost) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(var(--nord-frost) / 0.6), 0 0 30px hsl(var(--nord-frost) / 0.3);
+  }
+}
+
+/* Apply fade-in to main content */
+article,
+main > div {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Code blocks appear with slight delay */
+pre {
+  animation: terminalAppear 0.5s ease-out;
+}
+
+/* Cursor blink on focused inputs */
+input:focus::after,
+textarea:focus::after {
+  content: '';
+  animation: cursorBlink 1s step-end infinite;
+}
+
+/* Subtle glow on links and buttons on hover */
+a:hover,
+button:hover {
+  transition: all 0.2s ease;
+}
+
+/* Typing effect for hero/landing text (applied via class) */
+.typing-effect {
+  overflow: hidden;
+  border-right: 2px solid hsl(var(--nord-frost));
+  white-space: nowrap;
+  animation:
+    typing 2s steps(30, end),
+    cursorBlink 0.75s step-end infinite;
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Smooth transitions for theme switching */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* ============================================
    Shadow Overrides
    ============================================ */
 
@@ -382,7 +658,7 @@ body:not(.landing-page) aside > * {
 /* Navbar - docs only */
 body:not(.landing-page) .nextra-nav-container {
   background-color: hsl(var(--background)) !important;
-  border-bottom-color: hsl(var(--border)) !important;
+  border-bottom: 2px solid hsl(var(--border)) !important;
 }
 
 body:not(.landing-page) .nextra-nav-container a,
@@ -393,6 +669,13 @@ body:not(.landing-page) .nextra-nav-container button {
 body:not(.landing-page) .nextra-nav-container a:hover,
 body:not(.landing-page) .nextra-nav-container button:hover {
   background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--primary)) !important;
+}
+
+/* Dark mode navbar - more contrast */
+.dark body:not(.landing-page) .nextra-nav-container {
+  background-color: hsl(var(--card)) !important;
+  border-bottom-color: hsl(var(--border)) !important;
 }
 
 /* Search bar - docs only */

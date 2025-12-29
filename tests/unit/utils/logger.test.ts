@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Logger } from '../../../src/utils/logger.js';
+import { Logger } from '@/shared/utils/logger.js';
 import { mkdtemp, rm, chmod } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';

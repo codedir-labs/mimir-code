@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AllowlistLoader, AllowlistSchema } from '../../../src/config/AllowlistLoader.js';
-import { IFileSystem } from '../../../src/platform/IFileSystem.js';
+import { AllowlistLoader, AllowlistSchema } from '@/shared/config/AllowlistLoader.js';
+import { IFileSystem } from '@codedir/mimir-agents';
 import path from 'path';
 
 // Mock filesystem

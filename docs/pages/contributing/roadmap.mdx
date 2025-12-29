@@ -58,7 +58,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 **Goal**: Robust configuration with Teams integration, storage abstraction, policy enforcement
 
-**See**: `docs/contributing/plan-enterprise-teams.md` for detailed architecture
+**See**: `docs/pages/contributing/TEAMS-ARCHITECTURE.md` for detailed architecture
 
 ### Configuration Schema
 
@@ -211,10 +211,13 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 - [x] **DeepSeek**: API integration, tiktoken, model selection, cost calc, streaming (OpenAI-compatible)
 - [x] **Anthropic**: API integration, tiktoken approximation, model selection, cost calc, streaming
-- [ ] **OpenAI**: Coming later (similar to DeepSeek, OpenAI-compatible)
-- [ ] **Google/Gemini**: Coming later (requires Gemini SDK)
-- [ ] **Qwen**: Coming later (OpenAI-compatible, similar to DeepSeek)
-- [ ] **Ollama (Local)**: Coming later (local API, no cost)
+- [ ] **OpenAI** (Priority 1): API integration, model selection, cost calc, streaming (OpenAI-compatible)
+- [ ] **Google/Gemini** (Priority 2): API integration, Gemini SDK, model selection, cost calc
+- [ ] **Azure OpenAI** (Priority 3): Enterprise provider, model selection, cost calc
+- [ ] **Qwen** (Priority 4): OpenAI-compatible, similar to DeepSeek
+- [ ] **Ollama (Local)** (Priority 5): Local API, no cost, model management
+- [ ] **Amazon Bedrock** (Priority 6): Enterprise provider, multiple models
+- [ ] **Google Vertex AI** (Priority 7): Enterprise GCP provider
 
 ### Provider Factory
 
@@ -223,6 +226,31 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [x] Graceful handling of missing keys
 - [x] Provider-specific configurations
 - [ ] **NEW: Proxied provider for Teams mode** (route through Teams API)
+
+### Provider Authentication Abstraction (OAuth/Account-based)
+
+- [ ] **Authentication Layer**: Abstract auth for providers (API keys vs OAuth)
+- [ ] **OAuth Flow**: Browser-based OAuth for providers that support it
+- [ ] **Anthropic Account Auth**: `/connect anthropic` to authenticate via Anthropic account
+- [ ] **Google/Gemini Auth**: OAuth flow for Google Cloud credentials
+- [ ] **Azure Auth**: Microsoft OAuth for Azure OpenAI
+- [ ] **Token Management**: Secure storage, refresh logic, expiration handling
+- [ ] **Fallback to API Keys**: Support both auth methods (OAuth preferred, API key fallback)
+- [ ] **Teams Mode**: Route auth through Teams API (hide individual accounts)
+
+### Network & Proxy Support
+
+- [ ] **Proxy Configuration**: HTTPS_PROXY, HTTP_PROXY, NO_PROXY environment variables
+- [ ] **Custom Certificates**: NODE_EXTRA_CA_CERTS for corporate proxies
+- [ ] **Proxy Authentication**: Basic auth, NTLM/Kerberos via gateway
+- [ ] **Network Diagnostics**: Test proxy connectivity in `mimir doctor`
+
+### Small Model Optimization
+
+- [ ] **Small Model Config**: Separate `smallModel` setting for lightweight tasks
+- [ ] **Task Complexity Detection**: Automatically detect simple vs complex tasks
+- [ ] **Automatic Switching**: Use Haiku/GPT-4o-mini for title generation, summaries, etc.
+- [ ] **Cost Optimization**: Reduce costs by routing simple tasks to cheaper models
 
 ### Shared Utilities
 
@@ -247,7 +275,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 **Goal**: Comprehensive tool system with built-in tools, custom tools, MCP, and Teams integration
 
-**See**: `docs/contributing/plan-tools.md` for detailed architecture
+**See**: `docs/pages/contributing/plan-tools.md` for detailed architecture
 
 ### Tool Architecture
 
@@ -346,6 +374,19 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] Integrate highlighter (Shiki/highlight.js)
 - [ ] Support major languages (TS, JS, Python, Go, Rust, .NET, etc.)
 - [ ] Apply to file content and code blocks
+
+### Auto-Formatting Support
+
+- [ ] **Formatter Detection**: Auto-detect formatters in project (prettier, eslint, biome, ruff, gofmt, etc.)
+- [ ] **Auto-Run After Writes**: Automatically format files after write/edit operations
+- [ ] **Built-in Formatters** (15+):
+  - JavaScript/TypeScript: Prettier, Biome, oxfmt
+  - Python: Ruff, uv, black
+  - Go: gofmt
+  - Ruby: Rubocop, StandardRB
+  - Others: Dart, Gleam, Terraform, Zig
+- [ ] **Configuration**: Enable/disable formatters globally or per-formatter
+- [ ] **Custom Formatters**: Support custom formatter commands with `$FILE` placeholder
 
 ### Testing
 
@@ -711,6 +752,21 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 - [ ] File diffs
 - [ ] Command output
 
+### External Editor Support
+
+- [ ] **EDITOR Environment Variable**: Support for `$EDITOR` (VS Code, Vim, Nano, etc.)
+- [ ] `/editor` Command: Open external editor for composing long prompts
+- [ ] **Editor Integration**: `code --wait`, Cursor, Vim, Nano support
+- [ ] **File-based Composition**: Write prompt to temp file, read after editor closes
+
+### Command Palette
+
+- [ ] **Command Palette UI**: Ctrl+P (configurable) to open command palette
+- [ ] **Fuzzy Search**: Search for slash commands, tools, settings
+- [ ] **Keyboard-first Navigation**: Arrow keys, Enter to select
+- [ ] **Recent Commands**: Show recently used commands first
+- [ ] **Help Text**: Display command descriptions inline
+
 ### Logging
 
 - [ ] Structured logger (Winston/Pino)
@@ -738,7 +794,7 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 **Goal**: Task decomposition, specialized agents, parallel execution
 
-**See**: `docs/contributing/plan-agent-orchestration.md` for detailed architecture
+**See**: `docs/pages/contributing/plan-agent-orchestration.md` for detailed architecture
 
 ### Agent Orchestrator Core
 
@@ -935,7 +991,129 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 ---
 
-## Phase 13: Polish & Launch
+## Phase 13: GitHub/GitLab Integration & Auto-Update
+
+**Goal**: CI/CD integration and auto-update system
+
+### GitHub Integration
+
+- [ ] **GitHub Actions Workflow**: `.github/workflows/mimir.yml` template
+- [ ] **Trigger on Issues/PRs**: Mention `/mimir` in comments to trigger
+- [ ] **Code Review Comments**: Comment on specific lines to request fixes
+- [ ] **Automatic PR Creation**: Create PRs with fixes automatically
+- [ ] **Issue Triage**: Analyze issues and provide context
+- [ ] **Custom Prompts**: Override default behavior with custom review criteria
+
+### GitLab Integration
+
+- [ ] **GitLab CI/CD Component**: Community-maintained component integration
+- [ ] **GitLab Duo Integration**: Mention `@mimir` in comments
+- [ ] **Merge Request Automation**: Automatic MR creation and updates
+- [ ] **Pipeline Integration**: Run Mimir in GitLab pipelines
+
+### Auto-Update System
+
+- [ ] **Background Update Checks**: Check for new versions daily
+- [ ] **Update Modes**: `true` (auto-download), `false` (disabled), `"notify"` (notify only)
+- [ ] **One-Click Updates**: `mimir upgrade` with confirmation
+- [ ] **Release Notes Display**: Show release notes before updating
+- [ ] **Rollback Support**: `mimir rollback` to previous version
+
+### Testing
+
+- [ ] GitHub Actions integration tests
+- [ ] GitLab CI integration tests
+- [ ] Auto-update workflow tests
+- [ ] Rollback functionality tests
+
+---
+
+## Phase 14: Plugin System
+
+**Goal**: Community extensibility with event-driven plugins
+
+**See**: `.claude/outputs/architecture/plugin-system-design.md` for detailed architecture
+
+### Core Plugin Infrastructure
+
+- [ ] **Plugin Loader**: Load plugins from disk/npm
+- [ ] **Plugin Validator**: Validate manifest and structure
+- [ ] **Plugin Registry**: Register/unregister plugins
+- [ ] **Event Bus**: Emit, subscribe, unsubscribe (24 events)
+- [ ] **Plugin Context API**: Rich context object (fs, exec, config, llm, session, tools)
+- [ ] **V8 Isolate Sandbox**: Isolate plugin execution
+
+### Event System (24 Events)
+
+- [ ] **Tool Events** (2): tool.execute.before, tool.execute.after
+- [ ] **Permission Events** (2): permission.ask, permission.replied
+- [ ] **Session Events** (6): session.created, session.compacting, session.compacted, session.resumed, session.idle, session.error
+- [ ] **Message Events** (4): message.added, message.updated, message.removed, chat.message
+- [ ] **Agent Events** (4): agent.created, agent.started, agent.completed, agent.failed
+- [ ] **File Events** (2): file.modified, file.deleted
+- [ ] **Command Events** (2): command.executed, slash.command.executed
+- [ ] **Cost Events** (2): cost.updated, budget.exceeded
+
+### Plugin API & SDK
+
+- [ ] **`@mimir/plugin` NPM Package**: Plugin development SDK
+- [ ] **TypeScript Types**: Full type definitions for plugin API
+- [ ] **Tool Builder**: `tool()` helper for registering custom tools
+- [ ] **Plugin Development Docs**: Comprehensive guide with examples
+- [ ] **Example Plugins** (5+):
+  - Auto-formatter plugin
+  - Budget alert plugin
+  - Security audit plugin
+  - PreCompact migration plugin (built-in)
+  - GitHub PR comment plugin
+
+### Plugin Distribution
+
+- [ ] **NPM Distribution**: `mimir-plugin-*` naming convention
+- [ ] **Plugin CLI Commands**:
+  - `mimir plugin list` - List installed plugins
+  - `mimir plugin install <name>` - Install from NPM
+  - `mimir plugin enable <name>` - Enable plugin
+  - `mimir plugin disable <name>` - Disable plugin
+  - `mimir plugin uninstall <name>` - Uninstall plugin
+  - `mimir plugin info <name>` - Show plugin details
+- [ ] **Plugin Marketplace**: GitHub-based plugin registry
+- [ ] **Plugin Discovery UI**: Browse and install plugins
+- [ ] **Security Review Process**: For official plugins
+
+### Security & Capabilities
+
+- [ ] **Capability-Based Security**: Explicit permissions in manifest
+- [ ] **Plugin Manifest**: `plugin.yml` with capabilities, events, metadata
+- [ ] **Resource Limits**: CPU, memory, execution time per plugin
+- [ ] **Audit Logging**: Log all plugin actions
+- [ ] **Teams Enforcement**: Enterprise plugin allowlists/blocklists
+
+### Teams Integration
+
+- [ ] **Organization-wide Plugins**: Distribute plugins to all team members
+- [ ] **Plugin Allowlist Enforcement**: Teams can restrict plugins
+- [ ] **Required Plugins**: Force installation of compliance plugins
+- [ ] **Plugin Usage Analytics**: Track plugin usage via Teams API
+
+### Migration & Compatibility
+
+- [ ] **PreCompact Hook → Plugin**: Implement PreCompact as built-in plugin
+- [ ] **Backward Compatibility**: All existing hooks, tools, commands continue to work
+- [ ] **No Breaking Changes**: Additive only
+
+### Testing
+
+- [ ] Plugin loading and validation
+- [ ] Event emission from features
+- [ ] Plugin interception and modification
+- [ ] Capability-based security enforcement
+- [ ] V8 isolate sandbox
+- [ ] Teams plugin management
+
+---
+
+## Phase 15: Polish & Launch
 
 **Goal**: Production-ready release
 
@@ -1039,7 +1217,46 @@ Platform-agnostic, BYOK AI coding agent CLI. TypeScript, test-driven, cross-plat
 
 ## Implementation Priority
 
-1. **Config/Teams Foundation** (Phase 2) - Prepare for enterprise features
-2. **Tool System** (Phase 4) - Core functionality for agents
-3. **Agent Orchestration** (Phase 10) - Enable multi-agent workflows
-4. **Polish remaining phases** (5-9, 11-13) - Complete MVP features
+### v1.0 (MVP - 12-16 weeks)
+
+1. **Config/Teams Foundation** (Phase 2) - 2-3 weeks
+2. **LLM Providers** (Phase 3) - Add OpenAI, Google/Gemini, proxy/auth - 2-3 weeks
+3. **Tool System** (Phase 4) - Built-in + custom + MCP - 3-4 weeks
+4. **Docker Sandbox** (Phase 5) - 1-2 weeks
+5. **ReAct Agent Loop** (Phase 6) - 2 weeks
+6. **Conversation History** (Phase 7) - 1 week
+7. **Token Counting & Cost** (Phase 8) - 1 week
+8. **CLI & Terminal UI** (Phase 9) - 2-3 weeks
+9. **Agent Orchestration** (Phase 10) - 3-4 weeks
+
+**Total**: ~18-27 weeks (4-6 months)
+
+### v1.1 (Quick Wins - 4-6 weeks)
+
+1. **Auto-Formatting Support** (Phase 4 extension) - 1 week
+2. **External Editor Support** (Phase 9 extension) - 3 days
+3. **Proxy & Certificate Support** (Phase 3 extension) - 1 week
+4. **Small Model Optimization** (Phase 3 extension) - 1 week
+5. **Command Palette** (Phase 9 extension) - 1 week
+6. **Model Switching & Context** (Phase 11) - 2 weeks
+7. **Custom Commands & Checkpoints** (Phase 12) - 2-3 weeks
+
+**Total**: ~7-9 weeks (1.5-2 months)
+
+### v1.2 (Ecosystem & Integration - 6-8 weeks)
+
+1. **GitHub/GitLab Integration** (Phase 13) - 3-4 weeks
+2. **Auto-Update System** (Phase 13) - 1 week
+3. **Plugin System** (Phase 14) - Phase 1-3 only - 5-7 weeks
+
+**Total**: ~9-12 weeks (2-3 months)
+
+### v2.0 (Mature Ecosystem - Ongoing)
+
+1. **Plugin Marketplace** (Phase 14 - Phase 4) - 3-4 weeks
+2. **50+ Community Plugins** - Ongoing
+3. **Advanced Teams Features** - 4-6 weeks
+4. **Multi-Environment Operation** (Desktop, Web UI) - 8-12 weeks
+5. **AI Gateway (Mimir Cloud)** - 12+ weeks
+
+**Timeline**: 6-12 months post-v1.0

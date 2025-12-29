@@ -1,0 +1,108 @@
+# Gruvbox Light Theme - Retro groove color scheme (light variant)
+# Based on Gruvbox by morhetz
+name: Gruvbox Light
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#fbf1c7'  # bg0
+    fg: '#3c3836'  # fg0
+  headerText:
+    fg: '#504945'  # fg1
+  footerBg:
+    bg: '#ebdbb2'  # bg1
+  footerText:
+    fg: '#928374'  # gray
+  inputPrompt:
+    fg: '#076678'  # blue
+  inputText:
+    fg: '#3c3836'  # fg0
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#ebdbb2'  # bg1
+  autocompleteText:
+    fg: '#3c3836'  # fg0
+  autocompleteSelectedBg:
+    bg: '#076678'  # blue
+    fg: '#fbf1c7'  # bg0
+  autocompleteSelectedText:
+    fg: '#fbf1c7'  # bg0
+  autocompleteHeaderText:
+    fg: '#076678'  # blue
+    bold: true
+  autocompleteFooterText:
+    fg: '#928374'  # gray
+  autocompleteMoreIndicator:
+    fg: '#928374'  # gray
+
+  # Mode indicators
+  modePlan:
+    fg: '#076678'  # blue
+  modeAct:
+    fg: '#79740e'  # green
+  modeDiscuss:
+    fg: '#8f3f71'  # purple
+
+  # Message roles
+  userMessage:
+    fg: '#427b58'  # aqua
+  assistantMessage:
+    fg: '#076678'  # blue
+  systemMessage:
+    fg: '#b57614'  # yellow
+
+  # Syntax highlighting
+  keyword:
+    fg: '#8f3f71'  # purple
+  string:
+    fg: '#79740e'  # green
+  number:
+    fg: '#af3a03'  # orange
+  comment:
+    fg: '#928374'  # gray
+  function:
+    fg: '#076678'  # blue
+  variable:
+    fg: '#3c3836'  # fg0
+
+  # Status indicators
+  success:
+    fg: '#79740e'  # green
+  warning:
+    fg: '#b57614'  # yellow
+  error:
+    fg: '#9d0006'  # red
+  info:
+    fg: '#076678'  # blue
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#928374'  # gray
+  statusReasoning:
+    fg: '#427b58'  # aqua
+  statusActing:
+    fg: '#79740e'  # green
+  statusObserving:
+    fg: '#076678'  # blue
+  statusInterrupted:
+    fg: '#b57614'  # yellow
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#d5c4a1'  # bg2
+  wizardTitle:
+    fg: '#076678'  # blue
+  wizardAccent:
+    fg: '#076678'  # blue
+  paramDescription:
+    fg: '#928374'  # gray
+
+  # Diff colors
+  diffAddLine:
+    bg: '#79740e'  # green
+    fg: '#fbf1c7'  # bg0
+  diffRemoveLine:
+    bg: '#9d0006'  # red
+    fg: '#3c3836'  # fg0

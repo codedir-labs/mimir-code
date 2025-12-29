@@ -4,13 +4,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SlashCommandRegistry } from '../../../../src/core/SlashCommand.js';
-import { ModeCommand } from '../../../../src/cli/commands/slashCommands/ModeCommand.js';
-import { ThemeCommand } from '../../../../src/cli/commands/slashCommands/ThemeCommand.js';
-import { ModelCommand } from '../../../../src/cli/commands/slashCommands/ModelCommand.js';
-import { NewCommand } from '../../../../src/cli/commands/slashCommands/NewCommand.js';
-import { HelpCommand } from '../../../../src/cli/commands/slashCommands/HelpCommand.js';
-import { SlashCommandParser } from '../../../../src/core/SlashCommandParser.js';
+import { SlashCommandRegistry } from '@/features/chat/slash-commands/SlashCommand.js';
+import { ModeCommand } from '@/features/chat/slash-commands/ModeCommand.js';
+import { ThemeCommand } from '@/features/chat/slash-commands/ThemeCommand.js';
+import { ModelCommand } from '@/features/chat/slash-commands/ModelCommand.js';
+import { NewCommand } from '@/features/chat/slash-commands/NewCommand.js';
+import { HelpCommand } from '@/features/chat/slash-commands/HelpCommand.js';
+import { SlashCommandParser } from '@/features/custom-commands/parser/SlashCommandParser.js';
 
 /**
  * Simulates the InputBox autocomplete logic to verify correct behavior
@@ -265,7 +265,7 @@ describe('InputBox Autocomplete Logic', () => {
 
       expect(state.showAutocomplete).toBe(true);
       expect(state.isParameterMode).toBe(true);
-      expect(state.parameterSuggestions).toHaveLength(7);
+      expect(state.parameterSuggestions).toHaveLength(13); // Updated: now have 13 themes
       expect(state.parameterSuggestions).toContain('mimir');
       expect(state.parameterSuggestions).toContain('dark');
       expect(state.parameterSuggestions).toContain('light');
@@ -295,10 +295,11 @@ describe('InputBox Autocomplete Logic', () => {
       const state = simulator.getState();
 
       expect(state.showAutocomplete).toBe(true);
-      expect(state.parameterSuggestions).toHaveLength(3);
+      expect(state.parameterSuggestions).toHaveLength(4); // Updated: now have 4 themes starting with 'd' (dark, dark-ansi, dark-colorblind, dracula)
       expect(state.parameterSuggestions).toContain('dark');
       expect(state.parameterSuggestions).toContain('dark-colorblind');
       expect(state.parameterSuggestions).toContain('dark-ansi');
+      expect(state.parameterSuggestions).toContain('dracula');
     });
 
     it('should filter to dark-colorblind when user types /theme dark-c', () => {
@@ -329,7 +330,7 @@ describe('InputBox Autocomplete Logic', () => {
 
       expect(state.showAutocomplete).toBe(true);
       expect(state.isParameterMode).toBe(true);
-      expect(state.parameterSuggestions).toHaveLength(7);
+      expect(state.parameterSuggestions).toHaveLength(10); // Updated: now have 10 providers
       expect(state.parameterSuggestions).toContain('deepseek');
       expect(state.parameterSuggestions).toContain('anthropic');
       expect(state.parameterSuggestions).toContain('openai');

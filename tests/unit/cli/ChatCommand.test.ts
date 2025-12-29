@@ -3,16 +3,16 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ChatCommand } from '../../../src/cli/commands/ChatCommand.js';
-import { ConfigLoader } from '../../../src/config/ConfigLoader.js';
+import { ChatCommand } from '@/features/chat/commands/ChatCommand.js';
+import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
 import { FirstRunDetector } from '../../../src/cli/utils/firstRunDetector.js';
 import { SetupCommand } from '../../../src/cli/commands/SetupCommand.js';
-import { FileSystemAdapter } from '../../../src/platform/FileSystemAdapter.js';
-import type { IFileSystem } from '../../../src/platform/IFileSystem.js';
+import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
+import type { IFileSystem } from '@codedir/mimir-agents';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { closeDatabaseManager } from '../../../src/storage/Database.js';
+import { closeDatabaseManager } from '@codedir/mimir-agents-node/storage';
 
 // Mock Ink to avoid terminal rendering in tests
 vi.mock('ink', () => ({

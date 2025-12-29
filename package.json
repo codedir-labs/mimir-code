@@ -1,20 +1,25 @@
 {
   "name": "@codedir/mimir-code",
   "version": "0.1.7",
+  "private": true,
   "description": "Platform-agnostic, BYOK AI coding agent CLI",
   "main": "dist/index.js",
   "bin": {
     "mimir": "dist/cli.mjs"
   },
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "files": [
     "dist",
     "scripts/templates",
     "src/cli/themes"
   ],
   "scripts": {
-    "dev": "tsx src/cli.ts",
-    "build": "tsup",
+    "dev": "node ./node_modules/tsx/dist/cli.mjs src/cli.ts",
+    "build": "yarn build:packages && tsup",
+    "build:packages": "yarn workspace @codedir/mimir-agents run build && yarn workspace @codedir/mimir-agents-node run build && yarn workspace @codedir/mimir-teams-contracts run build",
     "build:binary": "bun build src/cli.ts --compile --outfile dist/binaries/mimir",
     "build:binary:all": "node scripts/build-binaries.js",
     "test": "vitest",
@@ -29,7 +34,9 @@
     "lint:fix": "eslint src tests --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --build --verbose",
+    "clean": "yarn workspace @codedir/mimir-agents run clean && yarn workspace @codedir/mimir-agents-node run clean && rm -rf dist",
+    "test:packages": "yarn workspace @codedir/mimir-agents run test && yarn workspace @codedir/mimir-agents-node run test",
     "prepare": "husky"
   },
   "keywords": [
@@ -51,6 +58,8 @@
     "url": "https://github.com/codedir-labs/mimir-code/issues"
   },
   "dependencies": {
+    "@codedir/mimir-agents": "file:./packages/mimir-agents",
+    "@codedir/mimir-agents-node": "file:./packages/mimir-agents-runtime",
     "axios": "^1.7.9",
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
@@ -81,6 +90,7 @@
     "@eslint/js": "^9.17.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.1.0",
+    "@types/crypto-js": "^4.2.2",
     "@types/dockerode": "^3.3.33",
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
@@ -89,13 +99,15 @@
     "@typescript-eslint/parser": "^8.19.1",
     "@vitest/coverage-v8": "^2.1.8",
     "adm-zip": "^0.5.16",
+    "crypto-js": "^4.2.0",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.1.7",
     "ink-testing-library": "^4.0.0",
-    "lint-staged": "^15.2.11",
+    "keytar": "^7.9.0",
+    "lint-staged": "^16.2.7",
     "msw": "^2.7.0",
     "prettier": "^3.4.2",
     "react-devtools-core": "^5.3.2",

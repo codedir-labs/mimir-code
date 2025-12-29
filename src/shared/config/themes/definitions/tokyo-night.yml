@@ -1,0 +1,108 @@
+# Tokyo Night Theme - Celebrates the lights of Downtown Tokyo
+# Based on Tokyo Night (Night variant)
+name: Tokyo Night
+supportsFullColor: true
+
+colors:
+  # UI Elements
+  headerBg:
+    bg: '#1a1b26'  # Background
+    fg: '#c0caf5'  # Foreground
+  headerText:
+    fg: '#a9b1d6'  # Text
+  footerBg:
+    bg: '#16161e'  # Background Dark
+  footerText:
+    fg: '#565f89'  # Comment
+  inputPrompt:
+    fg: '#7dcfff'  # Cyan
+  inputText:
+    fg: '#c0caf5'  # Foreground
+
+  # Autocomplete
+  autocompleteBg:
+    bg: '#24283b'  # Background Highlight
+  autocompleteText:
+    fg: '#c0caf5'  # Foreground
+  autocompleteSelectedBg:
+    bg: '#7aa2f7'  # Blue
+    fg: '#1a1b26'  # Background
+  autocompleteSelectedText:
+    fg: '#1a1b26'  # Background
+  autocompleteHeaderText:
+    fg: '#7aa2f7'  # Blue
+    bold: true
+  autocompleteFooterText:
+    fg: '#565f89'  # Comment
+  autocompleteMoreIndicator:
+    fg: '#565f89'  # Comment
+
+  # Mode indicators
+  modePlan:
+    fg: '#7aa2f7'  # Blue
+  modeAct:
+    fg: '#9ece6a'  # Green
+  modeDiscuss:
+    fg: '#bb9af7'  # Purple
+
+  # Message roles
+  userMessage:
+    fg: '#7dcfff'  # Cyan
+  assistantMessage:
+    fg: '#7aa2f7'  # Blue
+  systemMessage:
+    fg: '#e0af68'  # Yellow
+
+  # Syntax highlighting
+  keyword:
+    fg: '#bb9af7'  # Purple
+  string:
+    fg: '#9ece6a'  # Green
+  number:
+    fg: '#ff9e64'  # Orange
+  comment:
+    fg: '#565f89'  # Comment
+  function:
+    fg: '#7aa2f7'  # Blue
+  variable:
+    fg: '#c0caf5'  # Foreground
+
+  # Status indicators
+  success:
+    fg: '#9ece6a'  # Green
+  warning:
+    fg: '#e0af68'  # Yellow
+  error:
+    fg: '#f7768e'  # Red
+  info:
+    fg: '#7aa2f7'  # Blue
+
+  # Agent status (multi-agent views)
+  statusIdle:
+    fg: '#565f89'  # Comment
+  statusReasoning:
+    fg: '#7dcfff'  # Cyan
+  statusActing:
+    fg: '#9ece6a'  # Green
+  statusObserving:
+    fg: '#7aa2f7'  # Blue
+  statusInterrupted:
+    fg: '#e0af68'  # Yellow
+
+  # UI Elements (additional)
+  borderColor:
+    fg: '#414868'  # Border
+  wizardTitle:
+    fg: '#7aa2f7'  # Blue
+  wizardAccent:
+    fg: '#bb9af7'  # Purple
+  paramDescription:
+    fg: '#565f89'  # Comment
+
+  # Diff colors
+  diffAddLine:
+    bg: '#9ece6a'  # Green
+    fg: '#1a1b26'  # Background
+  diffRemoveLine:
+    bg: '#f7768e'  # Red
+    fg: '#c0caf5'  # Foreground

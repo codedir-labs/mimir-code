@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ConfigLoader } from '../../../src/config/ConfigLoader.js';
-import { ConfigSchema } from '../../../src/config/schemas.js';
-import { FileSystemAdapter } from '../../../src/platform/FileSystemAdapter.js';
+import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
+import { ConfigSchema } from '@/shared/config/schemas.js';
+import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
 
 describe('ConfigLoader', () => {
   it('should load default configuration', async () => {
@@ -34,9 +34,9 @@ describe('ConfigLoader', () => {
         alwaysAcceptCommands: [],
       },
       keyBindings: {
-        interrupt: 'Ctrl+C',
-        modeSwitch: 'Shift+Tab',
-        editCommand: 'Ctrl+E',
+        interrupt: 'ctrl+C',
+        modeSwitch: 'shift+Tab',
+        editCommand: 'ctrl+E',
       },
       docker: {
         enabled: true,
@@ -65,6 +65,10 @@ describe('ConfigLoader', () => {
         toolExecutionsPerMinute: 30,
         llmCallsPerMinute: 20,
         maxFileSizeMB: 100,
+      },
+      tools: {},
+      mcp: {
+        servers: [],
       },
     };
 

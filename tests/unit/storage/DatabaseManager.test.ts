@@ -7,9 +7,9 @@ import {
   DatabaseManager,
   DatabaseConfig,
   closeDatabaseManager,
-} from '../../../src/storage/Database.js';
-import { FileSystemAdapter } from '../../../src/platform/FileSystemAdapter.js';
-import type { IFileSystem } from '../../../src/platform/IFileSystem.js';
+} from '@codedir/mimir-agents-node/storage';
+import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
+import type { IFileSystem } from '@codedir/mimir-agents';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
