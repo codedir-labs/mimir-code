@@ -16,7 +16,7 @@
  * Uses centralized RawKeyMapper for accurate key detection across terminals.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Text, useInput, useStdin } from 'ink';
 import chalk from 'chalk';
 import { getLastRawKey, clearLastRawKey, processRawKey } from '@/shared/keyboard/RawKeyMapper.js';
@@ -102,14 +102,25 @@ export function TextInput({
   // Check if raw mode is supported (for piped/non-TTY environments)
   const { isRawModeSupported, stdin } = useStdin();
 
+  // Track bracketed paste state - use ref for synchronous access during useInput
+  // React state updates are async and won't take effect before useInput runs
+  const pasteInProgressRef = useRef(false);
+
   // Set up raw stdin listener to feed the centralized RawKeyMapper
-  // This listener runs before Ink's useInput processes the keys
+  // Also tracks bracketed paste start/end
   useEffect(() => {
     if (!stdin || !focus) return;
 
     const handleRawData = (data: Buffer | string) => {
       // Process raw input through centralized RawKeyMapper
-      processRawKey(data);
+      const result = processRawKey(data);
+
+      // Track bracketed paste state synchronously via ref
+      if (result.key === 'BracketedPasteStart') {
+        pasteInProgressRef.current = true;
+      } else if (result.key === 'BracketedPasteEnd') {
+        pasteInProgressRef.current = false;
+      }
     };
 
     stdin.on('data', handleRawData);
@@ -233,11 +244,28 @@ export function TextInput({
         return;
       }
 
-      // Submit on Enter
-      if (key.return) {
+      // Check if input contains bracketed paste markers
+      const hasPasteMarkers = input.includes('\x1b[200~') || input.includes('\x1b[201~');
+      const inPaste = pasteInProgressRef.current || hasPasteMarkers;
+
+      // Submit on Enter - but NOT during paste (newlines are part of pasted content)
+      if (key.return && !inPaste) {
         if (onSubmit) {
           onSubmit(value);
         }
+        return;
+      }
+
+      // During paste with markers, pass the full text to onChange for InputBox to handle
+      // InputBox.handleChange will detect the markers and create an attachment
+      if (hasPasteMarkers && input.length > 0) {
+        onChange(input);
+        return;
+      }
+
+      // If paste is in progress (between start/end markers) but no markers in this chunk,
+      // skip processing to avoid interpreting newlines as Enter
+      if (pasteInProgressRef.current) {
         return;
       }
 

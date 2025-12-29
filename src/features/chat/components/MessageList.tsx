@@ -16,13 +16,39 @@ export interface MessageListProps {
   syntaxHighlighting: boolean;
 }
 
+/**
+ * Format message content for display, handling different content types
+ */
+function formatMessageContent(content: string | unknown): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  // Handle multi-part content (e.g., attachments)
+  if (Array.isArray(content)) {
+    return content
+      .map((part: { type: string; text?: string }) => {
+        if (part.type === 'text' && part.text) {
+          return part.text;
+        }
+        if (part.type === 'image') {
+          return '[Image attachment]';
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+  return String(content);
+}
+
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   theme,
   syntaxHighlighting: _syntaxHighlighting,
 }) => {
   const themeDefinition = getTheme(theme);
-  const { userMessage, assistantMessage, systemMessage } = themeDefinition.colors;
+  const { userMessage, assistantMessage, systemMessage, info } = themeDefinition.colors;
+  const rawColors = themeDefinition.rawColors;
 
   const getRoleChalk = (role: Message['role']) => {
     switch (role) {
@@ -35,6 +61,53 @@ export const MessageList: React.FC<MessageListProps> = ({
       default:
         return assistantMessage;
     }
+  };
+
+  /**
+   * Get display label for message role
+   */
+  const getRoleLabel = (message: Message): string => {
+    // Check for special message types via metadata
+    if (message.metadata?.type === 'command') {
+      return 'COMMAND';
+    }
+    if (message.metadata?.type === 'agent') {
+      return message.metadata.agentName || 'AGENT';
+    }
+    return message.role.toUpperCase();
+  };
+
+  /**
+   * Get role color (special colors for commands and agents)
+   */
+  const getRoleColor = (message: Message) => {
+    if (message.metadata?.type === 'command') {
+      return info; // Use info color for commands (cyan-ish)
+    }
+    if (message.metadata?.type === 'agent') {
+      return themeDefinition.colors.statusActing; // Use agent acting color
+    }
+    return getRoleChalk(message.role);
+  };
+
+  /**
+   * Check if message should have background highlighting
+   */
+  const shouldHighlight = (message: Message): boolean => {
+    return message.role === 'user' || message.metadata?.type === 'command';
+  };
+
+  /**
+   * Get background color for highlighted messages
+   */
+  const getBackgroundColor = (message: Message): string | undefined => {
+    if (message.role === 'user') {
+      return rawColors.userMessageBg || '#2E3440'; // Default to dark background
+    }
+    if (message.metadata?.type === 'command') {
+      return rawColors.commandBg || '#3B4252'; // Slightly different for commands
+    }
+    return undefined;
   };
 
   const formatDuration = (ms: number): string => {
@@ -88,13 +161,36 @@ export const MessageList: React.FC<MessageListProps> = ({
     );
   };
 
-  const renderMessage = (message: Message, index: number) => (
-    <Box key={index} flexDirection="column" marginBottom={1}>
-      <Text>{getRoleChalk(message.role).bold(`[${message.role.toUpperCase()}]:`)}</Text>
-      <Text>{message.content}</Text>
-      {message.role === 'assistant' && renderThinkingIndicator(message)}
-    </Box>
-  );
+  const renderMessage = (message: Message, index: number) => {
+    const roleColor = getRoleColor(message);
+    const roleLabel = getRoleLabel(message);
+    const highlight = shouldHighlight(message);
+    const bgColor = getBackgroundColor(message);
+    const content = formatMessageContent(message.content);
+
+    // Render with or without background based on message type
+    if (highlight && bgColor) {
+      return (
+        <Box key={index} flexDirection="column" marginBottom={1}>
+          <Box paddingX={1} paddingY={0}>
+            <Text backgroundColor={bgColor}>
+              {roleColor.bold(`[${roleLabel}]: `)}
+              {content}
+            </Text>
+          </Box>
+          {message.role === 'assistant' && renderThinkingIndicator(message)}
+        </Box>
+      );
+    }
+
+    return (
+      <Box key={index} flexDirection="column" marginBottom={1}>
+        <Text>{roleColor.bold(`[${roleLabel}]:`)}</Text>
+        <Text>{content}</Text>
+        {message.role === 'assistant' && renderThinkingIndicator(message)}
+      </Box>
+    );
+  };
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1} flexGrow={1}>

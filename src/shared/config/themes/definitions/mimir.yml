@@ -48,10 +48,12 @@ colors:
   # Message roles
   userMessage:
     fg: '#8FBCBB'  # Nord Frost 1
+    bg: '#3B4252'  # Nord Polar Night 2 - subtle highlight for user messages
   assistantMessage:
     fg: '#81A1C1'  # Nord Frost 3
   systemMessage:
     fg: '#5E81AC'  # Nord Frost 4
+    bg: '#2E3440'  # Nord Polar Night 1 - subtle for commands
 
   # Syntax highlighting
   keyword:

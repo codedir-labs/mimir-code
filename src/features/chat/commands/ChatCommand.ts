@@ -395,6 +395,17 @@ export class ChatCommand {
                 state.agentProgressData = [];
                 state.uiMode = 'workflow-execution';
 
+                // Add workflow start message
+                state.messages.push({
+                  role: 'assistant',
+                  content: `Starting multi-agent workflow with ${plan.tasks.length} agent(s)...`,
+                  metadata: {
+                    timestamp: Date.now(),
+                    type: 'workflow',
+                    workflowId: plan.id,
+                  },
+                });
+
                 // Set up progress polling (500ms intervals)
                 const progressInterval = setInterval(() => {
                   if (state.uiMode === 'workflow-execution' && state.workflowStatus === 'running') {
@@ -414,14 +425,40 @@ export class ChatCommand {
 
                     state.workflowStatus = 'completed';
 
-                    // Collect results and add to messages
-                    state.messages.push({
-                      role: 'assistant',
-                      content: `✓ Workflow completed successfully!\n\nResults:\n${results.map((r) => `- ${r.role}: ${r.success ? '✓' : '✗'} ${r.output || r.error}`).join('\n')}`,
+                    // Add individual agent result messages for audit trail
+                    results.forEach((r) => {
+                      state.messages.push({
+                        role: 'assistant',
+                        content: `${r.success ? '✓' : '✗'} Agent [${r.role}]: ${r.output || r.error || 'Completed'}`,
+                        metadata: {
+                          timestamp: Date.now(),
+                          type: 'agent',
+                          agentName: r.role,
+                          workflowId: plan.id,
+                          cost: r.cost,
+                          usage: r.tokens
+                            ? { inputTokens: 0, outputTokens: r.tokens, totalTokens: r.tokens }
+                            : undefined,
+                        },
+                      });
                     });
 
                     // Calculate total cost from all agents
                     const totalWorkflowCost = results.reduce((sum, r) => sum + (r.cost || 0), 0);
+                    const totalTokens = results.reduce((sum, r) => sum + (r.tokens || 0), 0);
+
+                    // Add workflow completion summary
+                    state.messages.push({
+                      role: 'assistant',
+                      content: `Workflow completed with ${results.filter((r) => r.success).length}/${results.length} agents successful`,
+                      metadata: {
+                        timestamp: Date.now(),
+                        type: 'workflow',
+                        workflowId: plan.id,
+                        cost: totalWorkflowCost,
+                        usage: { inputTokens: 0, outputTokens: totalTokens, totalTokens },
+                      },
+                    });
                     state.totalCost += totalWorkflowCost;
 
                     // Return to chat after brief delay
@@ -573,6 +610,17 @@ export class ChatCommand {
               const parseResult = SlashCommandParser.parse(inputText);
 
               if (parseResult.isCommand && parseResult.commandName) {
+                // Add command to message history for audit trail
+                state.messages.push({
+                  role: 'user',
+                  content: inputText,
+                  metadata: {
+                    timestamp: Date.now(),
+                    type: 'command',
+                    commandName: parseResult.commandName,
+                  },
+                });
+
                 // Execute slash command
                 const result = await this.commandRegistry.execute(
                   parseResult.commandName,
@@ -733,7 +781,8 @@ export class ChatCommand {
               }
 
               // Check task complexity for multi-agent orchestration
-              const complexityCheck = await this.checkTaskComplexity(state.provider, input);
+              // Use inputText (string) not input (which may be MessageContentPart[])
+              const complexityCheck = await this.checkTaskComplexity(state.provider, inputText);
 
               if (complexityCheck.isComplex) {
                 // Complex task detected - generate workflow plan
@@ -748,7 +797,7 @@ export class ChatCommand {
                 });
 
                 // Generate workflow plan
-                const plan = await this.generateWorkflowPlan(state.provider, input);
+                const plan = await this.generateWorkflowPlan(state.provider, inputText);
 
                 if (!plan) {
                   // Fallback to simple mode if plan generation failed
@@ -831,6 +880,17 @@ export class ChatCommand {
             const parseResult = SlashCommandParser.parse(inputText);
 
             if (parseResult.isCommand && parseResult.commandName) {
+              // Add command to message history for audit trail
+              state.messages.push({
+                role: 'user',
+                content: inputText,
+                metadata: {
+                  timestamp: Date.now(),
+                  type: 'command',
+                  commandName: parseResult.commandName,
+                },
+              });
+
               // Execute slash command
               const result = await this.commandRegistry.execute(
                 parseResult.commandName,
@@ -991,7 +1051,8 @@ export class ChatCommand {
             }
 
             // Check task complexity for multi-agent orchestration
-            const complexityCheck = await this.checkTaskComplexity(state.provider, input);
+            // Use inputText (string) not input (which may be MessageContentPart[])
+            const complexityCheck = await this.checkTaskComplexity(state.provider, inputText);
 
             if (complexityCheck.isComplex) {
               // TODO: Multi-agent workflow

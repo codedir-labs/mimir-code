@@ -47,10 +47,12 @@ colors:
   # Message roles
   userMessage:
     fg: '#4CAF50'
+    bg: '#2d2d2d'  # Subtle highlight for user messages
   assistantMessage:
     fg: '#2196F3'
   systemMessage:
     fg: '#FF9800'
+    bg: '#1a1a1a'  # Subtle for commands
 
   # Syntax highlighting
   keyword:

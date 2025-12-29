@@ -22,6 +22,11 @@ export interface MessageMetadata {
   cost?: number; // Cost in USD
   model?: string; // Model used for this message
   provider?: string; // Provider used for this message
+  // Message type classification for UI rendering
+  type?: 'command' | 'agent' | 'workflow' | 'tool'; // Special message types
+  agentName?: string; // Name of agent for agent messages
+  commandName?: string; // Slash command name for command messages
+  workflowId?: string; // Workflow ID for workflow-related messages
 }
 
 export interface ToolCall {

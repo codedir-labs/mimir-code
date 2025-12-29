@@ -171,6 +171,10 @@ export function parseThemeJSON(json: ThemeJSON): ThemeDefinition {
       autocompleteSelectedBg: json.colors.autocompleteSelectedBg.bg,
       borderColor: json.colors.borderColor.fg,
       wizardAccent: json.colors.wizardAccent.fg,
+      // User message background - derive from userMessage.bg if set, otherwise use subtle highlight
+      userMessageBg: json.colors.userMessage.bg || json.colors.headerBg.bg,
+      // Command message background - derive from systemMessage.bg if set, otherwise use autocomplete bg
+      commandBg: json.colors.systemMessage.bg || json.colors.autocompleteBg.bg,
     },
   };
 }

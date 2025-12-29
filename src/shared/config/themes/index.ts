@@ -74,6 +74,8 @@ export interface ThemeDefinition {
     autocompleteSelectedBg?: string; // Raw hex color for selected autocomplete item
     borderColor?: string; // Raw hex color for borders
     wizardAccent?: string; // Raw hex color for wizard accents
+    userMessageBg?: string; // Raw hex color for user message background
+    commandBg?: string; // Raw hex color for command message background
   };
 }
 
