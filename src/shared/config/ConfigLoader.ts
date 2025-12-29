@@ -132,16 +132,33 @@ export class ConfigLoader {
         navigateUp: ['ArrowUp'],
         navigateDown: ['ArrowDown'],
 
+        // Attachment navigation
+        navigateLeft: ['Alt+ArrowLeft'],
+        navigateRight: ['Alt+ArrowRight'],
+        removeAttachment: ['Alt+Backspace'],
+        pasteFromClipboard: ['Ctrl+V'],
+
         // Utility
-        help: ['?'],
+        help: [],
         clearScreen: ['Ctrl+L'],
         undo: ['Ctrl+Z'],
         redo: ['Ctrl+Y'],
 
-        // Session management (typically used with leader key)
-        newSession: ['n'],
-        listSessions: ['l'],
-        resumeSession: ['r'],
+        // Session management (disabled by default)
+        newSession: [],
+        listSessions: [],
+        resumeSession: [],
+
+        // Text editing actions (handled natively by TextInput)
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       },
       docker: {
         enabled: true,
@@ -179,6 +196,16 @@ export class ConfigLoader {
         promptBeforeSwitch: true,
         preferQualityOverCost: true,
         maxCostTier: 3,
+      },
+      paste: {
+        enabled: true,
+        bracketedPasteMode: true,
+        textThreshold: {
+          minChars: 500,
+          minLines: 10,
+        },
+        imageSupport: true,
+        maxAttachments: 10,
       },
     };
   }
@@ -270,6 +297,14 @@ export class ConfigLoader {
       monitoring: { ...base.monitoring, ...override.monitoring },
       budget: { ...base.budget, ...override.budget },
       rateLimit: { ...base.rateLimit, ...override.rateLimit },
+      paste: {
+        ...base.paste,
+        ...override.paste,
+        textThreshold: {
+          ...base.paste.textThreshold,
+          ...override.paste?.textThreshold,
+        },
+      },
     };
   }
 
