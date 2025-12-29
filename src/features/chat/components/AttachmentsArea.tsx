@@ -10,7 +10,7 @@ import { getTheme } from '@/shared/config/themes/index.js';
 import { AttachmentItem } from './AttachmentItem.js';
 import { AttachmentManager } from '../utils/AttachmentManager.js';
 import type { Attachment } from '../types/attachment.js';
-import { formatKeyboardShortcut, buildFooterText } from '@/shared/utils/keyboardFormatter.js';
+import { buildFooterText } from '@/shared/utils/keyboardFormatter.js';
 
 export interface AttachmentsAreaProps {
   /** Map of attachments by ID */
@@ -42,7 +42,7 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
   model,
   onRemove,
 }) => {
-  const themeDefinition = getTheme(theme);
+  const _themeDefinition = getTheme(theme);
 
   // Convert attachments map to sorted array with token/cost info
   const attachmentList = useMemo(() => {
@@ -106,7 +106,7 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
     <Box flexDirection="column" marginTop={1} marginBottom={1}>
       {/* Header */}
       <Box paddingX={1}>
-        <Text bold color={themeDefinition.colors.primary}>
+        <Text bold>
           Attachments ({attachmentList.length})
         </Text>
       </Box>
@@ -114,7 +114,7 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
       {/* Scroll indicator - above */}
       {hasMoreAbove && (
         <Box paddingX={1}>
-          <Text dimColor color={themeDefinition.colors.secondary}>
+          <Text dimColor>
             ↑ {visibleStart} more above...
           </Text>
         </Box>
@@ -139,7 +139,7 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
       {/* Scroll indicator - below */}
       {hasMoreBelow && (
         <Box paddingX={1}>
-          <Text dimColor color={themeDefinition.colors.secondary}>
+          <Text dimColor>
             ↓ {attachmentList.length - visibleEnd} more below...
           </Text>
         </Box>
@@ -147,7 +147,7 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
 
       {/* Footer with keyboard shortcuts */}
       <Box paddingX={1} marginTop={1}>
-        <Text dimColor color={themeDefinition.colors.secondary}>
+        <Text dimColor>
           {footerText}
         </Text>
       </Box>

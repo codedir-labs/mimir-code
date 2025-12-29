@@ -35,7 +35,7 @@ export interface AttachmentItemProps {
  * Renders a single attachment item
  */
 export const AttachmentItem: React.FC<AttachmentItemProps> = ({
-  id,
+  id: _id,
   type,
   label,
   size,
@@ -43,7 +43,7 @@ export const AttachmentItem: React.FC<AttachmentItemProps> = ({
   cost,
   isSelected,
   theme,
-  onRemove,
+  onRemove: _onRemove,
 }) => {
   const themeDefinition = getTheme(theme);
 
@@ -60,12 +60,12 @@ export const AttachmentItem: React.FC<AttachmentItemProps> = ({
   const costStr = cost !== undefined ? AttachmentManager.formatCost(cost) : undefined;
 
   // Background color when selected (use theme accent color)
-  const bgColor = isSelected ? themeDefinition.colors.accent : undefined;
+  const bgColor = isSelected ? (themeDefinition.rawColors.wizardAccent ?? '#3b82f6') : undefined;
 
   // Text color
   const textColor = isSelected
-    ? themeDefinition.colors.background
-    : themeDefinition.colors.primary;
+    ? '#000000'
+    : (themeDefinition.rawColors.borderColor ?? '#ffffff');
 
   // Selection indicator
   const indicator = isSelected ? '▶ ' : '  ';

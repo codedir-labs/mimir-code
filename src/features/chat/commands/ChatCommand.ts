@@ -11,6 +11,7 @@ import { Config, Theme as ThemeType } from '@/shared/config/schemas.js';
 import { FirstRunDetector } from '@/features/init/components/firstRunDetector.js';
 import { SetupCommand } from '@/features/init/commands/SetupCommand.js';
 import type { IFileSystem, MessageContent } from '@codedir/mimir-agents';
+import type { PermissionManagerConfig } from '@codedir/mimir-agents/core';
 import { Message } from '@/types/index.js';
 import { logger } from '@/shared/utils/logger.js';
 import { SlashCommandRegistry } from '@/features/chat/slash-commands/SlashCommand.js';
@@ -30,7 +31,7 @@ import type { ILLMProvider } from '@codedir/mimir-agents';
 import { ConfigurationError } from '@/shared/utils/errors.js';
 import { TaskComplexityAnalyzer } from '@/features/chat/agent/TaskComplexityAnalyzer.js';
 import { TaskDecomposer, WorkflowOrchestrator } from '@codedir/mimir-agents/orchestration';
-import { WorkflowPlan, AgentStatus } from '@codedir/mimir-agents/core';
+import { WorkflowPlan } from '@codedir/mimir-agents/core';
 import { ToolRegistry } from '@codedir/mimir-agents/tools';
 import { NativeExecutor } from '@codedir/mimir-agents-node/execution';
 import { AgentSelectionUI } from '@/features/chat/components/AgentSelectionUI.js';
@@ -107,8 +108,8 @@ export class ChatCommand {
       if (error instanceof ConfigurationError) {
         return { error: error.message };
       }
-      if (error.message?.includes('No API key configured')) {
-        return { error: error.message };
+      if ((error as Error).message?.includes('No API key configured')) {
+        return { error: (error as Error).message };
       }
       return { error: `Failed to initialize provider: ${(error as Error).message}` };
     }
@@ -348,8 +349,7 @@ export class ChatCommand {
 
               try {
                 // Create WorkflowOrchestrator with proper dependencies
-                const { RoleRegistry, PermissionManagerConfig } =
-                  await import('@codedir/mimir-agents/core');
+                const { RoleRegistry } = await import('@codedir/mimir-agents/core');
                 const { FileSystemAdapter } = await import('@codedir/mimir-agents-node/platform');
                 const { ProcessExecutorAdapter } =
                   await import('@codedir/mimir-agents-node/platform');
@@ -363,11 +363,8 @@ export class ChatCommand {
 
                 // Build permission config from merged config
                 const permissionConfig: PermissionManagerConfig = {
-                  allowlist: [
-                    ...(state.config.enforcement?.globalAllowlist || []),
-                    ...(state.config.permissions?.alwaysAcceptCommands || []),
-                  ],
-                  blocklist: state.config.enforcement?.globalBlocklist || [],
+                  allowlist: [...(state.config.permissions?.alwaysAcceptCommands || [])],
+                  blocklist: [],
                   acceptRiskLevel: state.config.permissions?.acceptRiskLevel || 'medium',
                   autoAccept: state.config.permissions?.autoAccept !== false,
                 };
@@ -417,40 +414,49 @@ export class ChatCommand {
 
                 // Start execution (async)
                 void orchestrator.executeWorkflow(plan).then(
-                  (results) => {
+                  (workflowResult) => {
                     logger.info('Workflow execution completed', {
                       planId: plan.id,
-                      results,
+                      workflowResult,
                     });
 
                     state.workflowStatus = 'completed';
 
                     // Add individual agent result messages for audit trail
-                    results.forEach((r) => {
+                    workflowResult.agents.forEach((agent) => {
+                      const isSuccess = agent.status === 'completed';
+                      const output = agent.result?.finalResponse ?? agent.error ?? 'Completed';
                       state.messages.push({
                         role: 'assistant',
-                        content: `${r.success ? '✓' : '✗'} Agent [${r.role}]: ${r.output || r.error || 'Completed'}`,
+                        content: `${isSuccess ? '✓' : '✗'} Agent [${agent.agentId}]: ${output}`,
                         metadata: {
                           timestamp: Date.now(),
                           type: 'agent',
-                          agentName: r.role,
+                          agentName: agent.agentId,
                           workflowId: plan.id,
-                          cost: r.cost,
-                          usage: r.tokens
-                            ? { inputTokens: 0, outputTokens: r.tokens, totalTokens: r.tokens }
+                          cost: agent.result?.totalCost,
+                          usage: agent.result?.totalTokens
+                            ? {
+                                inputTokens: 0,
+                                outputTokens: agent.result.totalTokens,
+                                totalTokens: agent.result.totalTokens,
+                              }
                             : undefined,
                         },
                       });
                     });
 
-                    // Calculate total cost from all agents
-                    const totalWorkflowCost = results.reduce((sum, r) => sum + (r.cost || 0), 0);
-                    const totalTokens = results.reduce((sum, r) => sum + (r.tokens || 0), 0);
+                    // Use totals from workflow result
+                    const totalWorkflowCost = workflowResult.totalCost;
+                    const totalTokens = workflowResult.totalTokens;
 
                     // Add workflow completion summary
+                    const successCount = workflowResult.agents.filter(
+                      (a) => a.status === 'completed'
+                    ).length;
                     state.messages.push({
                       role: 'assistant',
-                      content: `Workflow completed with ${results.filter((r) => r.success).length}/${results.length} agents successful`,
+                      content: `Workflow completed with ${successCount}/${workflowResult.agents.length} agents successful`,
                       metadata: {
                         timestamp: Date.now(),
                         type: 'workflow',
@@ -568,7 +574,7 @@ export class ChatCommand {
             totalElapsedTime,
             totalCost,
             totalTokens,
-            onGetAgentDetails: (agentIndex: number) => {
+            onGetAgentDetails: (_agentIndex: number) => {
               // TODO: Return detailed agent data
               return null;
             },
@@ -628,7 +634,7 @@ export class ChatCommand {
                   {
                     currentMode: state.currentMode,
                     currentProvider: state.config.llm.provider,
-                    currentModel: state.config.llm.model,
+                    currentModel: state.config.llm.model ?? 'unknown',
                     messageCount: state.messages.length,
                     requestModeSwitch: (mode): void => {
                       state.currentMode = mode;
@@ -898,7 +904,7 @@ export class ChatCommand {
                 {
                   currentMode: state.currentMode,
                   currentProvider: state.config.llm.provider,
-                  currentModel: state.config.llm.model,
+                  currentModel: state.config.llm.model ?? 'unknown',
                   messageCount: state.messages.length,
                   requestModeSwitch: (mode): void => {
                     state.currentMode = mode;

@@ -193,7 +193,7 @@ export class TeamsAuthManager implements IAuthManager {
             });
           } else if (tokenResponse.organizations.length === 1) {
             // Only one org, automatically authorize it
-            const org = tokenResponse.organizations[0];
+            const org = tokenResponse.organizations[0]!;
             const orgAuthResponse = await this.apiClient.authorizeOrganization(
               org.slug,
               tokenResponse.accessToken

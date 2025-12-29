@@ -86,7 +86,7 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
     forceShowAutocomplete,
     onAutocompleteStateChange,
     autocompleteIndex,
-    onAutocompleteIndexChange,
+    onAutocompleteIndexChange: _onAutocompleteIndexChange,
     onAcceptSelectionRef,
     maxVisible = 5,
     keyBindings,
@@ -103,8 +103,8 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
     const [autocompleteHeight, setAutocompleteHeight] = useState(0);
 
     // Local state for autocomplete (with external override)
-    const [localShowAutocomplete, setLocalShowAutocomplete] = useState(false);
-    const [localSelectedIndex, setLocalSelectedIndex] = useState(0);
+    const [localShowAutocomplete, _setLocalShowAutocomplete] = useState(false);
+    const [localSelectedIndex, _setLocalSelectedIndex] = useState(0);
 
     // Use external control if provided, otherwise use local state
     const showAutocomplete = forceShowAutocomplete ?? localShowAutocomplete;
@@ -121,6 +121,7 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
           disableBracketedPaste();
         };
       }
+      return undefined;
     }, [bracketedPasteEnabled]);
 
     // Notify parent when autocomplete visibility changes
