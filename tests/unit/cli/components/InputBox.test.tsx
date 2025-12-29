@@ -330,7 +330,7 @@ describe('InputBox Autocomplete Logic', () => {
 
       expect(state.showAutocomplete).toBe(true);
       expect(state.isParameterMode).toBe(true);
-      expect(state.parameterSuggestions).toHaveLength(10); // Updated: now have 10 providers
+      expect(state.parameterSuggestions).toHaveLength(11); // Updated: now have 11 providers
       expect(state.parameterSuggestions).toContain('deepseek');
       expect(state.parameterSuggestions).toContain('anthropic');
       expect(state.parameterSuggestions).toContain('openai');

@@ -64,12 +64,8 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
       });
   }, [attachments, provider, model]);
 
-  // Don't render if no attachments
-  if (attachmentList.length === 0) {
-    return null;
-  }
-
   // Build footer text with keyboard shortcuts
+  // NOTE: This hook must be called before any early return to maintain consistent hook count
   const footerText = useMemo(() => {
     return buildFooterText([
       { shortcut: keyBindings.navigateLeft, label: 'prev' },
@@ -77,6 +73,11 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
       { shortcut: keyBindings.removeAttachment, label: 'remove' },
     ]);
   }, [keyBindings]);
+
+  // Don't render if no attachments
+  if (attachmentList.length === 0) {
+    return null;
+  }
 
   // Determine if we need scroll indicators
   const maxVisibleItems = 3; // Max items to show before scrolling

@@ -213,7 +213,7 @@ describe('Bracketed Paste Utilities', () => {
 
     it('should detect 11 char delta as paste', () => {
       const oldValue = 'Hello';
-      const newValue = 'Hello123456'; // +11 chars
+      const newValue = 'Hello12345678901'; // +11 chars (16 - 5 = 11)
       expect(detectPasteHeuristic(newValue, oldValue)).toBe(true);
     });
 

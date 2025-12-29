@@ -368,10 +368,11 @@ describe('KeyboardEventBus', () => {
         expect(eventBus.isActionRelevantInContext('interrupt')).toBe(true);
       });
 
-      it('should NOT be relevant when agent is not running', () => {
+      it('should always be relevant (can exit app when not running, interrupt when running)', () => {
         eventBus.updateContext({ isAgentRunning: false });
 
-        expect(eventBus.isActionRelevantInContext('interrupt')).toBe(false);
+        // interrupt is always relevant - exits app when not running, interrupts agent when running
+        expect(eventBus.isActionRelevantInContext('interrupt')).toBe(true);
       });
     });
 

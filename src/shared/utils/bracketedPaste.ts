@@ -139,7 +139,10 @@ export function detectPasteHeuristic(newValue: string, oldValue: string): boolea
  * @returns Input with paste markers removed
  */
 export function stripBracketedPasteMarkers(input: string): string {
-  return input.replace(new RegExp(`${PASTE_START}|${PASTE_END}`, 'g'), '');
+  // Escape the special regex characters in the paste markers
+  const escapeRegex = (str: string) => str.replace(/[[\]\\]/g, '\\$&');
+  const pattern = `${escapeRegex(PASTE_START)}|${escapeRegex(PASTE_END)}`;
+  return input.replace(new RegExp(pattern, 'g'), '');
 }
 
 /**

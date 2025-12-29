@@ -321,14 +321,14 @@ describe('AttachmentManager', () => {
   describe('expandForAPI', () => {
     it('should handle empty message and no attachments', () => {
       const result = manager.expandForAPI('');
-      expect(result.content).toEqual([]);
+      expect(result).toEqual([]);
     });
 
     it('should include message text only', () => {
       const result = manager.expandForAPI('Hello, world!');
 
-      expect(result.content).toHaveLength(1);
-      expect(result.content[0]).toEqual({
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
         type: 'text',
         text: 'Hello, world!',
       });
@@ -344,12 +344,12 @@ describe('AttachmentManager', () => {
       manager.addTextAttachment('Pasted content', metadata);
       const result = manager.expandForAPI('Main message');
 
-      expect(result.content).toHaveLength(2);
-      expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toBe('Main message');
-      expect(result.content[1].type).toBe('text');
-      expect(result.content[1].text).toContain('[Pasted text #1]');
-      expect(result.content[1].text).toContain('Pasted content');
+      expect(result).toHaveLength(2);
+      expect(result[0].type).toBe('text');
+      expect((result[0] as { type: 'text'; text: string }).text).toBe('Main message');
+      expect(result[1].type).toBe('text');
+      expect((result[1] as { type: 'text'; text: string }).text).toContain('[Pasted text #1]');
+      expect((result[1] as { type: 'text'; text: string }).text).toContain('Pasted content');
     });
 
     it('should expand image attachments as base64', () => {
@@ -358,13 +358,11 @@ describe('AttachmentManager', () => {
 
       const result = manager.expandForAPI('Check this image');
 
-      expect(result.content).toHaveLength(2);
-      expect(result.content[1].type).toBe('image');
-      expect(result.content[1].source).toEqual({
-        type: 'base64',
-        media_type: 'image/png',
-        data: imageData.toString('base64'),
-      });
+      expect(result).toHaveLength(2);
+      expect(result[1].type).toBe('image_url');
+      expect((result[1] as { type: 'image_url'; image_url: { url: string } }).image_url.url).toBe(
+        `data:image/png;base64,${imageData.toString('base64')}`
+      );
     });
 
     it('should handle mixed text and image attachments', () => {
@@ -381,12 +379,12 @@ describe('AttachmentManager', () => {
 
       const result = manager.expandForAPI('Message');
 
-      expect(result.content).toHaveLength(5); // 1 message + 4 attachments
-      expect(result.content[0].type).toBe('text'); // Main message
-      expect(result.content[1].type).toBe('text'); // Text paste
-      expect(result.content[2].type).toBe('image'); // Image 1
-      expect(result.content[3].type).toBe('text'); // More text
-      expect(result.content[4].type).toBe('image'); // Image 2
+      expect(result).toHaveLength(5); // 1 message + 4 attachments
+      expect(result[0].type).toBe('text'); // Main message
+      expect(result[1].type).toBe('text'); // Text paste
+      expect(result[2].type).toBe('image_url'); // Image 1
+      expect(result[3].type).toBe('text'); // More text
+      expect(result[4].type).toBe('image_url'); // Image 2
     });
 
     it('should preserve attachment order by creation time', () => {
@@ -402,10 +400,10 @@ describe('AttachmentManager', () => {
 
       const result = manager.expandForAPI('');
 
-      expect(result.content).toHaveLength(3);
-      expect(result.content[0].text).toContain('First');
-      expect(result.content[1].text).toContain('Second');
-      expect(result.content[2].text).toContain('Third');
+      expect(result).toHaveLength(3);
+      expect((result[0] as { type: 'text'; text: string }).text).toContain('First');
+      expect((result[1] as { type: 'text'; text: string }).text).toContain('Second');
+      expect((result[2] as { type: 'text'; text: string }).text).toContain('Third');
     });
   });
 

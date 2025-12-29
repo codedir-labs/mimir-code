@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { RiskAssessor } from '@/features/permissions/assessor/RiskAssessor.js';
+import { RiskAssessor } from '@codedir/mimir-agents';
 
 describe('RiskAssessor', () => {
   const assessor = new RiskAssessor();

@@ -3,14 +3,15 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CredentialsManager, type StorageLocation } from '@/shared/utils/CredentialsManager.js';
 import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import * as keytar from 'keytar';
 
-// Test home directory path - defined before mock
-const testHomedir = join(tmpdir(), 'mimir-test-home');
+// Use vi.hoisted to define testHomedir BEFORE mocks are processed
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const testHomedir = vi.hoisted(() =>
+  require('path').join(require('os').tmpdir(), 'mimir-test-home')
+);
 
 // Mock keytar
 vi.mock('keytar', () => ({
@@ -28,6 +29,10 @@ vi.mock('os', async () => {
     homedir: () => testHomedir,
   };
 });
+
+// Import after mocks are set up
+import { CredentialsManager, type StorageLocation } from '@/shared/utils/CredentialsManager.js';
+import * as keytar from 'keytar';
 
 describe('CredentialsManager', () => {
   let credentialsManager: CredentialsManager;
