@@ -140,7 +140,7 @@
     "@ai-sdk/mistral" "^3.0.1"
     "@ai-sdk/openai" "^3.0.1"
     "@ai-sdk/openai-compatible" "^2.0.1"
-    "@codedir/mimir-agents" "file:C:/Users/sebas/AppData/Local/Yarn/Cache/v6/npm-@codedir-mimir-agents-node-0.1.0-17955391-5153-4b64-a7b2-5581cc78cdef-1767045390264/node_modules/@codedir/mimir-agents"
+    "@codedir/mimir-agents" "*"
     ai "^6.0.3"
     axios "^1.7.9"
     drizzle-orm "^0.38.3"
@@ -151,7 +151,7 @@
     uuid "^11.0.4"
     zod "^3.25.76"
 
-"@codedir/mimir-agents@file:./packages/mimir-agents", "@codedir/mimir-agents@file:packages/mimir-agents":
+"@codedir/mimir-agents@file:./packages/mimir-agents":
   version "0.1.0"
   dependencies:
     zod "^3.24.1"
