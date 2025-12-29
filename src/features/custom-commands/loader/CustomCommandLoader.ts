@@ -128,7 +128,8 @@ export class CustomCommandLoader {
         return commands;
       }
 
-      const files = await this.fs.glob('*.yml', { cwd: dirPath });
+      const allFiles = await this.fs.readdir(dirPath);
+      const files = allFiles.filter((file) => file.endsWith('.yml'));
 
       for (const file of files) {
         const fullPath = path.join(dirPath, file);
@@ -158,7 +159,7 @@ export class CustomCommandLoader {
   private async loadCommand(filePath: string): Promise<ISlashCommand | null> {
     try {
       const content = await this.fs.readFile(filePath);
-      const data = yaml.parse(content) as unknown;
+      const data = yaml.parse(content.toString()) as unknown;
       const definition = CustomCommandSchema.parse(data);
 
       return new CustomCommand(definition);
@@ -177,7 +178,7 @@ export class CustomCommandLoader {
   async validate(filePath: string): Promise<{ valid: boolean; error?: string }> {
     try {
       const content = await this.fs.readFile(filePath);
-      const data = yaml.parse(content) as unknown;
+      const data = yaml.parse(content.toString()) as unknown;
       CustomCommandSchema.parse(data);
       return { valid: true };
     } catch (error) {

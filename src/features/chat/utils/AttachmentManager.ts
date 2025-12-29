@@ -25,7 +25,7 @@ export class AttachmentManager {
    * @param metadata Paste metadata
    * @returns Created attachment
    */
-  addTextAttachment(content: string, metadata: PasteMetadata): Attachment {
+  addTextAttachment(content: string, _metadata: PasteMetadata): Attachment {
     this.counters.text++;
 
     const lines = content.split('\n').length;
@@ -159,7 +159,7 @@ export class AttachmentManager {
         const buffer =
           attachment.content instanceof Buffer
             ? attachment.content
-            : Buffer.from(attachment.content, 'utf8');
+            : Buffer.from(attachment.content as string, 'utf8');
 
         const format = attachment.metadata.format || 'png';
         const mediaType = `image/${format}`;

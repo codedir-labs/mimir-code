@@ -5,7 +5,7 @@
  * Handles authentication, token refresh, and API requests.
  */
 
-import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 import type { ITeamsAPIClient, ProviderRegistryResponse } from './ITeamsAPIClient.js';
 import type { ConfigResponse } from '@codedir/mimir-teams-contracts';
 
@@ -144,14 +144,13 @@ export interface TeamsAPIClientConfig {
 export class TeamsAPIClient implements ITeamsAPIClient {
   private readonly httpClient: AxiosInstance;
   private readonly getAccessToken?: () => Promise<string | null>;
-  private readonly getOrgSlug?: () => Promise<string | null>;
   private readonly onTokenExpired?: () => Promise<void>;
 
   constructor(config: TeamsAPIClientConfig = {}) {
     const baseUrl = config.baseUrl || process.env.TEAMS_API_URL || 'http://localhost:3000/api/v1';
 
     this.getAccessToken = config.getAccessToken;
-    this.getOrgSlug = config.getOrgSlug;
+    // Note: config.getOrgSlug is accepted but not yet used - will be used for org-scoped requests
     this.onTokenExpired = config.onTokenExpired;
 
     this.httpClient = axios.create({

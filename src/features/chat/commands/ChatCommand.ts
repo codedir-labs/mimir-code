@@ -40,6 +40,21 @@ import { AgentProgressData } from '@/features/chat/components/AgentProgressRow.j
 import path from 'path';
 import yaml from 'yaml';
 
+/**
+ * Convert MessageContent to string
+ * Handles both string content and multi-part content (text + images)
+ */
+function messageContentToString(content: MessageContent): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  // Extract text from multi-part content
+  return content
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map((part) => part.text)
+    .join('\n');
+}
+
 export class ChatCommand {
   private commandRegistry: SlashCommandRegistry;
 
@@ -207,7 +222,7 @@ export class ChatCommand {
       // Add user message to history
       const userMessage: Message = {
         role: 'user',
-        content: userInput,
+        content: messageContentToString(userInput),
       };
       messages.push(userMessage);
 
@@ -775,7 +790,7 @@ export class ChatCommand {
               if (!state.provider) {
                 state.messages.push({
                   role: 'user',
-                  content: input,
+                  content: messageContentToString(input),
                 });
                 state.messages.push({
                   role: 'assistant',
@@ -799,7 +814,7 @@ export class ChatCommand {
                 // Add user message to history
                 state.messages.push({
                   role: 'user',
-                  content: input,
+                  content: messageContentToString(input),
                 });
 
                 // Generate workflow plan
@@ -824,14 +839,14 @@ export class ChatCommand {
                 // Show workflow approval UI
                 state.uiMode = 'workflow-approval';
                 state.pendingWorkflowPlan = plan;
-                state.currentUserInput = input;
+                state.currentUserInput = messageContentToString(input);
                 renderUI(rerender);
                 return; // Don't process message yet - wait for user approval
               } else {
                 // Simple task - process through LLM directly
                 state.messages.push({
                   role: 'user',
-                  content: input,
+                  content: messageContentToString(input),
                 });
                 await this.processMessage(state.provider, state.messages, input);
 
@@ -1045,7 +1060,7 @@ export class ChatCommand {
             if (!state.provider) {
               state.messages.push({
                 role: 'user',
-                content: input,
+                content: messageContentToString(input),
               });
               state.messages.push({
                 role: 'assistant',

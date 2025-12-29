@@ -274,7 +274,8 @@ export class UninstallCommand {
         const packageJsonPath = path.join(currentPath, 'package.json');
         if (await this.fs.exists(packageJsonPath)) {
           try {
-            const packageJson = JSON.parse(await this.fs.readFile(packageJsonPath, 'utf-8'));
+            const content = await this.fs.readFile(packageJsonPath, 'utf-8');
+            const packageJson = JSON.parse(content.toString());
             if (packageJson.name === '@codedir/mimir-code') {
               logger.debug('Detected npm installation (found package.json)');
               return 'npm';
@@ -378,7 +379,7 @@ export class UninstallCommand {
       }
 
       if (await this.fs.exists(mimirBinDir)) {
-        await this.fs.rmdir(mimirBinDir, { recursive: true });
+        await this.fs.remove(mimirBinDir);
         result.removed.push('~/.mimir/bin/');
         if (!quiet) {
           logger.info('Removed binary directory');
@@ -461,8 +462,7 @@ del /f /q "%~f0" >nul 2>&1
     try {
       // Get current user PATH
       const result = await this.executor.execute(
-        'powershell',
-        ['-NoProfile', '-Command', '[Environment]::GetEnvironmentVariable("Path", "User")'],
+        'powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable(\\"Path\\", \\"User\\")"',
         { cwd: process.cwd() }
       );
 
@@ -484,12 +484,7 @@ del /f /q "%~f0" >nul 2>&1
         const newPath = filteredEntries.join(';');
 
         await this.executor.execute(
-          'powershell',
-          [
-            '-NoProfile',
-            '-Command',
-            `[Environment]::SetEnvironmentVariable("Path", "${newPath}", "User")`,
-          ],
+          `powershell -NoProfile -Command "[Environment]::SetEnvironmentVariable(\\"Path\\", \\"${newPath}\\", \\"User\\")"`,
           { cwd: process.cwd() }
         );
 
@@ -515,7 +510,7 @@ del /f /q "%~f0" >nul 2>&1
 
     if (await this.fs.exists(mimirDir)) {
       // Remove the directory
-      await this.fs.rmdir(mimirDir, { recursive: true });
+      await this.fs.remove(mimirDir);
       result.removed.push('~/.mimir/');
       if (!quiet) {
         logger.info('Removed configuration directory: ~/.mimir');

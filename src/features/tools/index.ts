@@ -3,8 +3,8 @@
  * Public API exports
  */
 
-// Registry
-export { Tool } from './registry/Tool.js';
+// Registry (will be added when implemented)
+// export { Tool } from './registry/Tool.js';
 
 // Built-in tools (will be added as they're implemented)
 // export { FileOperationsTool } from './built-in/FileOperationsTool.js';

@@ -11,7 +11,6 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { TeamsAuthManager } from '@/features/auth/manager/TeamsAuthManager.js';
-import { TeamsAPIClient } from '../api/TeamsAPIClient.js';
 import { logger } from '@/shared/utils/logger.js';
 
 // Global auth manager instance

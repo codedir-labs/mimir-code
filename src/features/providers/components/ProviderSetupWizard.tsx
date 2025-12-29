@@ -2,7 +2,7 @@
  * Provider Setup Wizard - Interactive multi-provider configuration
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import SelectInput from 'ink-select-input';
 import TextInput from 'ink-text-input';
@@ -85,7 +85,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
   const infoColorFn = themeDefinition.colors.info;
 
   // Handle ESC key globally
-  useInput((input, key) => {
+  useInput((_input, key) => {
     if (key.escape) {
       handleBack();
     }
@@ -182,7 +182,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
     setTestError(null);
 
     try {
-      const provider = selectedProviders[currentProviderIndex];
+      const provider = selectedProviders[currentProviderIndex] ?? '';
       const success = await testConnection(provider, currentApiKey);
 
       if (success) {
@@ -192,7 +192,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
         setTestingConnection(false);
       }
     } catch (error) {
-      setTestError(error.message || 'Connection test failed');
+      setTestError((error as Error).message || 'Connection test failed');
       setTestingConnection(false);
     }
   };
@@ -201,7 +201,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
    * Handle successful test
    */
   const handleTestSuccess = () => {
-    const provider = selectedProviders[currentProviderIndex];
+    const provider = selectedProviders[currentProviderIndex] ?? '';
 
     // Save configuration
     const config: ProviderConfigResult = {
@@ -350,7 +350,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
         </Box>
 
         <Box marginBottom={1}>
-          <Text dimColor>Get one at: {getProviderSignupURL(provider)}</Text>
+          <Text dimColor>Get one at: {getProviderSignupURL(provider ?? '')}</Text>
         </Box>
 
         <Box marginTop={1}>
@@ -528,7 +528,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
   /**
    * Handle keyboard input
    */
-  useInput((input, key) => {
+  useInput((_input, key) => {
     if (key.escape) {
       onCancel();
     } else if (key.return && step === 'welcome') {
@@ -538,7 +538,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
     } else if (key.return && step === 'connection-test' && testError) {
       handleRetry();
     }
-  }, [step, testError]);
+  }, { isActive: true });
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={primaryColor} padding={1}>

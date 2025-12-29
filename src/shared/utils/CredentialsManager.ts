@@ -111,7 +111,7 @@ export class CredentialsManager {
       logger.info('API key stored successfully', { provider, storage: location.type });
     } catch (error) {
       logger.error('Failed to store API key', { provider, error });
-      throw new Error(`Failed to store API key for ${provider}: ${error.message}`);
+      throw new Error(`Failed to store API key for ${provider}: ${(error as Error).message}`);
     }
   }
 
@@ -136,7 +136,10 @@ export class CredentialsManager {
         return keychainKey;
       }
     } catch (error) {
-      logger.debug('Keychain retrieval failed, trying file', { provider, error: error.message });
+      logger.debug('Keychain retrieval failed, trying file', {
+        provider,
+        error: (error as Error).message,
+      });
     }
 
     // Try encrypted file
@@ -147,7 +150,7 @@ export class CredentialsManager {
         return fileKey;
       }
     } catch (error) {
-      logger.debug('File retrieval failed', { provider, error: error.message });
+      logger.debug('File retrieval failed', { provider, error: (error as Error).message });
     }
 
     logger.warn('No API key found for provider', { provider });
@@ -167,7 +170,7 @@ export class CredentialsManager {
       await keytar.deletePassword(KEYCHAIN_SERVICE, provider);
       deleted = true;
     } catch (error) {
-      logger.debug('Keychain deletion failed', { provider, error: error.message });
+      logger.debug('Keychain deletion failed', { provider, error: (error as Error).message });
     }
 
     // Try encrypted file
@@ -175,7 +178,7 @@ export class CredentialsManager {
       await this.deleteFileKey(provider);
       deleted = true;
     } catch (error) {
-      logger.debug('File deletion failed', { provider, error: error.message });
+      logger.debug('File deletion failed', { provider, error: (error as Error).message });
     }
 
     if (deleted) {
@@ -202,7 +205,7 @@ export class CredentialsManager {
         });
       }
     } catch (error) {
-      logger.debug('Failed to list keychain credentials', { error: error.message });
+      logger.debug('Failed to list keychain credentials', { error: (error as Error).message });
     }
 
     // Check encrypted file
@@ -210,7 +213,7 @@ export class CredentialsManager {
       const fileProviders = await this.listFileProviders();
       providers.push(...fileProviders);
     } catch (error) {
-      logger.debug('Failed to list file credentials', { error: error.message });
+      logger.debug('Failed to list file credentials', { error: (error as Error).message });
     }
 
     return providers;
@@ -298,7 +301,7 @@ export class CredentialsManager {
 
       return decrypted.toString(CryptoJS.enc.Utf8);
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return null;
       }
       throw error;
@@ -321,7 +324,7 @@ export class CredentialsManager {
         await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
       }
     } catch (error) {
-      if (error.code !== 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         throw error;
       }
     }
@@ -340,7 +343,7 @@ export class CredentialsManager {
         configuredAt: new Date(cred.configuredAt),
       }));
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return [];
       }
       throw error;

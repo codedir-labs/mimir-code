@@ -84,7 +84,7 @@ export class ModelCommand implements ISlashCommand {
       };
     }
 
-    const providerId = args[0].toLowerCase();
+    const providerId = args[0]!.toLowerCase();
     const modelId = args[1]?.toLowerCase();
 
     // Validate provider exists in registry

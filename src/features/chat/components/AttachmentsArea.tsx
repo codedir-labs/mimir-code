@@ -6,7 +6,6 @@
 import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { type Theme, type KeyBindingsConfig } from '@/shared/config/schemas.js';
-import { getTheme } from '@/shared/config/themes/index.js';
 import { AttachmentItem } from './AttachmentItem.js';
 import { AttachmentManager } from '../utils/AttachmentManager.js';
 import type { Attachment } from '../types/attachment.js';
@@ -42,7 +41,8 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
   model,
   onRemove,
 }) => {
-  const _themeDefinition = getTheme(theme);
+  // Theme available for future styling
+  void theme;
 
   // Convert attachments map to sorted array with token/cost info
   const attachmentList = useMemo(() => {

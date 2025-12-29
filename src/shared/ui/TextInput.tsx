@@ -16,7 +16,7 @@
  * Uses centralized RawKeyMapper for accurate key detection across terminals.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Text, useInput, useStdin } from 'ink';
 import chalk from 'chalk';
 import { getLastRawKey, clearLastRawKey, processRawKey } from '@/shared/keyboard/RawKeyMapper.js';
@@ -288,13 +288,13 @@ export function TextInput({
       }
 
       // Home - move to start of line (raw detection for Windows Terminal)
-      if (isRawHome || key.home) {
+      if (isRawHome) {
         moveCursor(0);
         return;
       }
 
       // End - move to end of line (raw detection for Windows Terminal)
-      if (isRawEnd || key.end) {
+      if (isRawEnd) {
         moveCursor(value.length);
         return;
       }

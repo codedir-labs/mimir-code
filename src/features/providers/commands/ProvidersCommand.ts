@@ -4,15 +4,8 @@
 
 import { Command } from 'commander';
 import { CredentialsManager } from '@/shared/utils/CredentialsManager.js';
-import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
-import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
 import { ProviderFactory } from '@codedir/mimir-agents-node/providers';
-import {
-  getAllProviders,
-  getProvider,
-  getDefaultModel,
-  type ProviderDefinition,
-} from '@codedir/mimir-agents';
+import { getAllProviders, getProvider, getDefaultModel } from '@codedir/mimir-agents';
 import { logger } from '@/shared/utils/logger.js';
 import chalk from 'chalk';
 

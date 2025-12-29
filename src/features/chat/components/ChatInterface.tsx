@@ -12,6 +12,7 @@ import { InputBox } from '@/features/chat/components/InputBox.js';
 import { AttachmentsArea } from '@/features/chat/components/AttachmentsArea.js';
 import { Footer } from '@/shared/ui/Footer.js';
 import type { Message, MessageContent } from '@codedir/mimir-agents';
+import type { Message as LocalMessage } from '@/types/index.js';
 import { Config } from '@/shared/config/schemas.js';
 import { useTerminalSize } from '@/shared/ui/hooks/useTerminalSize.js';
 import { SlashCommandRegistry } from '@/features/chat/slash-commands/SlashCommand.js';
@@ -390,7 +391,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     () => ({
       currentMode: mode,
       currentProvider: config.llm.provider,
-      currentModel: config.llm.model,
+      currentModel: config.llm.model ?? 'unknown',
       messageCount: messages.length,
     }),
     [mode, config.llm.provider, config.llm.model, messages.length]
@@ -445,7 +446,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <MimirHeader
         version={version}
         provider={config.llm.provider}
-        model={config.llm.model}
+        model={config.llm.model ?? 'unknown'}
         workspace={workspace}
         theme={config.ui.theme}
         mode={mode}
@@ -458,7 +459,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Scrollable message area - shrinks when autocomplete appears */}
       <Box height={messageAreaHeight}>
         <MessageList
-          messages={messages}
+          messages={messages as unknown as LocalMessage[]}
           theme={config.ui.theme}
           syntaxHighlighting={config.ui.syntaxHighlighting}
         />

@@ -2,7 +2,7 @@
  * Multi-select input component for provider selection
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 
 /**
@@ -44,9 +44,11 @@ export const MultiSelectInput: React.FC<MultiSelectInputProps> = ({
       setSelectedIndex(Math.max(0, selectedIndex - 1));
     } else if (key.downArrow) {
       setSelectedIndex(Math.min(items.length - 1, selectedIndex + 1));
-    } else if (input === ' ' && !items[selectedIndex].disabled) {
+    } else if (input === ' ' && !items[selectedIndex]?.disabled) {
       // Toggle selection
-      const value = items[selectedIndex].value;
+      const value = items[selectedIndex]?.value;
+      if (value === undefined) return;
+
       const newSelected = new Set(selectedValues);
 
       if (newSelected.has(value)) {

@@ -5,7 +5,7 @@
 import { Command } from 'commander';
 import { render } from 'ink';
 import React from 'react';
-import { CredentialsManager, type StorageLocationType } from '@/shared/utils/CredentialsManager.js';
+import { CredentialsManager } from '@/shared/utils/CredentialsManager.js';
 import type { Config } from '@/shared/config/schemas.js';
 import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
 import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
@@ -65,7 +65,7 @@ async function testProviderConnection(provider: string, apiKey: string): Promise
       },
     ]);
 
-    return response.toLowerCase().includes('test successful');
+    return response.content?.toLowerCase().includes('test successful') ?? false;
   } catch (error) {
     logger.error('Provider connection test failed', { provider, error });
     return false;
@@ -76,6 +76,12 @@ async function testProviderConnection(provider: string, apiKey: string): Promise
  * Update provider configuration in ~/.mimir/config.yml
  */
 async function updateProvidersConfig(results: ProviderConfigResult[]): Promise<void> {
+  if (results.length === 0) {
+    logger.warn('No provider results to update config');
+    return;
+  }
+
+  const firstResult = results[0]!;
   const configPath = join(homedir(), '.mimir', 'config.yml');
 
   // Load existing config or create new
@@ -91,16 +97,16 @@ async function updateProvidersConfig(results: ProviderConfigResult[]): Promise<v
   // Ensure llm section exists
   if (!config.llm) {
     config.llm = {
-      provider: results[0].provider,
+      provider: firstResult.provider,
       temperature: 0.7,
     };
   }
 
   // Set provider to first configured (primary provider)
-  config.llm.provider = results[0].provider;
+  config.llm.provider = firstResult.provider;
 
   // Get default model for the provider
-  const defaultModel = getDefaultModel(results[0].provider);
+  const defaultModel = getDefaultModel(firstResult.provider);
   if (defaultModel) {
     config.llm.model = defaultModel.id;
   }
@@ -114,7 +120,7 @@ async function updateProvidersConfig(results: ProviderConfigResult[]): Promise<v
 
   logger.info('Provider configuration updated', {
     configPath,
-    provider: results[0].provider,
+    provider: firstResult.provider,
     model: config.llm.model,
   });
 }
@@ -269,7 +275,7 @@ export function createConnectCommand(): Command {
         }
       } catch (error) {
         logger.error('Connect command failed', { error });
-        console.error('\nError:', error.message);
+        console.error('\nError:', (error as Error).message);
         process.exit(1);
       }
     });

@@ -25,6 +25,7 @@ export class SetupCommand {
       const { waitUntilExit, clear } = render(
         React.createElement(SetupWizard, {
           keyBindings: config.keyBindings,
+          theme: config.ui.theme,
           onComplete: async (theme: Theme): Promise<void> => {
             try {
               // Save configuration to global config

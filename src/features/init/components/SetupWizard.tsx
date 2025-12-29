@@ -14,11 +14,12 @@ export interface SetupWizardProps {
   onComplete: (theme: Theme) => void | Promise<void>;
   onCancel: () => void;
   keyBindings: KeyBindingsConfig;
+  theme: Theme;
 }
 
 type WizardStep = 'security' | 'theme';
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, keyBindings }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, keyBindings, theme }) => {
   const [step, setStep] = useState<WizardStep>('security');
 
   const handleSecurityAccept = () => {
@@ -32,16 +33,17 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
   return (
     <Box flexDirection="column">
       {step === 'security' && (
-        <WizardLayout title="Welcome to Mimir Code">
+        <WizardLayout title="Welcome to Mimir Code" theme={theme}>
           <SecurityWarning
             onAccept={handleSecurityAccept}
             onCancel={onCancel}
             keyBindings={keyBindings}
+            theme={theme}
           />
         </WizardLayout>
       )}
       {step === 'theme' && (
-        <WizardLayout title="">
+        <WizardLayout title="" theme={theme}>
           <ThemeSelector
             onSelect={handleThemeSelect}
             onCancel={onCancel}
