@@ -6,6 +6,11 @@
  * - pkg adds it automatically when creating binaries
  */
 
+// FIRST: Enable global stdin listener for paste debugging
+import { enableGlobalStdinListener, pasteLog } from '@/shared/utils/pasteLogger.js';
+pasteLog('CLI', 'CLI entry point starting', { args: process.argv.slice(2) });
+enableGlobalStdinListener();
+
 import { Command } from 'commander';
 import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
 import { ProcessExecutorAdapter } from '@codedir/mimir-agents-node/platform';

@@ -18,6 +18,9 @@ checkpoints/
 *.tmp
 *.temp
 
+# Custom themes (user-specific)
+themes/
+
 # Keep config.yml tracked (share with team)
 !config.yml
 !config.example.yml

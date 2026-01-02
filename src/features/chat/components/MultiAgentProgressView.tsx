@@ -15,7 +15,7 @@ import type { Theme } from '@/shared/config/schemas.js';
 import { AgentProgressRow, type AgentProgressData } from './AgentProgressRow.js';
 import { AgentDetailView, type AgentDetailData } from './AgentDetailView.js';
 import { buildFooterText } from '@/shared/utils/keyboardFormatter.js';
-import { useKeyboardAction } from '@/shared/keyboard/index.js';
+import { useKeyboardAction, useShortcutKeys } from '@/shared/keyboard/index.js';
 
 export interface MultiAgentProgressViewProps {
   /** Array of agent progress data */
@@ -97,6 +97,9 @@ export const MultiAgentProgressView: React.FC<MultiAgentProgressViewProps> = ({
   const [selectedAgentIndex, setSelectedAgentIndex] = useState<number | null>(null);
   const [detailData, setDetailData] = useState<AgentDetailData | null>(null);
 
+  // Get shortcut keys from config for dynamic tooltips
+  const interruptKeys = useShortcutKeys('interrupt');
+
   // Get workflow status display
   const statusDisplay = getWorkflowStatusDisplay(workflowStatus, themeDefinition);
 
@@ -126,7 +129,7 @@ export const MultiAgentProgressView: React.FC<MultiAgentProgressViewProps> = ({
     }
   });
 
-  // Build footer text
+  // Build footer text with dynamic keybindings
   const footerText = useMemo(() => {
     const items = [];
 
@@ -138,11 +141,14 @@ export const MultiAgentProgressView: React.FC<MultiAgentProgressViewProps> = ({
     }
 
     if (workflowStatus === 'running') {
-      items.push({ shortcut: ['Ctrl+C', 'Escape'], label: 'interrupt' });
+      items.push({
+        shortcut: interruptKeys.length > 0 ? interruptKeys : ['Ctrl+C', 'Escape'],
+        label: 'interrupt',
+      });
     }
 
     return items.length > 0 ? buildFooterText(items) : '';
-  }, [agents.length, workflowStatus]);
+  }, [agents.length, workflowStatus, interruptKeys]);
 
   // If detail view is open, show it
   if (selectedAgentIndex !== null && detailData) {

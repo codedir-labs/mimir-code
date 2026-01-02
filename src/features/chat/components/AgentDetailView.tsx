@@ -14,7 +14,7 @@ import type { AgentStatus, AgentRole, AgentStep } from '@codedir/mimir-agents/co
 import { getTheme } from '@/shared/config/themes/index.js';
 import type { Theme } from '@/shared/config/schemas.js';
 import { buildFooterText } from '@/shared/utils/keyboardFormatter.js';
-import { useKeyboardAction } from '@/shared/keyboard/index.js';
+import { useKeyboardAction, useShortcutKeys } from '@/shared/keyboard/index.js';
 
 export interface TodoItem {
   content: string;
@@ -133,15 +133,20 @@ function getTodoIcon(status: TodoItem['status']): string {
 export const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, theme, onClose }) => {
   const themeDefinition = getTheme(theme);
 
+  // Get shortcut keys from config for dynamic tooltips
+  const interruptKeys = useShortcutKeys('interrupt');
+
   // Close on Escape
   useKeyboardAction('interrupt', () => {
     onClose();
   });
 
-  // Build footer text
+  // Build footer text with dynamic keybindings
   const footerText = useMemo(() => {
-    return buildFooterText([{ shortcut: 'Escape', label: 'close' }]);
-  }, []);
+    return buildFooterText([
+      { shortcut: interruptKeys.length > 0 ? interruptKeys : ['Escape'], label: 'close' },
+    ]);
+  }, [interruptKeys]);
 
   return (
     <Box flexDirection="column" width="100%">

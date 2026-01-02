@@ -21,16 +21,28 @@ describe('AttachmentsArea', () => {
     showTooltip: ['ctrl+space', 'tab'],
     navigateUp: ['arrowup'],
     navigateDown: ['arrowdown'],
-    navigateLeft: ['arrowleft'],
-    navigateRight: ['arrowright'],
-    removeAttachment: ['delete', 'backspace'],
-    help: ['?'],
+    navigateLeft: ['ctrl+p'],
+    navigateRight: ['ctrl+n'],
+    removeAttachment: ['ctrl+d'],
+    insertAttachmentRef: ['ctrl+r'],
+    openAttachment: ['ctrl+o'],
+    pasteFromClipboard: ['ctrl+v'],
+    help: [],
     clearScreen: ['ctrl+l'],
     undo: ['ctrl+z'],
     redo: ['ctrl+y'],
-    newSession: ['n'],
-    listSessions: ['l'],
-    resumeSession: ['r'],
+    newSession: [],
+    listSessions: [],
+    resumeSession: [],
+    cursorToLineStart: [],
+    cursorToLineEnd: [],
+    cursorWordLeft: [],
+    cursorWordRight: [],
+    deleteWordLeft: [],
+    deleteWordRight: [],
+    deleteToLineEnd: [],
+    deleteToLineStart: [],
+    deleteEntireLine: [],
   };
 
   const createAttachment = (
@@ -68,8 +80,8 @@ describe('AttachmentsArea', () => {
 
     it('should render header with attachment count', () => {
       const attachments = new Map<string, Attachment>();
-      attachments.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
-      attachments.set('2', createAttachment('2', 'text', '[Pasted text #2]', 2048));
+      attachments.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
+      attachments.set('2', createAttachment('2', 'text', '[#2 - Pasted text]', 2048));
 
       const { lastFrame } = render(<AttachmentsArea {...defaultProps} attachments={attachments} />);
 
@@ -78,18 +90,18 @@ describe('AttachmentsArea', () => {
 
     it('should render multiple attachments', () => {
       const attachments = new Map<string, Attachment>();
-      attachments.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
-      attachments.set('2', createAttachment('2', 'image', '[Image #1]', 2048));
+      attachments.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
+      attachments.set('2', createAttachment('2', 'image', '[#1 - Image]', 2048));
 
       const { lastFrame } = render(<AttachmentsArea {...defaultProps} attachments={attachments} />);
 
-      expect(lastFrame()).toContain('[Pasted text #1]');
-      expect(lastFrame()).toContain('[Image #1]');
+      expect(lastFrame()).toContain('[#1 - Pasted text]');
+      expect(lastFrame()).toContain('[#1 - Image]');
     });
 
     it('should show keyboard shortcuts in footer', () => {
       const attachments = new Map<string, Attachment>();
-      attachments.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
+      attachments.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
 
       const { lastFrame } = render(<AttachmentsArea {...defaultProps} attachments={attachments} />);
 
@@ -99,8 +111,8 @@ describe('AttachmentsArea', () => {
 
     it('should highlight selected attachment', () => {
       const attachments = new Map<string, Attachment>();
-      attachments.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
-      attachments.set('2', createAttachment('2', 'text', '[Pasted text #2]', 2048));
+      attachments.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
+      attachments.set('2', createAttachment('2', 'text', '[#2 - Pasted text]', 2048));
 
       const { lastFrame } = render(
         <AttachmentsArea {...defaultProps} attachments={attachments} selectedAttachmentId="1" />
@@ -116,7 +128,7 @@ describe('AttachmentsArea', () => {
       for (let i = 1; i <= 5; i++) {
         attachments.set(
           `${i}`,
-          createAttachment(`${i}`, 'text', `[Pasted text #${i}]`, 1024)
+          createAttachment(`${i}`, 'text', `[#${i} - Pasted text]`, 1024)
         );
       }
 
@@ -131,7 +143,7 @@ describe('AttachmentsArea', () => {
       for (let i = 1; i <= 3; i++) {
         attachments.set(
           `${i}`,
-          createAttachment(`${i}`, 'text', `[Pasted text #${i}]`, 1024)
+          createAttachment(`${i}`, 'text', `[#${i} - Pasted text]`, 1024)
         );
       }
 
@@ -146,7 +158,7 @@ describe('AttachmentsArea', () => {
       for (let i = 1; i <= 5; i++) {
         attachments.set(
           `${i}`,
-          createAttachment(`${i}`, 'text', `[Pasted text #${i}]`, 1024)
+          createAttachment(`${i}`, 'text', `[#${i} - Pasted text]`, 1024)
         );
       }
 
@@ -163,13 +175,13 @@ describe('AttachmentsArea', () => {
     it('should render attachments in creation order', () => {
       const attachments = new Map<string, Attachment>();
 
-      const attachment1 = createAttachment('1', 'text', '[Pasted text #1]', 1024);
+      const attachment1 = createAttachment('1', 'text', '[#1 - Pasted text]', 1024);
       attachment1.createdAt = new Date('2025-01-01T10:00:00');
 
-      const attachment2 = createAttachment('2', 'text', '[Pasted text #2]', 2048);
+      const attachment2 = createAttachment('2', 'text', '[#2 - Pasted text]', 2048);
       attachment2.createdAt = new Date('2025-01-01T10:01:00');
 
-      const attachment3 = createAttachment('3', 'text', '[Pasted text #3]', 3072);
+      const attachment3 = createAttachment('3', 'text', '[#3 - Pasted text]', 3072);
       attachment3.createdAt = new Date('2025-01-01T10:02:00');
 
       // Add in random order
@@ -193,7 +205,7 @@ describe('AttachmentsArea', () => {
   describe('themes', () => {
     it('should render with different themes', () => {
       const attachments = new Map<string, Attachment>();
-      attachments.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
+      attachments.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
 
       const themes: Theme[] = ['mimir', 'dark', 'light', 'tokyo-night', 'dracula'];
 
@@ -201,7 +213,7 @@ describe('AttachmentsArea', () => {
         const { lastFrame } = render(
           <AttachmentsArea {...defaultProps} attachments={attachments} theme={theme} />
         );
-        expect(lastFrame()).toContain('[Pasted text #1]');
+        expect(lastFrame()).toContain('[#1 - Pasted text]');
         expect(lastFrame()).toContain('Attachments (1)');
       });
     });
@@ -210,7 +222,7 @@ describe('AttachmentsArea', () => {
   describe('component updates', () => {
     it('should update when attachments added', () => {
       const attachments1 = new Map<string, Attachment>();
-      attachments1.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
+      attachments1.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
 
       const { lastFrame, rerender } = render(
         <AttachmentsArea {...defaultProps} attachments={attachments1} />
@@ -219,18 +231,18 @@ describe('AttachmentsArea', () => {
       expect(lastFrame()).toContain('Attachments (1)');
 
       const attachments2 = new Map(attachments1);
-      attachments2.set('2', createAttachment('2', 'text', '[Pasted text #2]', 2048));
+      attachments2.set('2', createAttachment('2', 'text', '[#2 - Pasted text]', 2048));
 
       rerender(<AttachmentsArea {...defaultProps} attachments={attachments2} />);
 
       expect(lastFrame()).toContain('Attachments (2)');
-      expect(lastFrame()).toContain('[Pasted text #2]');
+      expect(lastFrame()).toContain('[#2 - Pasted text]');
     });
 
     it('should update when selection changes', () => {
       const attachments = new Map<string, Attachment>();
-      attachments.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
-      attachments.set('2', createAttachment('2', 'text', '[Pasted text #2]', 2048));
+      attachments.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
+      attachments.set('2', createAttachment('2', 'text', '[#2 - Pasted text]', 2048));
 
       const { lastFrame, rerender } = render(
         <AttachmentsArea {...defaultProps} attachments={attachments} selectedAttachmentId="1" />
@@ -249,8 +261,8 @@ describe('AttachmentsArea', () => {
 
     it('should update when attachments removed', () => {
       const attachments1 = new Map<string, Attachment>();
-      attachments1.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
-      attachments1.set('2', createAttachment('2', 'text', '[Pasted text #2]', 2048));
+      attachments1.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
+      attachments1.set('2', createAttachment('2', 'text', '[#2 - Pasted text]', 2048));
 
       const { lastFrame, rerender } = render(
         <AttachmentsArea {...defaultProps} attachments={attachments1} />
@@ -259,12 +271,12 @@ describe('AttachmentsArea', () => {
       expect(lastFrame()).toContain('Attachments (2)');
 
       const attachments2 = new Map<string, Attachment>();
-      attachments2.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
+      attachments2.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
 
       rerender(<AttachmentsArea {...defaultProps} attachments={attachments2} />);
 
       expect(lastFrame()).toContain('Attachments (1)');
-      expect(lastFrame()).not.toContain('[Pasted text #2]');
+      expect(lastFrame()).not.toContain('[#2 - Pasted text]');
     });
   });
 
@@ -278,7 +290,7 @@ describe('AttachmentsArea', () => {
 
     it('should transition from content to empty', () => {
       const attachments = new Map<string, Attachment>();
-      attachments.set('1', createAttachment('1', 'text', '[Pasted text #1]', 1024));
+      attachments.set('1', createAttachment('1', 'text', '[#1 - Pasted text]', 1024));
 
       const { lastFrame, rerender } = render(
         <AttachmentsArea {...defaultProps} attachments={attachments} />

@@ -94,10 +94,15 @@ export const KeyBindingsConfigSchema = z.object({
   navigateUp: shortcutSchema.default(['arrowup']),
   navigateDown: shortcutSchema.default(['arrowdown']),
 
-  // Attachment navigation (use modifiers to avoid hijacking text editing keys)
-  navigateLeft: shortcutSchema.default(['alt+arrowleft']),
-  navigateRight: shortcutSchema.default(['alt+arrowright']),
-  removeAttachment: shortcutSchema.default(['alt+backspace']),
+  // Attachment navigation
+  // Ctrl+P (previous) and Ctrl+N (next) - standard TUI pattern from fzf/emacs
+  // Ctrl+D (delete), Ctrl+R (reference), Ctrl+O (open) - simple two-key combos
+  // Note: Ctrl+Shift combos often don't work reliably in terminals
+  navigateLeft: shortcutSchema.default(['ctrl+p']),
+  navigateRight: shortcutSchema.default(['ctrl+n']),
+  removeAttachment: shortcutSchema.default(['ctrl+d']),
+  insertAttachmentRef: shortcutSchema.default(['ctrl+r']),
+  openAttachment: shortcutSchema.default(['ctrl+o']),
   pasteFromClipboard: shortcutSchema.default(['ctrl+v']),
 
   // Utility

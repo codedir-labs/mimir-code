@@ -25,6 +25,8 @@ export interface AttachmentItemProps {
   cost?: number;
   /** Whether this attachment is selected */
   isSelected: boolean;
+  /** Whether this attachment is referenced in the input (unreferenced = won't be sent) */
+  isReferenced?: boolean;
   /** Theme configuration */
   theme: Theme;
   /** Callback when attachment should be removed */
@@ -42,13 +44,15 @@ export const AttachmentItem: React.FC<AttachmentItemProps> = ({
   tokens,
   cost,
   isSelected,
+  isReferenced = true, // Default to true for backwards compatibility
   theme,
   onRemove: _onRemove,
 }) => {
   const themeDefinition = getTheme(theme);
 
-  // Icon based on type
+  // Icon based on type - show warning icon if unreferenced
   const icon = type === 'text' ? '📝' : '🖼';
+  const refIndicator = isReferenced ? '' : ' ⚠';
 
   // Format size
   const sizeStr = AttachmentManager.formatSize(size);
@@ -62,10 +66,15 @@ export const AttachmentItem: React.FC<AttachmentItemProps> = ({
   // Background color when selected (use theme accent color)
   const bgColor = isSelected ? (themeDefinition.rawColors.wizardAccent ?? '#3b82f6') : undefined;
 
-  // Text color
-  const textColor = isSelected
-    ? '#000000'
-    : (themeDefinition.rawColors.borderColor ?? '#ffffff');
+  // Text color - dim if unreferenced
+  let textColor: string;
+  if (isSelected) {
+    textColor = '#000000';
+  } else if (!isReferenced) {
+    textColor = '#666666'; // Dim color for unreferenced
+  } else {
+    textColor = themeDefinition.rawColors.borderColor ?? '#ffffff';
+  }
 
   // Selection indicator
   const indicator = isSelected ? '▶ ' : '  ';
@@ -76,8 +85,11 @@ export const AttachmentItem: React.FC<AttachmentItemProps> = ({
   if (costStr) infoParts.push(costStr);
   const infoStr = infoParts.join(' | ');
 
+  // Add "not sent" warning for unreferenced attachments
+  const statusNote = isReferenced ? '' : ' [not in message]';
+
   // Render content
-  const content = `${indicator}${icon} ${label} (${infoStr})`;
+  const content = `${indicator}${icon} ${label}${refIndicator} (${infoStr})${statusNote}`;
 
   if (bgColor) {
     // Use chalk.bgHex for background color (theme system requirement)

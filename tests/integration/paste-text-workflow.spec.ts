@@ -93,39 +93,37 @@ describe('Text Paste Workflow', () => {
   });
 
   describe('Threshold Logic', () => {
-    it('should create attachment for text >500 characters', () => {
-      const text = 'x'.repeat(501);
+    // Threshold is now >200 characters only
+    it('should create attachment for text >200 chars', () => {
+      const text = 'x'.repeat(201);
       expect(shouldCreateAttachment(text)).toBe(true);
     });
 
-    it('should NOT create attachment for text <=500 characters', () => {
-      const text = 'x'.repeat(500);
+    it('should NOT create attachment for text <=200 chars', () => {
+      const text = 'x'.repeat(200);
       expect(shouldCreateAttachment(text)).toBe(false);
     });
 
-    it('should create attachment for text >10 lines', () => {
-      const text = Array(11).fill('line').join('\n');
+    it('should create attachment for long single-line content', () => {
+      // Many characters in 1 line - should create attachment if over threshold
+      const text = 'x'.repeat(1000);
       expect(shouldCreateAttachment(text)).toBe(true);
     });
 
-    it('should NOT create attachment for text <=10 lines', () => {
-      const text = Array(10).fill('line').join('\n');
+    it('should NOT create attachment for many short lines under threshold', () => {
+      // Many lines but short total length - should NOT create attachment
+      const text = Array(50).fill('x').join('\n'); // 50 x's + 49 newlines = 99 chars
       expect(shouldCreateAttachment(text)).toBe(false);
     });
 
-    it('should create attachment if EITHER threshold is exceeded', () => {
-      // 11 lines but <500 chars
-      const text1 = Array(11).fill('x').join('\n');
-      expect(shouldCreateAttachment(text1)).toBe(true);
-
-      // >500 chars but <10 lines
-      const text2 = 'x'.repeat(501);
-      expect(shouldCreateAttachment(text2)).toBe(true);
+    it('should handle edge case: exactly 200 chars', () => {
+      const text = 'x'.repeat(200);
+      expect(shouldCreateAttachment(text)).toBe(false);
     });
 
-    it('should handle edge case: exactly 500 chars and 10 lines', () => {
-      const text = Array(10).fill('x'.repeat(50)).join('\n'); // 10 lines, 500 chars
-      expect(shouldCreateAttachment(text)).toBe(false);
+    it('should handle edge case: exactly 201 chars', () => {
+      const text = 'x'.repeat(201);
+      expect(shouldCreateAttachment(text)).toBe(true);
     });
   });
 
@@ -142,7 +140,7 @@ describe('Text Paste Workflow', () => {
 
       expect(attachment.id).toBeTruthy();
       expect(attachment.type).toBe('text');
-      expect(attachment.label).toBe('[Pasted text #1]');
+      expect(attachment.label).toBe('[#1 - Pasted text]');
       expect(attachment.content).toBe(content);
       expect(attachment.metadata.lines).toBe(2);
       expect(attachment.metadata.chars).toBe(content.length);
@@ -162,9 +160,9 @@ describe('Text Paste Workflow', () => {
       const attachment2 = attachmentManager.addTextAttachment('Text 2', metadata);
       const attachment3 = attachmentManager.addTextAttachment('Text 3', metadata);
 
-      expect(attachment1.label).toBe('[Pasted text #1]');
-      expect(attachment2.label).toBe('[Pasted text #2]');
-      expect(attachment3.label).toBe('[Pasted text #3]');
+      expect(attachment1.label).toBe('[#1 - Pasted text]');
+      expect(attachment2.label).toBe('[#2 - Pasted text]');
+      expect(attachment3.label).toBe('[#3 - Pasted text]');
     });
 
     it('should generate unique UUIDs for each attachment', () => {
@@ -257,7 +255,7 @@ describe('Text Paste Workflow', () => {
       });
       expect(parts[1]).toEqual({
         type: 'text',
-        text: '\n\n--- [Pasted text #1] ---\nPasted content',
+        text: '\n\n--- [#1 - Pasted text] ---\nPasted content',
       });
     });
 
@@ -293,7 +291,7 @@ describe('Text Paste Workflow', () => {
       expect(parts).toHaveLength(1); // No main text, only attachment
       expect(parts[0]).toEqual({
         type: 'text',
-        text: '\n\n--- [Pasted text #1] ---\nOnly attachment',
+        text: '\n\n--- [#1 - Pasted text] ---\nOnly attachment',
       });
     });
 
@@ -325,7 +323,7 @@ describe('Text Paste Workflow', () => {
         .slice(1) // Skip main message
         .map((part) => {
           if (part.type === 'text') {
-            const match = part.text.match(/\[Pasted text #(\d+)\]/);
+            const match = part.text.match(/\[#(\d+) - Pasted text\]/);
             return match ? parseInt(match[1], 10) : 0;
           }
           return 0;
@@ -368,7 +366,7 @@ describe('Text Paste Workflow', () => {
       const attachment3 = attachmentManager.addTextAttachment('Text 3', metadata);
 
       // Counter should continue from 3, not reset to 1
-      expect(attachment3.label).toBe('[Pasted text #3]');
+      expect(attachment3.label).toBe('[#3 - Pasted text]');
     });
   });
 
@@ -414,8 +412,8 @@ describe('Text Paste Workflow', () => {
 
   describe('Complete Workflow', () => {
     it('should handle complete paste-to-submit workflow', () => {
-      // 1. User pastes large text
-      const pastedContent = 'x'.repeat(600); // Exceeds 500 char threshold
+      // 1. User pastes text exceeding 200 char threshold
+      const pastedContent = 'x'.repeat(250); // 250 chars exceeds 200 threshold
       const bracketedInput = `\x1b[200~${pastedContent}\x1b[201~`;
 
       // 2. Detect bracketed paste
@@ -433,7 +431,7 @@ describe('Text Paste Workflow', () => {
         originalLength: pasteResult.content.length,
       };
       const attachment = attachmentManager.addTextAttachment(pasteResult.content, metadata);
-      expect(attachment.label).toBe('[Pasted text #1]');
+      expect(attachment.label).toBe('[#1 - Pasted text]');
 
       // 5. User submits message
       const messageText = 'Please analyze this code:';
@@ -447,7 +445,7 @@ describe('Text Paste Workflow', () => {
       });
       expect(expandedParts[1]).toEqual({
         type: 'text',
-        text: `\n\n--- [Pasted text #1] ---\n${pastedContent}`,
+        text: `\n\n--- [#1 - Pasted text] ---\n${pastedContent}`,
       });
 
       // 7. Clear after submit

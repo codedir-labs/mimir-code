@@ -12,7 +12,7 @@ describe('AttachmentItem', () => {
   const defaultProps = {
     id: 'test-id-1',
     type: 'text' as const,
-    label: '[Pasted text #1]',
+    label: '[#1 - Pasted text]',
     size: 1024,
     isSelected: false,
     theme: 'mimir' as Theme,
@@ -22,17 +22,17 @@ describe('AttachmentItem', () => {
     it('should render text attachment with label', () => {
       const { lastFrame } = render(<AttachmentItem {...defaultProps} />);
 
-      expect(lastFrame()).toContain('[Pasted text #1]');
+      expect(lastFrame()).toContain('[#1 - Pasted text]');
       expect(lastFrame()).toContain('1.0 KB');
       expect(lastFrame()).toContain('📝'); // Text icon
     });
 
     it('should render image attachment with icon', () => {
       const { lastFrame } = render(
-        <AttachmentItem {...defaultProps} type="image" label="[Image #1]" />
+        <AttachmentItem {...defaultProps} type="image" label="[#1 - Image]" />
       );
 
-      expect(lastFrame()).toContain('[Image #1]');
+      expect(lastFrame()).toContain('[#1 - Image]');
       expect(lastFrame()).toContain('🖼'); // Image icon
     });
 
@@ -66,25 +66,25 @@ describe('AttachmentItem', () => {
     it('should render with mimir theme', () => {
       const { lastFrame } = render(<AttachmentItem {...defaultProps} theme="mimir" />);
       expect(lastFrame()).toBeDefined();
-      expect(lastFrame()).toContain('[Pasted text #1]');
+      expect(lastFrame()).toContain('[#1 - Pasted text]');
     });
 
     it('should render with dark theme', () => {
       const { lastFrame } = render(<AttachmentItem {...defaultProps} theme="dark" />);
       expect(lastFrame()).toBeDefined();
-      expect(lastFrame()).toContain('[Pasted text #1]');
+      expect(lastFrame()).toContain('[#1 - Pasted text]');
     });
 
     it('should render with light theme', () => {
       const { lastFrame } = render(<AttachmentItem {...defaultProps} theme="light" />);
       expect(lastFrame()).toBeDefined();
-      expect(lastFrame()).toContain('[Pasted text #1]');
+      expect(lastFrame()).toContain('[#1 - Pasted text]');
     });
 
     it('should render with tokyo-night theme', () => {
       const { lastFrame } = render(<AttachmentItem {...defaultProps} theme="tokyo-night" />);
       expect(lastFrame()).toBeDefined();
-      expect(lastFrame()).toContain('[Pasted text #1]');
+      expect(lastFrame()).toContain('[#1 - Pasted text]');
     });
   });
 

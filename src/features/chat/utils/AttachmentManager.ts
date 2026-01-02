@@ -35,7 +35,7 @@ export class AttachmentManager {
     const attachment: Attachment = {
       id: uuidv4(),
       type: 'text',
-      label: `[Pasted text #${this.counters.text}]`,
+      label: `[#${this.counters.text} - Pasted text]`,
       content,
       metadata: {
         lines,
@@ -63,7 +63,7 @@ export class AttachmentManager {
     const attachment: Attachment = {
       id: uuidv4(),
       type: 'image',
-      label: `[Image #${this.counters.image}]`,
+      label: `[#${this.counters.image} - Image]`,
       content: data,
       metadata: {
         format,
@@ -121,7 +121,7 @@ export class AttachmentManager {
   }
 
   /**
-   * Reset counters (for testing)
+   * Reset counters (for testing or after clear)
    */
   resetCounters(): void {
     this.counters.text = 0;
@@ -129,12 +129,34 @@ export class AttachmentManager {
   }
 
   /**
+   * Clear all attachments AND reset counters
+   * Use this when user clears input (Ctrl+C/Esc)
+   */
+  clearAll(): void {
+    this.attachments.clear();
+    this.counters.text = 0;
+    this.counters.image = 0;
+  }
+
+  /**
+   * Get attachment number from label
+   * @param label Attachment label (e.g., "[#1 - Pasted text]")
+   * @returns Number string or null
+   */
+  static getAttachmentNumber(label: string): string | null {
+    const match = label.match(/#(\d+)/);
+    return match ? match[1]! : null;
+  }
+
+  /**
    * Expand attachments for API call
-   * Combines message text with all attachments into multi-part message format
+   * Combines message text with referenced attachments into multi-part message format
    * @param messageText Main message text
+   * @param referencedNums Optional set of referenced attachment numbers (e.g., {"1", "2"})
+   *                       If not provided, all attachments are included
    * @returns Array of message content parts (text + images)
    */
-  expandForAPI(messageText: string): MessageContentPart[] {
+  expandForAPI(messageText: string, referencedNums?: Set<string>): MessageContentPart[] {
     const parts: MessageContentPart[] = [];
 
     // Add main text if not empty
@@ -145,8 +167,16 @@ export class AttachmentManager {
       });
     }
 
-    // Add attachments in creation order
+    // Add attachments in creation order (only referenced ones if filter provided)
     for (const attachment of this.getAll()) {
+      // Check if this attachment is referenced
+      if (referencedNums) {
+        const attachNum = AttachmentManager.getAttachmentNumber(attachment.label);
+        if (!attachNum || !referencedNums.has(attachNum)) {
+          continue; // Skip unreferenced attachments
+        }
+      }
+
       if (attachment.type === 'text') {
         // Add text attachment with label
         const textContent = typeof attachment.content === 'string' ? attachment.content : '';

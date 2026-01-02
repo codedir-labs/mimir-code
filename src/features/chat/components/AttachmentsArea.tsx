@@ -26,6 +26,8 @@ export interface AttachmentsAreaProps {
   model?: string;
   /** Callback when attachment should be removed */
   onRemove: (id: string) => void;
+  /** Current input text (to check which attachments are referenced) */
+  currentInput?: string;
 }
 
 /**
@@ -40,11 +42,23 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
   provider,
   model,
   onRemove,
+  currentInput = '',
 }) => {
   // Theme available for future styling
   void theme;
 
-  // Convert attachments map to sorted array with token/cost info
+  // Find which attachment numbers are referenced in the input
+  const referencedNums = useMemo(() => {
+    const nums = new Set<string>();
+    const refPattern = /#\[(\d+)\]/g;
+    let match;
+    while ((match = refPattern.exec(currentInput)) !== null) {
+      nums.add(match[1]!);
+    }
+    return nums;
+  }, [currentInput]);
+
+  // Convert attachments map to sorted array with token/cost info and reference status
   const attachmentList = useMemo(() => {
     return Array.from(attachments.values())
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
@@ -60,9 +74,13 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
           }
         }
 
-        return { ...attachment, tokens, cost };
+        // Check if this attachment is referenced
+        const attachNum = AttachmentManager.getAttachmentNumber(attachment.label);
+        const isReferenced = attachNum ? referencedNums.has(attachNum) : false;
+
+        return { ...attachment, tokens, cost, isReferenced };
       });
-  }, [attachments, provider, model]);
+  }, [attachments, provider, model, referencedNums]);
 
   // Build footer text with keyboard shortcuts
   // NOTE: This hook must be called before any early return to maintain consistent hook count
@@ -70,7 +88,9 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
     return buildFooterText([
       { shortcut: keyBindings.navigateLeft, label: 'prev' },
       { shortcut: keyBindings.navigateRight, label: 'next' },
-      { shortcut: keyBindings.removeAttachment, label: 'remove' },
+      { shortcut: keyBindings.insertAttachmentRef, label: 'insert' },
+      { shortcut: keyBindings.openAttachment, label: 'open' },
+      { shortcut: keyBindings.removeAttachment, label: 'remove (2x: clear #[x])' },
     ]);
   }, [keyBindings]);
 
@@ -132,6 +152,7 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
           tokens={attachment.tokens}
           cost={attachment.cost}
           isSelected={attachment.id === selectedAttachmentId}
+          isReferenced={attachment.isReferenced}
           theme={theme}
           onRemove={onRemove}
         />

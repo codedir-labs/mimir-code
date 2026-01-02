@@ -558,6 +558,16 @@ export class RawKeyMapper {
       };
     }
 
+    // Check for Alt+Backspace (ESC followed by DEL 0x7F or BS 0x08)
+    if (bytes.length === 2 && (bytes[1] === 0x7f || bytes[1] === 0x08)) {
+      return {
+        key: 'Alt+Backspace',
+        detectedRaw: true,
+        confidence: 'high',
+        matchedBytes: bytes,
+      };
+    }
+
     // Unknown escape sequence - return as raw escape
     // This could be a standalone Escape key or incomplete sequence
     if (bytes.length === 1) {

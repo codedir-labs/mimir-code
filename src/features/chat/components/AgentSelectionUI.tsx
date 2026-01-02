@@ -14,7 +14,7 @@ import { getTheme } from '@/shared/config/themes/index.js';
 import type { Theme } from '@/shared/config/schemas.js';
 import type { WorkflowPlan, AgentRole } from '@codedir/mimir-agents/core';
 import { buildFooterText } from '@/shared/utils/keyboardFormatter.js';
-import { useKeyboardAction } from '@/shared/keyboard/index.js';
+import { useKeyboardAction, useShortcutKeys } from '@/shared/keyboard/index.js';
 import chalk from 'chalk';
 
 export interface AgentSelectionUIProps {
@@ -107,6 +107,10 @@ export const AgentSelectionUI: React.FC<AgentSelectionUIProps> = ({
   const themeDefinition = getTheme(theme);
   const [selectedIndex] = useState<number | null>(null); // TODO: Will be used for agent selection
 
+  // Get shortcut keys from config for dynamic tooltips
+  const acceptKeys = useShortcutKeys('accept');
+  const interruptKeys = useShortcutKeys('interrupt');
+
   // Convert tasks to display info
   const agents = useMemo<AgentDisplayInfo[]>(() => {
     return plan.tasks.slice(0, 5).map((task, index) => ({
@@ -138,7 +142,7 @@ export const AgentSelectionUI: React.FC<AgentSelectionUIProps> = ({
     };
   }, [agents.length, onApprove, onCancel, onEdit, onSelectAgent, plan]);
 
-  // Build footer text
+  // Build footer text with dynamic keybindings
   const footerText = useMemo(() => {
     const items = [];
 
@@ -150,13 +154,13 @@ export const AgentSelectionUI: React.FC<AgentSelectionUIProps> = ({
     }
 
     items.push(
-      { shortcut: 'Enter', label: 'approve' },
-      { shortcut: 'Escape', label: 'cancel' },
+      { shortcut: acceptKeys.length > 0 ? acceptKeys : ['Enter'], label: 'approve' },
+      { shortcut: interruptKeys.length > 0 ? interruptKeys : ['Escape'], label: 'cancel' },
       { shortcut: 'e', label: 'edit' }
     );
 
     return buildFooterText(items);
-  }, [agents.length]);
+  }, [agents.length, acceptKeys, interruptKeys]);
 
   return (
     <Box flexDirection="column" width="100%">

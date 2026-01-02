@@ -32,9 +32,10 @@ import { ISlashCommand } from '@/features/chat/slash-commands/SlashCommand.js';
 import {
   enableBracketedPaste,
   disableBracketedPaste,
-  detectBracketedPaste,
   detectPasteHeuristic,
+  stripBracketedPasteMarkers,
 } from '@/shared/utils/bracketedPaste.js';
+import { pasteLog, pasteLogContent, pasteLogSeparator } from '@/shared/utils/pasteLogger.js';
 import type { PasteMetadata } from '@/features/chat/types/attachment.js';
 
 export interface InputBoxProps {
@@ -72,6 +73,12 @@ export interface InputBoxProps {
   bracketedPasteEnabled?: boolean;
   // Callback when paste is detected
   onPaste?: (content: string, metadata: PasteMetadata) => void;
+  // Callback when cursor position changes
+  onCursorChange?: (position: number) => void;
+  // Set of valid attachment numbers (for highlighting invalid #[n] refs)
+  validAttachmentNums?: Set<string>;
+  // Request cursor to move to this position
+  requestCursorAt?: { position: number; token: number };
 }
 
 export const InputBox: React.FC<InputBoxProps> = React.memo(
@@ -93,6 +100,9 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
     autocompleteExecuteOnSelect = true,
     bracketedPasteEnabled = true,
     onPaste,
+    onCursorChange,
+    validAttachmentNums,
+    requestCursorAt,
   }) => {
     const themeDefinition = getTheme(theme);
     const [filteredCommands, setFilteredCommands] = useState<ISlashCommand[]>([]);
@@ -112,6 +122,38 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
 
     // Track previous value for heuristic paste detection
     const previousValueRef = useRef(value);
+
+    // Track when paste was last handled to block handleChange during cooldown
+    const pasteHandledTimeRef = useRef(0);
+
+    // Track that we need to sync previousValueRef after paste (skip heuristic on next change)
+    const skipNextHeuristicRef = useRef(false);
+
+    // CRITICAL: Detect if value has content at mount time (pre-buffered paste)
+    // This runs synchronously during first render
+    const hasCheckedInitialValueRef = useRef(false);
+    useEffect(() => {
+      if (!hasCheckedInitialValueRef.current && value.length > 10) {
+        hasCheckedInitialValueRef.current = true;
+        pasteLog('InputBox', 'DETECTED PRE-MOUNT PASTE in value', { valueLen: value.length });
+        // The value already has garbage - we need to emit it as paste and clear
+        if (onPaste) {
+          const content = value;
+          pasteLog('InputBox', 'Emitting pre-mount paste and clearing');
+          // Clear immediately
+          previousValueRef.current = '';
+          onChange('');
+          setInputKey((prev) => prev + 1);
+          // Emit as paste
+          onPaste(content, {
+            isBracketedPaste: false,
+            detectMethod: 'pre-mount',
+            originalLength: content.length,
+          });
+        }
+      }
+      hasCheckedInitialValueRef.current = true;
+    }, [value, onChange, onPaste]);
 
     // Enable/disable bracketed paste mode
     useEffect(() => {
@@ -414,74 +456,140 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
       }
     }, [onAcceptSelectionRef, acceptSelection]);
 
-    // Handle input changes with paste detection
+    // Handle complete paste from TextInput (via onPaste callback)
+    // TextInput now buffers bracketed paste content and emits the complete content
+    const handleTextInputPaste = useCallback(
+      (content: string) => {
+        // FIRST LINE - log immediately to catch any early failures
+        try {
+          pasteLog('InputBox', '>>> handleTextInputPaste ENTRY <<<', { contentLen: content.length });
+        } catch (e) { /* ignore */ }
+
+        // Capture stack trace to see who's calling this
+        const stack = new Error().stack || 'no stack';
+        pasteLogSeparator('InputBox.handleTextInputPaste CALLED');
+        pasteLog('InputBox', 'handleTextInputPaste called', {
+          contentLen: content.length,
+          hasOnPaste: !!onPaste,
+          currentValue: value,
+          stack: stack.substring(0, 500),
+        });
+        pasteLogContent('InputBox-CONTENT', content);
+
+        // Set cooldown timestamp to block any straggler handleChange calls
+        pasteHandledTimeRef.current = Date.now();
+
+        // DON'T clear the input - preserve existing content
+        // Parent (ChatInterface) will append the reference or content
+        pasteLog('InputBox', 'Preserving existing value', { currentValue: value });
+
+        const metadata: PasteMetadata = {
+          isBracketedPaste: true,
+          detectMethod: 'bracketed',
+          originalLength: content.length,
+        };
+
+        if (onPaste) {
+          // Let parent (ChatInterface) handle paste
+          pasteLog('InputBox', 'Calling parent onPaste handler');
+          onPaste(content, metadata);
+          // CRITICAL: Skip heuristic detection on next handleChange
+          // Otherwise delta from old previousValueRef triggers paste detection again
+          skipNextHeuristicRef.current = true;
+          pasteLog('InputBox', 'Set skipNextHeuristic flag');
+        } else {
+          // No handler - just insert the content
+          pasteLog('InputBox', 'No onPaste handler, inserting content directly');
+          previousValueRef.current = content;
+          onChange(content);
+        }
+        pasteLog('InputBox', 'handleTextInputPaste complete');
+      },
+      [onChange, onPaste, value]
+    );
+
+    // Handle input changes (normal typing, not pastes)
     const handleChange = useCallback(
       (newValue: string) => {
-        // Detect bracketed paste
-        const bracketedResult = detectBracketedPaste(newValue);
+        // LOG ALL CHANGES - this is where we'll see what's actually happening
+        const delta = newValue.length - previousValueRef.current.length;
+        pasteLog('InputBox.handleChange', 'CALLED', {
+          newValueLen: newValue.length,
+          prevValueLen: previousValueRef.current.length,
+          delta,
+          hasNewlines: newValue.includes('\n'),
+          preview: newValue.substring(0, 50).replace(/[\x00-\x1f]/g, (c) => `<${c.charCodeAt(0).toString(16)}>`),
+        });
 
-        if (bracketedResult.isPaste) {
-          // Bracketed paste detected
-          const metadata: PasteMetadata = {
-            isBracketedPaste: true,
-            detectMethod: 'bracketed',
-            originalLength: bracketedResult.content.length,
-          };
-
-          if (onPaste) {
-            // Let onPaste handler decide what to do with the content
-            // Don't also call onChange - that would duplicate the text
-            onPaste(bracketedResult.content, metadata);
-            return;
-          }
-
-          // No onPaste handler - update input directly
-          previousValueRef.current = bracketedResult.content;
-          onChange(bracketedResult.content);
+        // Block changes during paste cooldown (500ms after paste was handled)
+        // This prevents straggler events from corrupting the clean state
+        const timeSincePaste = Date.now() - pasteHandledTimeRef.current;
+        if (timeSincePaste < 500) {
+          pasteLog('InputBox.handleChange', 'BLOCKED (cooldown)', { timeSincePaste });
           return;
         }
 
-        // Heuristic paste detection (fallback)
+        // Safety: Strip any leftover paste markers that slipped through
+        const cleanedValue = stripBracketedPasteMarkers(newValue);
+        const hadMarkers = cleanedValue !== newValue;
+
+        // Check if we should skip heuristic detection (after paste handling)
+        if (skipNextHeuristicRef.current) {
+          pasteLog('InputBox.handleChange', 'Skipping heuristic (post-paste sync)');
+          skipNextHeuristicRef.current = false;
+          previousValueRef.current = cleanedValue; // Sync to new value
+          onChange(cleanedValue);
+          return;
+        }
+
+        // Heuristic paste detection (fallback for terminals without bracketed paste)
         const previousValue = previousValueRef.current;
-        if (detectPasteHeuristic(newValue, previousValue)) {
+        if (hadMarkers || detectPasteHeuristic(cleanedValue, previousValue)) {
+          pasteLog('InputBox.handleChange', 'Detected as paste', { hadMarkers, delta });
           const metadata: PasteMetadata = {
-            isBracketedPaste: false,
-            detectMethod: 'heuristic',
-            originalLength: newValue.length,
+            isBracketedPaste: hadMarkers,
+            detectMethod: hadMarkers ? 'bracketed-partial' : 'heuristic',
+            originalLength: cleanedValue.length,
           };
 
           if (onPaste) {
-            // Let onPaste handler decide what to do with the content
-            // Don't also call onChange - that would duplicate the text
-            onPaste(newValue, metadata);
+            // Let parent handle paste
+            onPaste(cleanedValue, metadata);
+            skipNextHeuristicRef.current = true; // Skip next heuristic after this paste too
             return;
           }
         }
 
         // Update previousValueRef
-        previousValueRef.current = newValue;
+        previousValueRef.current = cleanedValue;
 
-        // Call onChange normally (not a paste, or no onPaste handler)
-        onChange(newValue);
+        // Call onChange normally
+        pasteLog('InputBox.handleChange', 'Calling onChange normally');
+        onChange(cleanedValue);
       },
       [onChange, onPaste]
     );
 
     const handleSubmit = useCallback(() => {
-      // If autocomplete is showing and has items, accept selection
-      const itemCount = isParameterMode ? parameterSuggestions.length : filteredCommands.length;
-      if (showAutocomplete && itemCount > 0) {
-        acceptSelection();
-      } else {
-        // Submit normally
-        onSubmit(undefined);
+      // NOTE: Don't handle autocomplete selection here!
+      // The parent (ChatInterface) handles autocomplete acceptance via keyboard actions
+      // (acceptSelectionRef). If we also call acceptSelection here, we get double submission.
+      //
+      // This handler is ONLY for normal text submission when autocomplete is NOT active.
+      // When autocomplete IS active, the parent's keyboard handler intercepts Enter/Tab first.
+      //
+      // We check showAutocomplete here to prevent double-submit on the edge case where
+      // the keyboard handler was called but the keypress also reached TextInput.
+      if (showAutocomplete) {
+        // Autocomplete is showing - parent handles this via keyboard action
+        // Don't do anything here to prevent double submission
+        return;
       }
+
+      // Submit normally (no autocomplete active)
+      onSubmit(undefined);
     }, [
       showAutocomplete,
-      isParameterMode,
-      parameterSuggestions.length,
-      filteredCommands.length,
-      acceptSelection,
       onSubmit,
     ]);
 
@@ -499,7 +607,12 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
             value={value}
             onChange={handleChange}
             onSubmit={handleSubmit}
+            onPaste={handleTextInputPaste}
+            onCursorChange={onCursorChange}
             focus={true}
+            theme={theme}
+            validAttachmentNums={validAttachmentNums}
+            requestCursorAt={requestCursorAt}
           />
         </Box>
 

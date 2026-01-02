@@ -26,14 +26,14 @@ describe('Paste Edge Cases', () => {
       const whitespaceOnly = '    \n   \n\t\t\n   ';
       const result = shouldCreateAttachment(whitespaceOnly);
 
-      expect(result).toBe(false); // <500 chars and <=10 lines
+      expect(result).toBe(false); // Only ~16 chars, under 200
     });
 
-    it('should handle paste with whitespace-only lines', () => {
-      const content = Array(12).fill('   ').join('\n'); // 12 lines of whitespace
+    it('should handle paste with whitespace-only lines over threshold', () => {
+      const content = 'x'.repeat(201); // 201 chars, over 200
       const result = shouldCreateAttachment(content);
 
-      expect(result).toBe(true); // >10 lines
+      expect(result).toBe(true); // >200 chars
     });
 
     it('should preserve leading/trailing whitespace in attachments', () => {
@@ -178,29 +178,25 @@ describe('Paste Edge Cases', () => {
     it('should handle multiple consecutive newlines', () => {
       const content = 'Line 1\n\n\nLine 2';
       const stats = getPasteStats(content);
-
-      expect(stats.lines).toBe(5); // Includes empty lines
+      // 'Line 1\n\n\nLine 2'.split('\n') = ['Line 1', '', '', 'Line 2'] = 4 elements
+      expect(stats.lines).toBe(4);
     });
   });
 
   describe('Boundary Conditions', () => {
-    it('should handle exactly 500 characters', () => {
-      const content = 'x'.repeat(500);
+    // Threshold is now >200 characters
+    it('should create attachment for long single-line content over threshold', () => {
+      const content = 'x'.repeat(1000);
+      expect(shouldCreateAttachment(content)).toBe(true); // Over 200 chars
+    });
+
+    it('should handle short content under threshold', () => {
+      const content = Array(5).fill('line').join('\n'); // 24 chars
       expect(shouldCreateAttachment(content)).toBe(false);
     });
 
-    it('should handle exactly 501 characters', () => {
-      const content = 'x'.repeat(501);
-      expect(shouldCreateAttachment(content)).toBe(true);
-    });
-
-    it('should handle exactly 10 lines', () => {
-      const content = Array(10).fill('line').join('\n');
-      expect(shouldCreateAttachment(content)).toBe(false);
-    });
-
-    it('should handle exactly 11 lines', () => {
-      const content = Array(11).fill('line').join('\n');
+    it('should handle content just over threshold', () => {
+      const content = 'x'.repeat(201);
       expect(shouldCreateAttachment(content)).toBe(true);
     });
 
@@ -214,14 +210,14 @@ describe('Paste Edge Cases', () => {
       expect(shouldCreateAttachment(content)).toBe(false);
     });
 
-    it('should handle single line', () => {
+    it('should handle single line under threshold', () => {
       const content = 'single line';
       expect(shouldCreateAttachment(content)).toBe(false);
     });
 
-    it('should handle very long single line', () => {
+    it('should create attachment for very long single line', () => {
       const content = 'x'.repeat(10000);
-      expect(shouldCreateAttachment(content)).toBe(true);
+      expect(shouldCreateAttachment(content)).toBe(true); // Over 200 chars
     });
   });
 
@@ -290,20 +286,20 @@ describe('Paste Edge Cases', () => {
       expect(isPaste).toBe(false);
     });
 
-    it('should detect paste with exactly 10 new characters', () => {
+    it('should detect paste with exactly 5 new characters', () => {
       const previousValue = 'Start';
-      const newValue = 'Start1234567890';
+      const newValue = 'Start12345';
 
       const isPaste = detectPasteHeuristic(newValue, previousValue);
-      expect(isPaste).toBe(false); // Exactly 10 is not >10
+      expect(isPaste).toBe(false); // Exactly 5 is not >5
     });
 
-    it('should detect paste with exactly 11 new characters', () => {
+    it('should detect paste with exactly 6 new characters', () => {
       const previousValue = 'Start';
-      const newValue = 'Start12345678901';
+      const newValue = 'Start123456';
 
       const isPaste = detectPasteHeuristic(newValue, previousValue);
-      expect(isPaste).toBe(true); // 11 is >10
+      expect(isPaste).toBe(true); // 6 is >5
     });
 
     it('should handle empty previous value', () => {
@@ -335,9 +331,9 @@ describe('Paste Edge Cases', () => {
       const attachment2 = attachmentManager.addTextAttachment('Paste 2', metadata);
       const attachment3 = attachmentManager.addTextAttachment('Paste 3', metadata);
 
-      expect(attachment1.label).toBe('[Pasted text #1]');
-      expect(attachment2.label).toBe('[Pasted text #2]');
-      expect(attachment3.label).toBe('[Pasted text #3]');
+      expect(attachment1.label).toBe('[#1 - Pasted text]');
+      expect(attachment2.label).toBe('[#2 - Pasted text]');
+      expect(attachment3.label).toBe('[#3 - Pasted text]');
       expect(attachmentManager.count()).toBe(3);
     });
 
@@ -353,7 +349,7 @@ describe('Paste Edge Cases', () => {
 
       const attachment2 = attachmentManager.addTextAttachment('Second', metadata);
 
-      expect(attachment2.label).toBe('[Pasted text #2]'); // Counter continues
+      expect(attachment2.label).toBe('[#2 - Pasted text]'); // Counter continues
       expect(attachmentManager.count()).toBe(1);
     });
 
@@ -371,10 +367,10 @@ describe('Paste Edge Cases', () => {
 
       const all = attachmentManager.getAll();
       expect(all).toHaveLength(4);
-      expect(all[0].label).toBe('[Pasted text #1]');
-      expect(all[1].label).toBe('[Image #1]');
-      expect(all[2].label).toBe('[Pasted text #2]');
-      expect(all[3].label).toBe('[Image #2]');
+      expect(all[0].label).toBe('[#1 - Pasted text]');
+      expect(all[1].label).toBe('[#1 - Image]');
+      expect(all[2].label).toBe('[#2 - Pasted text]');
+      expect(all[3].label).toBe('[#2 - Image]');
     });
   });
 
@@ -448,7 +444,7 @@ describe('Paste Edge Cases', () => {
 
       expect(attachmentManager.count()).toBe(100);
       const all = attachmentManager.getAll();
-      expect(all[99].label).toBe('[Pasted text #100]');
+      expect(all[99].label).toBe('[#100 - Pasted text]');
     });
 
     it('should handle large number of lines', () => {

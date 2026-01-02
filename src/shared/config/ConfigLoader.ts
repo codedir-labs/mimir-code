@@ -132,10 +132,13 @@ export class ConfigLoader {
         navigateUp: ['ArrowUp'],
         navigateDown: ['ArrowDown'],
 
-        // Attachment navigation
-        navigateLeft: ['Alt+ArrowLeft'],
-        navigateRight: ['Alt+ArrowRight'],
-        removeAttachment: ['Alt+Backspace'],
+        // Attachment navigation (Ctrl+P/N - fzf/emacs style)
+        // Ctrl+D (delete), Ctrl+R (reference), Ctrl+O (open) - simple two-key combos
+        navigateLeft: ['Ctrl+P'],
+        navigateRight: ['Ctrl+N'],
+        removeAttachment: ['Ctrl+D'],
+        insertAttachmentRef: ['Ctrl+R'],
+        openAttachment: ['Ctrl+O'],
         pasteFromClipboard: ['Ctrl+V'],
 
         // Utility

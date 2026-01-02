@@ -11,7 +11,7 @@ import { getTheme } from '@/shared/config/themes/index.js';
 import type { Theme } from '@/shared/config/schemas.js';
 import type { AgentRole } from '@codedir/mimir-agents/core';
 import { buildFooterText } from '@/shared/utils/keyboardFormatter.js';
-import { useKeyboardAction } from '@/shared/keyboard/index.js';
+import { useKeyboardAction, useShortcutKeys } from '@/shared/keyboard/index.js';
 import chalk from 'chalk';
 
 export interface ModelSelectionViewProps {
@@ -113,6 +113,12 @@ export const ModelSelectionView: React.FC<ModelSelectionViewProps> = ({
     return index >= 0 ? index : 0;
   });
 
+  // Get shortcut keys from config for dynamic tooltips
+  const navigateUpKeys = useShortcutKeys('navigateUp');
+  const navigateDownKeys = useShortcutKeys('navigateDown');
+  const acceptKeys = useShortcutKeys('accept');
+  const interruptKeys = useShortcutKeys('interrupt');
+
   // Model info list
   const models = useMemo(() => {
     return availableModels.map(getModelInfo);
@@ -138,14 +144,19 @@ export const ModelSelectionView: React.FC<ModelSelectionViewProps> = ({
     onCancel();
   });
 
-  // Build footer text
+  // Build footer text with dynamic keybindings
   const footerText = useMemo(() => {
+    // Combine navigate up/down keys for display
+    const navKeys = [
+      ...(navigateUpKeys.length > 0 ? navigateUpKeys : ['ArrowUp']),
+      ...(navigateDownKeys.length > 0 ? navigateDownKeys : ['ArrowDown']),
+    ];
     return buildFooterText([
-      { shortcut: ['ArrowUp', 'ArrowDown'], label: 'navigate' },
-      { shortcut: 'Enter', label: 'select' },
-      { shortcut: 'Escape', label: 'cancel' },
+      { shortcut: navKeys, label: 'navigate' },
+      { shortcut: acceptKeys.length > 0 ? acceptKeys : ['Enter'], label: 'select' },
+      { shortcut: interruptKeys.length > 0 ? interruptKeys : ['Escape'], label: 'cancel' },
     ]);
-  }, []);
+  }, [navigateUpKeys, navigateDownKeys, acceptKeys, interruptKeys]);
 
   return (
     <Box flexDirection="column" width="100%">

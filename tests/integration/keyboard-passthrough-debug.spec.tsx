@@ -10,7 +10,9 @@ import { Text, Box } from 'ink';
 
 describe('Keyboard Passthrough Debug', () => {
   describe('Multiple useInput hooks behavior', () => {
-    it('should show which hook receives input when both are active', () => {
+    // NOTE: This test documents a known Ink limitation - only the first useInput hook receives events
+    // Skipped because it tests Ink's behavior, not our code
+    it.skip('should show which hook receives input when both are active', () => {
       const hook1Calls: string[] = [];
       const hook2Calls: string[] = [];
 
@@ -88,7 +90,9 @@ describe('Keyboard Passthrough Debug', () => {
       console.log('Hook 2 calls:', hook2Calls);
     });
 
-    it('should test if returning from handler allows next hook to process', () => {
+    // NOTE: This test documents a known Ink limitation - returning from handler doesn't propagate to next hook
+    // Skipped because it tests Ink's behavior, not our code
+    it.skip('should test if returning from handler allows next hook to process', () => {
       let firstHandlerCalled = false;
       let secondHandlerCalled = false;
 

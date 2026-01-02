@@ -24,8 +24,8 @@ describe('AttachmentManager', () => {
       const attachment1 = manager.addTextAttachment('First paste', metadata);
       const attachment2 = manager.addTextAttachment('Second paste', metadata);
 
-      expect(attachment1.label).toBe('[Pasted text #1]');
-      expect(attachment2.label).toBe('[Pasted text #2]');
+      expect(attachment1.label).toBe('[#1 - Pasted text]');
+      expect(attachment2.label).toBe('[#2 - Pasted text]');
     });
 
     it('should store text content correctly', () => {
@@ -99,8 +99,8 @@ describe('AttachmentManager', () => {
       const attachment1 = manager.addImageAttachment(buffer1, 'png');
       const attachment2 = manager.addImageAttachment(buffer2, 'png');
 
-      expect(attachment1.label).toBe('[Image #1]');
-      expect(attachment2.label).toBe('[Image #2]');
+      expect(attachment1.label).toBe('[#1 - Image]');
+      expect(attachment2.label).toBe('[#2 - Image]');
     });
 
     it('should store image data correctly', () => {
@@ -294,7 +294,7 @@ describe('AttachmentManager', () => {
 
       const newAttachment = manager.addTextAttachment('Test 3', metadata);
       // Counter continues from where it left off
-      expect(newAttachment.label).toBe('[Pasted text #3]');
+      expect(newAttachment.label).toBe('[#3 - Pasted text]');
     });
   });
 
@@ -313,8 +313,8 @@ describe('AttachmentManager', () => {
       const textAttachment = manager.addTextAttachment('Test 2', metadata);
       const imageAttachment = manager.addImageAttachment(Buffer.from('image2'), 'png');
 
-      expect(textAttachment.label).toBe('[Pasted text #1]');
-      expect(imageAttachment.label).toBe('[Image #1]');
+      expect(textAttachment.label).toBe('[#1 - Pasted text]');
+      expect(imageAttachment.label).toBe('[#1 - Image]');
     });
   });
 
@@ -348,7 +348,7 @@ describe('AttachmentManager', () => {
       expect(result[0].type).toBe('text');
       expect((result[0] as { type: 'text'; text: string }).text).toBe('Main message');
       expect(result[1].type).toBe('text');
-      expect((result[1] as { type: 'text'; text: string }).text).toContain('[Pasted text #1]');
+      expect((result[1] as { type: 'text'; text: string }).text).toContain('[#1 - Pasted text]');
       expect((result[1] as { type: 'text'; text: string }).text).toContain('Pasted content');
     });
 

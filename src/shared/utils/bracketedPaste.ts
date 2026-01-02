@@ -94,23 +94,21 @@ export function supportsBracketedPaste(): boolean {
 
 /**
  * Determine if pasted content should create an attachment
- * Threshold: >500 characters OR >10 lines
+ * Threshold: >200 characters (character-based for reliability)
  *
  * @param content Content to check
  * @returns True if should create attachment, false if should insert inline
  */
 export function shouldCreateAttachment(content: string): boolean {
-  const charCount = content.length;
-  const lineCount = content.split('\n').length;
-
-  return charCount > 500 || lineCount > 10;
+  return content.length > 200;
 }
 
 /**
  * Detect paste heuristically (fallback when bracketed paste not available)
  * Checks for:
  * - Multiple lines (contains newlines)
- * - Large input delta (>10 characters added at once)
+ * - Large input delta (>5 characters added at once - lowered for reliability)
+ * - Total content length >100 chars (likely not typed manually)
  *
  * @param newValue New input value
  * @param oldValue Previous input value
@@ -122,9 +120,14 @@ export function detectPasteHeuristic(newValue: string, oldValue: string): boolea
     return true;
   }
 
-  // Check for large input delta (more than 10 chars added at once)
+  // Check for large input delta (more than 5 chars added at once)
   const delta = newValue.length - oldValue.length;
-  if (delta > 10) {
+  if (delta > 5) {
+    return true;
+  }
+
+  // Check for large total content (unlikely to be typed manually in one go)
+  if (newValue.length > 100 && oldValue.length === 0) {
     return true;
   }
 

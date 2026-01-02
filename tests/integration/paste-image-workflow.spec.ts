@@ -22,7 +22,7 @@ describe('Image Paste Workflow', () => {
 
       expect(attachment.id).toBeTruthy();
       expect(attachment.type).toBe('image');
-      expect(attachment.label).toBe('[Image #1]');
+      expect(attachment.label).toBe('[#1 - Image]');
       expect(attachment.content).toEqual(imageData);
       expect(attachment.metadata.format).toBe('png');
       expect(attachment.metadata.size).toBe(imageData.length);
@@ -44,9 +44,9 @@ describe('Image Paste Workflow', () => {
       const attachment2 = attachmentManager.addImageAttachment(imageData, 'jpg');
       const attachment3 = attachmentManager.addImageAttachment(imageData, 'png');
 
-      expect(attachment1.label).toBe('[Image #1]');
-      expect(attachment2.label).toBe('[Image #2]');
-      expect(attachment3.label).toBe('[Image #3]');
+      expect(attachment1.label).toBe('[#1 - Image]');
+      expect(attachment2.label).toBe('[#2 - Image]');
+      expect(attachment3.label).toBe('[#3 - Image]');
     });
 
     it('should calculate correct size for image buffer', () => {
@@ -79,10 +79,10 @@ describe('Image Paste Workflow', () => {
       const textAttachment2 = attachmentManager.addTextAttachment('Text 2', textMetadata);
       const imageAttachment2 = attachmentManager.addImageAttachment(imageData, 'jpg');
 
-      expect(textAttachment1.label).toBe('[Pasted text #1]');
-      expect(imageAttachment1.label).toBe('[Image #1]');
-      expect(textAttachment2.label).toBe('[Pasted text #2]');
-      expect(imageAttachment2.label).toBe('[Image #2]');
+      expect(textAttachment1.label).toBe('[#1 - Pasted text]');
+      expect(imageAttachment1.label).toBe('[#1 - Image]');
+      expect(textAttachment2.label).toBe('[#2 - Pasted text]');
+      expect(imageAttachment2.label).toBe('[#2 - Image]');
     });
 
     it('should calculate correct statistics for mixed attachments', () => {
@@ -267,8 +267,8 @@ describe('Image Paste Workflow', () => {
       const parts = attachmentManager.expandForAPI('');
 
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;
-      // Should default to png
-      expect(imagePart.image_url.url).toMatch(/^data:image\/;base64,/);
+      // Should default to png when format is empty
+      expect(imagePart.image_url.url).toMatch(/^data:image\/png;base64,/);
     });
   });
 
@@ -280,7 +280,7 @@ describe('Image Paste Workflow', () => {
 
       // 2. Create image attachment
       const attachment = attachmentManager.addImageAttachment(clipboardImageData, format);
-      expect(attachment.label).toBe('[Image #1]');
+      expect(attachment.label).toBe('[#1 - Image]');
       expect(attachment.type).toBe('image');
 
       // 3. User adds message text

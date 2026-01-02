@@ -8,10 +8,13 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 
 // Use vi.hoisted to define testHomedir BEFORE mocks are processed
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const testHomedir = vi.hoisted(() =>
-  require('path').join(require('os').tmpdir(), 'mimir-test-home')
-);
+const testHomedir = vi.hoisted(() => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require('path') as typeof import('path');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const os = require('os') as typeof import('os');
+  return path.join(os.tmpdir(), 'mimir-test-home');
+});
 
 // Mock keytar
 vi.mock('keytar', () => ({

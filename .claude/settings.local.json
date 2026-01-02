@@ -50,7 +50,9 @@
       "Bash(timeout 5 yarn dev:*)",
       "Bash(timeout 3 yarn dev:*)",
       "Bash(npx vitest:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(echo:*)"
     ]
   }
 }

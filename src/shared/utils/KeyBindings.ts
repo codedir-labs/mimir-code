@@ -25,6 +25,8 @@ export type KeyBindingAction =
   | 'navigateLeft' // Arrow Left - navigate attachments left
   | 'navigateRight' // Arrow Right - navigate attachments right
   | 'removeAttachment' // Delete/Backspace - remove selected attachment
+  | 'insertAttachmentRef' // Ctrl+R - insert #[n] reference for selected attachment
+  | 'openAttachment' // Ctrl+O - open selected attachment in editor/viewer
   | 'pasteFromClipboard' // Ctrl+V - manual paste trigger
   | 'help' // ? - show help
   | 'clearScreen' // Ctrl+L - clear screen
@@ -171,25 +173,44 @@ export class KeyBindingsManager {
       description: 'Navigate down in list',
     });
 
+    const navigateLeftKeys = toPlatform(this.config.navigateLeft ?? []);
     this.addBinding('navigateLeft', {
-      keys: this.config.navigateLeft ?? [],
-      displayName: getDisplayName(this.config.navigateLeft, 'ArrowLeft'),
+      keys: navigateLeftKeys,
+      displayName: getDisplayName(navigateLeftKeys, 'Ctrl+P'),
       action: 'navigateLeft',
-      description: 'Navigate attachments left',
+      description: 'Navigate attachments left (previous)',
     });
 
+    const navigateRightKeys = toPlatform(this.config.navigateRight ?? []);
     this.addBinding('navigateRight', {
-      keys: this.config.navigateRight ?? [],
-      displayName: getDisplayName(this.config.navigateRight, 'ArrowRight'),
+      keys: navigateRightKeys,
+      displayName: getDisplayName(navigateRightKeys, 'Ctrl+N'),
       action: 'navigateRight',
-      description: 'Navigate attachments right',
+      description: 'Navigate attachments right (next)',
     });
 
+    const removeAttachmentKeys = toPlatform(this.config.removeAttachment ?? []);
     this.addBinding('removeAttachment', {
-      keys: this.config.removeAttachment ?? [],
-      displayName: getDisplayName(this.config.removeAttachment, 'Delete'),
+      keys: removeAttachmentKeys,
+      displayName: getDisplayName(removeAttachmentKeys, `${modKey}+Shift+Backspace`),
       action: 'removeAttachment',
       description: 'Remove selected attachment',
+    });
+
+    const insertAttachmentRefKeys = toPlatform(this.config.insertAttachmentRef ?? []);
+    this.addBinding('insertAttachmentRef', {
+      keys: insertAttachmentRefKeys,
+      displayName: getDisplayName(insertAttachmentRefKeys, `${modKey}+R`),
+      action: 'insertAttachmentRef',
+      description: 'Insert attachment reference at cursor',
+    });
+
+    const openAttachmentKeys = toPlatform(this.config.openAttachment ?? []);
+    this.addBinding('openAttachment', {
+      keys: openAttachmentKeys,
+      displayName: getDisplayName(openAttachmentKeys, `${modKey}+O`),
+      action: 'openAttachment',
+      description: 'Open attachment in editor/viewer',
     });
 
     const pasteFromClipboardKeys = toPlatform(this.config.pasteFromClipboard ?? []);
@@ -253,6 +274,72 @@ export class KeyBindingsManager {
       displayName: getDisplayName(this.config.resumeSession, 'r'),
       action: 'resumeSession',
       description: 'Resume session',
+    });
+
+    // Text editing actions (configurable for vim-like or custom bindings)
+    // By default these are 'none' (handled natively by TextInput)
+    // Users can configure custom keybindings to override native behavior
+    this.addBinding('cursorToLineStart', {
+      keys: this.config.cursorToLineStart ?? [],
+      displayName: getDisplayName(this.config.cursorToLineStart, 'Home'),
+      action: 'cursorToLineStart',
+      description: 'Move cursor to start of line',
+    });
+
+    this.addBinding('cursorToLineEnd', {
+      keys: this.config.cursorToLineEnd ?? [],
+      displayName: getDisplayName(this.config.cursorToLineEnd, 'End'),
+      action: 'cursorToLineEnd',
+      description: 'Move cursor to end of line',
+    });
+
+    this.addBinding('cursorWordLeft', {
+      keys: this.config.cursorWordLeft ?? [],
+      displayName: getDisplayName(this.config.cursorWordLeft, 'Ctrl+Left'),
+      action: 'cursorWordLeft',
+      description: 'Move cursor one word left',
+    });
+
+    this.addBinding('cursorWordRight', {
+      keys: this.config.cursorWordRight ?? [],
+      displayName: getDisplayName(this.config.cursorWordRight, 'Ctrl+Right'),
+      action: 'cursorWordRight',
+      description: 'Move cursor one word right',
+    });
+
+    this.addBinding('deleteWordLeft', {
+      keys: this.config.deleteWordLeft ?? [],
+      displayName: getDisplayName(this.config.deleteWordLeft, 'Ctrl+W'),
+      action: 'deleteWordLeft',
+      description: 'Delete word before cursor',
+    });
+
+    this.addBinding('deleteWordRight', {
+      keys: this.config.deleteWordRight ?? [],
+      displayName: getDisplayName(this.config.deleteWordRight, 'Ctrl+Delete'),
+      action: 'deleteWordRight',
+      description: 'Delete word after cursor',
+    });
+
+    this.addBinding('deleteToLineEnd', {
+      keys: this.config.deleteToLineEnd ?? [],
+      displayName: getDisplayName(this.config.deleteToLineEnd, 'Ctrl+K'),
+      action: 'deleteToLineEnd',
+      description: 'Delete from cursor to end of line',
+    });
+
+    this.addBinding('deleteToLineStart', {
+      keys: this.config.deleteToLineStart ?? [],
+      displayName: getDisplayName(this.config.deleteToLineStart, 'Ctrl+U'),
+      action: 'deleteToLineStart',
+      description: 'Delete from cursor to start of line',
+    });
+
+    this.addBinding('deleteEntireLine', {
+      keys: this.config.deleteEntireLine ?? [],
+      displayName: getDisplayName(this.config.deleteEntireLine, 'Ctrl+U'),
+      action: 'deleteEntireLine',
+      description: 'Delete entire line',
     });
   }
 

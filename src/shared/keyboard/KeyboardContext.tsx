@@ -84,3 +84,26 @@ export function useKeyboard(): KeyboardContextValue {
 
   return context;
 }
+
+/**
+ * Hook to get shortcut keys for an action
+ * Returns array of keys (e.g., ['Ctrl+C', 'Escape']) for display in tooltips
+ *
+ * @param action - The keyboard action name
+ * @returns Array of shortcut key strings for this action, or empty array if not found
+ *
+ * @example
+ * const interruptKeys = useShortcutKeys('interrupt');
+ * // Returns: ['Ctrl+C', 'Escape']
+ */
+export function useShortcutKeys(action: string): string[] {
+  const context = useContext(KeyboardContext);
+
+  if (!context) {
+    // Return empty array if not in KeyboardProvider (e.g., tests)
+    return [];
+  }
+
+  const binding = context.bindingsManager.getBinding(action as any);
+  return binding?.keys ?? [];
+}

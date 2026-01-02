@@ -7,7 +7,12 @@ export type AttachmentType = 'text' | 'image';
 
 export type AttachmentSource = 'paste' | 'clipboard' | 'manual';
 
-export type PasteDetectMethod = 'bracketed' | 'heuristic' | 'manual';
+export type PasteDetectMethod =
+  | 'bracketed'
+  | 'bracketed-partial'
+  | 'heuristic'
+  | 'manual'
+  | 'pre-mount';
 
 /**
  * Metadata for attachments

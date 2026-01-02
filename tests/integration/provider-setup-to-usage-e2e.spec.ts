@@ -227,14 +227,18 @@ describe('Provider Setup to Usage E2E', () => {
 
       vi.mocked(keytar.getPassword).mockResolvedValue(null);
 
-      // Should fail with helpful message
+      // Should fail with helpful message when no credentials are found
+      // Use a mock resolver that always returns null to simulate no credentials
+      // (the real CredentialsManager would read from ~/.mimir/credentials.enc)
+      const mockCredentialsResolver = async (_provider: string) => null;
+
       await expect(
         ProviderFactory.createFromConfig(
           {
             provider: 'deepseek',
             model: 'deepseek-chat',
           },
-          async (p) => credentialsManager.getKey(p)
+          mockCredentialsResolver
         )
       ).rejects.toThrow(/No API key configured[\s\S]*mimir connect/);
     });

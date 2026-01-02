@@ -5,6 +5,10 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Box, Text } from 'ink';
+import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { MimirHeader } from '@/shared/ui/MimirHeader.js';
 import { useKeyboard, useKeyboardAction } from '@/shared/keyboard/index.js';
 import { MessageList } from '@/features/chat/components/MessageList.js';
@@ -19,6 +23,56 @@ import { SlashCommandRegistry } from '@/features/chat/slash-commands/SlashComman
 import { AttachmentManager } from '@/features/chat/utils/AttachmentManager.js';
 import type { Attachment, PasteMetadata } from '@/features/chat/types/attachment.js';
 import { shouldCreateAttachment } from '@/shared/utils/bracketedPaste.js';
+import { pasteLog, pasteLogContent, pasteLogSeparator } from '@/shared/utils/pasteLogger.js';
+
+/**
+ * Insert text at cursor position, handling #[n] patterns
+ * If cursor is inside a #[n] pattern, insert after it
+ * Adds appropriate spacing before/after the inserted text
+ * Returns both the new text and the new cursor position (at end of inserted text)
+ */
+function insertAtCursor(
+  text: string,
+  cursorPos: number,
+  insertText: string
+): { text: string; newCursorPos: number } {
+  // Check if cursor is inside a #[n] or #[x] pattern
+  const refPattern = /#\[[\dx]+\]/g;
+  let insideRef = false;
+  let refEnd = cursorPos;
+
+  let refMatch;
+  while ((refMatch = refPattern.exec(text)) !== null) {
+    const start = refMatch.index;
+    const end = start + refMatch[0].length;
+    if (cursorPos > start && cursorPos < end) {
+      // Cursor is inside this pattern
+      insideRef = true;
+      refEnd = end;
+      break;
+    }
+  }
+
+  // If inside a #[n], insert after it
+  const insertPos = insideRef ? refEnd : cursorPos;
+
+  // Build the new string
+  const before = text.slice(0, insertPos);
+  const after = text.slice(insertPos);
+
+  // Add appropriate spacing
+  const needsSpaceBefore = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n');
+  const needsSpaceAfter = after.length > 0 && !after.startsWith(' ') && !after.startsWith('\n');
+
+  const spaceBefore = needsSpaceBefore ? ' ' : '';
+  const spaceAfter = needsSpaceAfter ? ' ' : '';
+
+  const newText = before + spaceBefore + insertText + spaceAfter + after;
+  // Cursor goes to end of inserted text (before the spaceAfter)
+  const newCursorPos = before.length + spaceBefore.length + insertText.length;
+
+  return { text: newText, newCursorPos };
+}
 
 export interface ChatInterfaceProps {
   config: Config;
@@ -48,6 +102,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   commandRegistry,
 }) => {
   const [input, setInput] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
+  // Token increments each time we request cursor move, so TextInput knows to update
+  const [cursorRequest, setCursorRequest] = useState<{ position: number; token: number } | undefined>(undefined);
+  const cursorTokenRef = useRef(0);
   const [mode, setMode] = useState<'plan' | 'act' | 'discuss'>(currentMode);
   const [interruptPressCount, setInterruptPressCount] = useState(0);
   const [isAutocompleteShowing, setIsAutocompleteShowing] = useState(false);
@@ -61,6 +119,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [manuallyClosedAutocomplete, setManuallyClosedAutocomplete] = useState(false);
   const acceptSelectionRef = useRef<(() => void) | null>(null);
   const interruptTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Track last deleted attachment for "double-delete" feature (removes #[x] on quick second press)
+  const lastDeleteRef = useRef<{ attachNum: string; timestamp: number } | null>(null);
   const { width: terminalWidth, height: terminalHeight } = useTerminalSize();
 
   // Sync mode with currentMode prop
@@ -221,29 +281,44 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   );
 
   // Interrupt (Ctrl+C and Escape)
+  // Cascading behavior: autocomplete → text/attachments → exit
   useKeyboardAction(
     'interrupt',
     (event) => {
-      // If autocomplete showing, close it first
+      // Priority 1: Close autocomplete if open
       if (event.context.isAutocompleteVisible) {
         setIsAutocompleteShowing(false);
         setManuallyClosedAutocomplete(true);
         setAutocompleteSelectedIndex(0);
-        return true; // Handled, don't exit app
+        setInterruptPressCount(0); // Reset counter
+        return true;
       }
 
-      // Handle interrupt/exit logic
+      // Priority 2: Clear text input and/or attachments if present
+      const hasText = input.trim().length > 0;
+      const hasAttachments = attachments.size > 0;
+
+      if (hasText || hasAttachments) {
+        // Clear text input
+        if (hasText) {
+          setInput('');
+        }
+        // Clear attachments and reset counters (so next paste starts at #1)
+        if (hasAttachments) {
+          attachmentManager.current.clearAll();
+          setAttachments(new Map());
+          setSelectedAttachmentId(null);
+        }
+        setInterruptPressCount(0); // Reset counter
+        return true;
+      }
+
+      // Priority 3: Handle exit logic (2-press to exit)
       const newCount = interruptPressCount + 1;
       setInterruptPressCount(newCount);
 
-      if (event.context.isAgentRunning) {
-        if (newCount >= 2) {
-          onExit();
-        }
-      } else {
-        if (newCount >= 2) {
-          onExit();
-        }
+      if (newCount >= 2) {
+        onExit();
       }
       return true;
     },
@@ -312,14 +387,135 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     { priority: 5 }
   );
 
-  // Remove selected attachment (Alt+Backspace)
+  // Remove selected attachment (Ctrl+Shift+Backspace)
+  // Double-delete: If pressed quickly after deleting, also removes the #[x] markers
   useKeyboardAction(
     'removeAttachment',
+    (event) => {
+      if (event.context.isAutocompleteVisible) {
+        return false;
+      }
+
+      // Check for double-delete FIRST (before checking selected attachment)
+      // This handles the case where after deletion, another attachment gets selected
+      const lastDelete = lastDeleteRef.current;
+      const now = Date.now();
+      // Double-delete within 300ms removes the #[x] that was just created
+      if (lastDelete && now - lastDelete.timestamp < 300) {
+        setInput((prev) => {
+          // Remove the #[x] markers and clean up whitespace
+          return prev.replace(/#\[x\]/g, '').replace(/\s{2,}/g, ' ').trim();
+        });
+        lastDeleteRef.current = null; // Clear so triple-delete doesn't do anything
+        return true;
+      }
+
+      // Normal delete: remove selected attachment
+      if (!selectedAttachmentId) {
+        return false;
+      }
+
+      handleRemoveAttachment(selectedAttachmentId);
+      return true;
+    },
+    { priority: 10 }
+  );
+
+  // Insert selected attachment reference into input at cursor position (Ctrl+R)
+  useKeyboardAction(
+    'insertAttachmentRef',
     (event) => {
       if (event.context.isAutocompleteVisible || !selectedAttachmentId) {
         return false;
       }
-      handleRemoveAttachment(selectedAttachmentId);
+      // Find the attachment and get its number
+      const attachment = attachments.get(selectedAttachmentId);
+      if (!attachment) return false;
+
+      const match = attachment.label.match(/#(\d+)/);
+      const attachNum = match ? match[1] : '1';
+      const ref = `#[${attachNum}]`;
+
+      // Insert reference at cursor position and move cursor to end of ref
+      const result = insertAtCursor(input, cursorPosition, ref);
+      setInput(result.text);
+      // Request cursor to move to end of inserted ref
+      cursorTokenRef.current++;
+      setCursorRequest({ position: result.newCursorPos, token: cursorTokenRef.current });
+      return true;
+    },
+    { priority: 10 }
+  );
+
+  // Open selected attachment in external editor/viewer (Ctrl+O)
+  useKeyboardAction(
+    'openAttachment',
+    (event) => {
+      if (event.context.isAutocompleteVisible || !selectedAttachmentId) {
+        return false;
+      }
+      const attachment = attachments.get(selectedAttachmentId);
+      if (!attachment) return false;
+
+      // Open attachment based on type
+      if (attachment.type === 'text') {
+        // Try to open in $EDITOR
+        const editor = process.env.EDITOR || process.env.VISUAL;
+        if (editor && typeof attachment.content === 'string') {
+          // Write content to temp file
+          const tempDir = os.tmpdir();
+          const tempFile = path.join(tempDir, `mimir-attachment-${Date.now()}.txt`);
+          try {
+            fs.writeFileSync(tempFile, attachment.content, 'utf8');
+            // Spawn editor
+            const child = spawn(editor, [tempFile], {
+              stdio: 'inherit',
+              shell: true,
+              detached: false,
+            });
+            child.on('error', (err) => {
+              // Silently handle errors - editor may not be available
+              void err;
+            });
+          } catch {
+            // Failed to write or spawn - silently fail
+          }
+        }
+      } else if (attachment.type === 'image') {
+        // Try to open with system image viewer
+        const buffer = attachment.content instanceof Buffer
+          ? attachment.content
+          : Buffer.from(attachment.content as string, 'utf8');
+        const tempDir = os.tmpdir();
+        const format = attachment.metadata.format || 'png';
+        const tempFile = path.join(tempDir, `mimir-image-${Date.now()}.${format}`);
+        try {
+          fs.writeFileSync(tempFile, buffer);
+          // Open with system viewer
+          const platform = os.platform();
+          let cmd: string;
+          let args: string[];
+          if (platform === 'darwin') {
+            cmd = 'open';
+            args = [tempFile];
+          } else if (platform === 'win32') {
+            cmd = 'cmd';
+            args = ['/c', 'start', '', tempFile];
+          } else {
+            cmd = 'xdg-open';
+            args = [tempFile];
+          }
+          const child = spawn(cmd, args, {
+            stdio: 'ignore',
+            shell: false,
+            detached: true,
+          });
+          child.unref();
+          child.on('error', () => { /* ignore */ });
+        } catch {
+          // Failed to write or spawn - silently fail
+        }
+      }
       return true;
     },
     { priority: 10 }
@@ -328,33 +524,112 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Handle paste events from InputBox
   const handlePaste = useCallback(
     (content: string, metadata: PasteMetadata) => {
-      if (shouldCreateAttachment(content)) {
+      // FIRST LINE - log immediately to catch any early failures
+      try {
+        pasteLog('ChatInterface', '>>> handlePaste ENTRY <<<', { contentLen: content.length });
+      } catch (e) { /* ignore */ }
+
+      pasteLogSeparator('ChatInterface.handlePaste');
+      const lines = content.split('\n').length;
+      pasteLog('ChatInterface', 'handlePaste called', {
+        contentLen: content.length,
+        lines,
+        metadata: JSON.stringify(metadata),
+        currentInput: input,
+      });
+      pasteLogContent('ChatInterface-CONTENT', content);
+
+      const shouldAttach = shouldCreateAttachment(content);
+      pasteLog('ChatInterface', 'shouldCreateAttachment result', {
+        shouldAttach,
+        lines,
+        threshold: '>5 lines',
+      });
+
+      if (shouldAttach) {
         // Create attachment for large pastes
+        pasteLog('ChatInterface', 'Creating attachment');
         const attachment = attachmentManager.current.addTextAttachment(content, metadata);
         const allAttachments = attachmentManager.current.getAll();
         setAttachments(new Map(allAttachments.map((a) => [a.id, a])));
 
-        // Auto-select first attachment if none selected
-        if (!selectedAttachmentId) {
-          setSelectedAttachmentId(attachment.id);
-        }
+        // Extract attachment number from label (e.g., "[#1 - Pasted text]" -> 1)
+        const match = attachment.label.match(/#(\d+)/);
+        const attachNum = match ? match[1] : '1';
+
+        // Insert reference at cursor position and move cursor to end of ref
+        const ref = `#[${attachNum}]`;
+        pasteLog('ChatInterface', 'Inserting reference at cursor', { ref, cursorPosition });
+        const result = insertAtCursor(input, cursorPosition, ref);
+        setInput(result.text);
+        // Request cursor to move to end of inserted ref
+        cursorTokenRef.current++;
+        setCursorRequest({ position: result.newCursorPos, token: cursorTokenRef.current });
+
+        // Auto-select the new attachment
+        setSelectedAttachmentId(attachment.id);
+        pasteLog('ChatInterface', 'Attachment created', {
+          id: attachment.id,
+          label: attachment.label,
+        });
       } else {
-        // Insert inline for small pastes
-        setInput((prev) => prev + content);
+        // Insert pasted content at cursor position (for small pastes)
+        pasteLog('ChatInterface', 'Inserting content inline at cursor', { cursorPosition });
+        const result = insertAtCursor(input, cursorPosition, content);
+        setInput(result.text);
+        // Request cursor to move to end of inserted content
+        cursorTokenRef.current++;
+        setCursorRequest({ position: result.newCursorPos, token: cursorTokenRef.current });
       }
+      pasteLog('ChatInterface', 'handlePaste complete');
     },
-    [selectedAttachmentId]
+    [input, cursorPosition]
   );
 
-  // Handle attachment removal
+  // Handle attachment removal - marks references as invalid #[x] and selects previous
   const handleRemoveAttachment = useCallback((id: string) => {
+    // Get the attachment number and list index before removing
+    const attachment = attachmentManager.current.get(id);
+    const attachNum = attachment ? AttachmentManager.getAttachmentNumber(attachment.label) : null;
+
+    // Get sorted list to find previous attachment
+    const sortedList = attachmentManager.current.getAll();
+    const removedIndex = sortedList.findIndex((a) => a.id === id);
+
+    // Remove from attachment manager
     attachmentManager.current.remove(id);
     const allAttachments = attachmentManager.current.getAll();
     setAttachments(new Map(allAttachments.map((a) => [a.id, a])));
 
-    // Clear selection if removed item was selected
+    // Reset counters when all attachments are removed (so next paste starts at #1)
+    if (allAttachments.length === 0) {
+      attachmentManager.current.resetCounters();
+    }
+
+    // Replace references to this attachment with #[x] (invalid marker)
+    if (attachNum) {
+      setInput((prev) => {
+        // Replace #[n] with #[x] to mark as invalid/deleted
+        const pattern = new RegExp(`#\\[${attachNum}\\]`, 'g');
+        return prev.replace(pattern, '#[x]');
+      });
+      // Track this deletion for double-delete feature (quick second press removes #[x])
+      lastDeleteRef.current = { attachNum, timestamp: Date.now() };
+    }
+
+    // Select previous attachment if the removed one was selected
     if (selectedAttachmentId === id) {
-      setSelectedAttachmentId(null);
+      if (removedIndex > 0 && allAttachments.length > 0) {
+        // Select previous attachment (index - 1 in original list, but list is now shorter)
+        const prevAttachment = allAttachments[Math.min(removedIndex - 1, allAttachments.length - 1)];
+        setSelectedAttachmentId(prevAttachment?.id || null);
+      } else if (allAttachments.length > 0) {
+        // Removed first item, select new first item
+        setSelectedAttachmentId(allAttachments[0]?.id || null);
+      } else {
+        // No attachments left
+        setSelectedAttachmentId(null);
+      }
     }
   }, [selectedAttachmentId]);
 
@@ -364,10 +639,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     (value?: string) => {
       const submittedValue = value !== undefined ? value : input;
       if (submittedValue.trim() || attachments.size > 0) {
-        // Expand attachments for API (multi-part message)
+        // Find which attachments are referenced in the input (e.g., #[1], #[2])
+        const referencedNums = new Set<string>();
+        const refPattern = /#\[(\d+)\]/g;
+        let match;
+        while ((match = refPattern.exec(submittedValue)) !== null) {
+          referencedNums.add(match[1]!);
+        }
+
+        // Expand only referenced attachments for API (multi-part message)
         const messageContent: MessageContent =
-          attachments.size > 0
-            ? attachmentManager.current.expandForAPI(submittedValue)
+          attachments.size > 0 && referencedNums.size > 0
+            ? attachmentManager.current.expandForAPI(submittedValue, referencedNums)
             : submittedValue;
 
         onUserInput(messageContent);
@@ -396,6 +679,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }),
     [mode, config.llm.provider, config.llm.model, messages.length]
   );
+
+  // Compute set of valid attachment numbers for input validation
+  const validAttachmentNums = useMemo(() => {
+    const nums = new Set<string>();
+    for (const attachment of attachments.values()) {
+      const num = AttachmentManager.getAttachmentNumber(attachment.label);
+      if (num) {
+        nums.add(num);
+      }
+    }
+    return nums;
+  }, [attachments]);
 
   // Layout structure (from top to bottom):
   // MimirHeader (4) + Divider (1) + MessageList (flex) + Divider (1) + InputBox + Divider (1) + Footer (1)
@@ -489,6 +784,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         autocompleteExecuteOnSelect={config.ui.autocompleteExecuteOnSelect}
         bracketedPasteEnabled={true}
         onPaste={handlePaste}
+        onCursorChange={setCursorPosition}
+        validAttachmentNums={validAttachmentNums}
+        requestCursorAt={cursorRequest}
       />
 
       {/* Attachments area - appears below InputBox when attachments present */}
@@ -501,6 +799,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           provider={config.llm.provider}
           model={config.llm.model}
           onRemove={handleRemoveAttachment}
+          currentInput={input}
         />
       )}
 

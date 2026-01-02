@@ -24,6 +24,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete', 'backspace'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -32,6 +34,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -39,7 +50,7 @@ describe('Attachment Keybind Configuration', () => {
 
       expect(binding).toBeDefined();
       expect(binding?.keys).toContain('arrowleft');
-      expect(binding?.description).toBe('Navigate attachments left');
+      expect(binding?.description).toBe('Navigate attachments left (previous)');
     });
 
     it('should have default navigateRight binding', () => {
@@ -57,6 +68,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete', 'backspace'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -65,6 +78,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -72,7 +94,7 @@ describe('Attachment Keybind Configuration', () => {
 
       expect(binding).toBeDefined();
       expect(binding?.keys).toContain('arrowright');
-      expect(binding?.description).toBe('Navigate attachments right');
+      expect(binding?.description).toBe('Navigate attachments right (next)');
     });
 
     it('should have default removeAttachment binding with multiple keys', () => {
@@ -90,6 +112,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete', 'backspace'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -98,6 +122,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -123,6 +156,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete', 'backspace'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -131,6 +166,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -158,6 +202,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['h'], // Vim-style
         navigateRight: ['arrowright'],
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -166,6 +212,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -189,6 +244,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['l'], // Vim-style
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -197,6 +254,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -220,6 +286,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft', 'h', 'ctrl+h'], // Multiple options
         navigateRight: ['arrowright'],
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -228,6 +296,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -252,6 +329,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['x'], // Custom single key
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -260,6 +339,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -285,6 +373,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['ctrl+arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -293,6 +383,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -318,6 +417,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -326,6 +427,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -395,6 +505,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete', 'backspace'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -403,6 +515,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       manager = new KeyBindingsManager(config);
@@ -455,6 +576,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete', 'backspace'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -463,6 +586,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       manager = new KeyBindingsManager(config);
@@ -510,6 +642,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -518,6 +652,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -540,6 +683,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: [], // Disabled
         navigateRight: ['arrowright'],
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -548,6 +693,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -573,6 +727,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['<leader>h'],
         navigateRight: ['<leader>l'],
         removeAttachment: ['<leader>x'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -581,6 +737,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -604,6 +769,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -612,6 +779,15 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
@@ -637,6 +813,8 @@ describe('Attachment Keybind Configuration', () => {
         navigateLeft: ['arrowleft'],
         navigateRight: ['arrowright'],
         removeAttachment: ['delete', 'backspace'],
+        insertAttachmentRef: ['ctrl+r'],
+        openAttachment: ['ctrl+o'],
         pasteFromClipboard: ['ctrl+v'],
         help: ['?'],
         clearScreen: ['ctrl+l'],
@@ -645,15 +823,25 @@ describe('Attachment Keybind Configuration', () => {
         newSession: ['n'],
         listSessions: ['l'],
         resumeSession: ['r'],
+        cursorToLineStart: [],
+        cursorToLineEnd: [],
+        cursorWordLeft: [],
+        cursorWordRight: [],
+        deleteWordLeft: [],
+        deleteWordRight: [],
+        deleteToLineEnd: [],
+        deleteToLineStart: [],
+        deleteEntireLine: [],
       };
 
       const manager = new KeyBindingsManager(config);
       const helpText = manager.getHelpText();
 
-      expect(helpText).toContain('navigateLeft');
-      expect(helpText).toContain('navigateRight');
-      expect(helpText).toContain('removeAttachment');
-      expect(helpText).toContain('pasteFromClipboard');
+      // Check for descriptions, not action names
+      expect(helpText).toContain('Navigate attachments left');
+      expect(helpText).toContain('Navigate attachments right');
+      expect(helpText).toContain('Remove selected attachment');
+      expect(helpText).toContain('Paste from clipboard');
     });
   });
 });

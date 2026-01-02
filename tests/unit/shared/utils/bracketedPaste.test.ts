@@ -140,48 +140,30 @@ describe('Bracketed Paste Utilities', () => {
   });
 
   describe('shouldCreateAttachment', () => {
-    it('should return true for content >500 chars', () => {
-      const content = 'x'.repeat(501);
+    it('should return true for content >200 chars', () => {
+      const content = 'x'.repeat(201);
       expect(shouldCreateAttachment(content)).toBe(true);
     });
 
-    it('should return false for content <=500 chars', () => {
-      const content = 'x'.repeat(500);
+    it('should return false for content <=200 chars', () => {
+      const content = 'x'.repeat(200);
       expect(shouldCreateAttachment(content)).toBe(false);
     });
 
-    it('should return true for content >10 lines', () => {
-      const content = Array(11).fill('line').join('\n');
+    it('should return true for long content even with single line', () => {
+      // Many chars in 1 line should create attachment if over threshold
+      const content = 'x'.repeat(1000);
       expect(shouldCreateAttachment(content)).toBe(true);
     });
 
-    it('should return false for content <=10 lines', () => {
-      const content = Array(10).fill('line').join('\n');
-      expect(shouldCreateAttachment(content)).toBe(false);
+    it('should return false for short content even with many lines', () => {
+      // Many lines but short total length should NOT create attachment
+      const content = Array(50).fill('x').join('\n');
+      expect(shouldCreateAttachment(content)).toBe(false); // 50 x's + 49 newlines = 99 chars
     });
 
-    it('should return true if EITHER threshold met', () => {
-      // Short but many lines
-      const manyLines = Array(11).fill('x').join('\n');
-      expect(shouldCreateAttachment(manyLines)).toBe(true);
-
-      // Few lines but many chars
-      const manyChars = 'x'.repeat(501);
-      expect(shouldCreateAttachment(manyChars)).toBe(true);
-    });
-
-    it('should return false if BOTH thresholds not met', () => {
-      const content = Array(5).fill('short').join('\n');
-      expect(shouldCreateAttachment(content)).toBe(false);
-    });
-
-    it('should handle edge case of exactly 500 chars', () => {
-      const content = 'x'.repeat(500);
-      expect(shouldCreateAttachment(content)).toBe(false);
-    });
-
-    it('should handle edge case of exactly 10 lines', () => {
-      const content = Array(10).fill('line').join('\n');
+    it('should handle edge case of exactly 200 chars', () => {
+      const content = 'x'.repeat(200);
       expect(shouldCreateAttachment(content)).toBe(false);
     });
   });

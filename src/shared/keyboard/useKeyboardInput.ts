@@ -9,7 +9,7 @@
 import { useInput, useStdin } from 'ink';
 import { useKeyboard } from './KeyboardContext.js';
 import { logger } from '@/shared/utils/logger.js';
-import type { RawKeyResult } from './RawKeyMapper.js';
+import { getLastRawKey, type RawKeyResult } from './RawKeyMapper.js';
 
 /**
  * Ink Key object type
@@ -105,6 +105,10 @@ function inkKeyToString(input: string, key: InkKey, rawResult: RawKeyResult | nu
         .replace('ArrowDown', 'ArrowDown')
         .replace('ArrowLeft', 'ArrowLeft')
         .replace('ArrowRight', 'ArrowRight')
+        .replace('Ctrl+Shift+ArrowUp', 'Ctrl+Shift+Up')
+        .replace('Ctrl+Shift+ArrowDown', 'Ctrl+Shift+Down')
+        .replace('Ctrl+Shift+ArrowLeft', 'Ctrl+Shift+Left')
+        .replace('Ctrl+Shift+ArrowRight', 'Ctrl+Shift+Right')
         .replace('Ctrl+ArrowUp', 'Ctrl+Up')
         .replace('Ctrl+ArrowDown', 'Ctrl+Down')
         .replace('Ctrl+ArrowLeft', 'Ctrl+Left')
@@ -121,6 +125,16 @@ function inkKeyToString(input: string, key: InkKey, rawResult: RawKeyResult | nu
   }
 
   // Fall back to Ink's key detection for everything else
+  // Ctrl+Shift combinations (for attachment navigation)
+  if (key.ctrl && key.shift) {
+    if (key.upArrow) return 'Ctrl+Shift+Up';
+    if (key.downArrow) return 'Ctrl+Shift+Down';
+    if (key.leftArrow) return 'Ctrl+Shift+Left';
+    if (key.rightArrow) return 'Ctrl+Shift+Right';
+    if (key.backspace) return 'Ctrl+Shift+Backspace';
+    if (key.delete) return 'Ctrl+Shift+Delete';
+  }
+
   // Special keys with Ctrl modifier (OS text editing)
   if (key.ctrl) {
     if (key.leftArrow) return 'Ctrl+Left';
@@ -230,9 +244,12 @@ export function useKeyboardInput(options: UseKeyboardInputOptions = {}): void {
           return;
         }
 
-        // Convert to normalized key string using Ink's detection
-        // Raw detection is handled by TextInput for text editing keys
-        const keyString = inkKeyToString(input, key, null);
+        // Get raw detection result (set by TextInput's stdin listener)
+        // This provides accurate detection for Alt+Backspace and other terminal-specific sequences
+        const rawResult = getLastRawKey();
+
+        // Convert to normalized key string using Ink's detection with raw fallback
+        const keyString = inkKeyToString(input, key, rawResult);
 
         logger.debug('[KB] Key converted', { keyString });
 
