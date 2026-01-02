@@ -36,7 +36,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       // Package aliases for tests
       '@codedir/mimir-agents': path.resolve(__dirname, './packages/mimir-agents/src'),
-      '@codedir/mimir-agents-node': path.resolve(__dirname, './packages/mimir-agents-runtime/src'),
+      '@codedir/mimir-agents-node': path.resolve(__dirname, './packages/mimir-agents-node/src'),
     },
   },
 });

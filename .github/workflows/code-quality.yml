@@ -1,0 +1,168 @@
+name: Code Quality
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_call:
+
+concurrency:
+  group: code-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  complexity:
+    name: Complexity & Maintainability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Check complexity & maintainability
+        run: |
+          echo "## Complexity & Maintainability Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Run ESLint with complexity rules (sonarjs plugin)
+          # This checks: cyclomatic complexity, cognitive complexity, code smells
+          yarn lint 2>&1 | tee lint-output.txt || true
+
+          # Count complexity warnings
+          COMPLEXITY_WARNINGS=$(grep -c "complexity\|max-depth\|max-lines-per-function\|cognitive-complexity" lint-output.txt || echo "0")
+
+          echo "- Complexity warnings: $COMPLEXITY_WARNINGS" >> $GITHUB_STEP_SUMMARY
+
+          # Fail if too many complexity issues (threshold: 20)
+          if [ "$COMPLEXITY_WARNINGS" -gt 20 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Too many complexity issues ($COMPLEXITY_WARNINGS > 20)" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ Complexity within acceptable limits" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  dead-code:
+    name: Dead Code Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Knip (dead code detection)
+        run: |
+          echo "## Dead Code Detection (Knip)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Run knip and capture output
+          npx knip --reporter markdown >> $GITHUB_STEP_SUMMARY 2>&1 || true
+
+          # Run again for exit code (strict mode warns, doesn't fail)
+          npx knip --no-exit-code || true
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Dead code analysis complete (review above for potential cleanup)" >> $GITHUB_STEP_SUMMARY
+
+  duplicate-code:
+    name: Duplicate Code Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run jscpd (duplicate detection)
+        run: |
+          echo "## Duplicate Code Detection (jscpd)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Run jscpd on src directory
+          npx jscpd src --min-lines 10 --min-tokens 50 --reporters markdown --output ./jscpd-report || JSCPD_EXIT=$?
+
+          # Append report to summary if it exists
+          if [ -f "./jscpd-report/jscpd-report.md" ]; then
+            cat ./jscpd-report/jscpd-report.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Get duplication percentage
+          DUPLICATION=$(npx jscpd src --min-lines 10 --min-tokens 50 --reporters json --output ./jscpd-json 2>/dev/null && cat ./jscpd-json/jscpd-report.json | node -e "const d=JSON.parse(require('fs').readFileSync(0));console.log(d.statistics?.total?.percentageTokens||0)" || echo "0")
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Duplication: ${DUPLICATION}%**" >> $GITHUB_STEP_SUMMARY
+
+          # Fail if duplication exceeds 5%
+          if [ "$(echo "$DUPLICATION > 5" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Code duplication too high (${DUPLICATION}% > 5%)" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ Code duplication within acceptable limits" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload duplication report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jscpd-report
+          path: jscpd-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  quality-summary:
+    name: Quality Summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [complexity, dead-code, duplicate-code]
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "## Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Complexity & Maintainability | ${{ needs.complexity.result == 'success' && '✅ Pass' || (needs.complexity.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dead Code Detection | ${{ needs.dead-code.result == 'success' && '✅ Pass' || (needs.dead-code.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Duplicate Code Detection | ${{ needs.duplicate-code.result == 'success' && '✅ Pass' || (needs.duplicate-code.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
+
+          # Fail if any critical check failed
+          if [[ "${{ needs.complexity.result }}" == "failure" ]] || \
+             [[ "${{ needs.duplicate-code.result }}" == "failure" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Code quality checks failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ All code quality checks passed" >> $GITHUB_STEP_SUMMARY
+          fi

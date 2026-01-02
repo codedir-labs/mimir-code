@@ -1,15 +1,10 @@
+# Fast checks for commits - staged files only
 yarn lint-staged
 
-# Run security audit (fail on high/critical vulnerabilities)
-echo "🔒 Running security audit..."
-yarn audit --level high || {
-  AUDIT_EXIT_CODE=$?
-  if [ $AUDIT_EXIT_CODE -ge 16 ]; then
-    echo "❌ Audit failed with error"
-    exit 1
-  elif [ $AUDIT_EXIT_CODE -gt 0 ]; then
-    echo "❌ High/Critical vulnerabilities found - commit blocked"
-    exit 1
-  fi
+# Quick typecheck (incremental, fast)
+echo "📝 Running typecheck..."
+yarn typecheck || {
+  echo "❌ TypeScript errors found - commit blocked"
+  exit 1
 }
-echo "✅ Security audit passed"
+echo "✅ Typecheck passed"

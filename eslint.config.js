@@ -1,6 +1,7 @@
 import eslint from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
+import sonarjs from 'eslint-plugin-sonarjs';
 import prettier from 'eslint-config-prettier';
 
 export default [
@@ -30,9 +31,25 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint,
+      sonarjs: sonarjs,
     },
     rules: {
       ...tseslint.configs['recommended'].rules,
+      ...sonarjs.configs.recommended.rules,
+
+      // Complexity rules
+      complexity: ['warn', { max: 15 }],
+      'max-depth': ['warn', 4],
+      'max-lines-per-function': ['warn', { max: 100, skipBlankLines: true, skipComments: true }],
+      'max-nested-callbacks': ['warn', 3],
+      'max-params': ['warn', 5],
+
+      // SonarJS maintainability rules (cognitive complexity, code smells)
+      'sonarjs/cognitive-complexity': ['warn', 15],
+      'sonarjs/no-duplicate-string': ['warn', { threshold: 3 }],
+      'sonarjs/todo-tag': 'off', // Allow TODOs in WIP codebase
+      'sonarjs/fixme-tag': 'off', // Allow FIXMEs in WIP codebase
+
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-unused-vars': [

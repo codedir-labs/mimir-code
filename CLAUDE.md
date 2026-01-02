@@ -59,7 +59,7 @@ import type { IExecutor, ILLMProvider, IFileSystem } from '@codedir/mimir-agents
 
 ### `@codedir/mimir-agents-node` (Node.js Runtime)
 
-**Location:** `packages/mimir-agents-runtime/` (physical directory)
+**Location:** `packages/mimir-agents-node/`
 **Package:** `@codedir/mimir-agents-node`
 **Status:** ✅ Implemented and building successfully
 
@@ -107,8 +107,8 @@ import { DatabaseManager } from '@codedir/mimir-agents-node/storage';
 // Abstractions from core
 import { Agent } from '@codedir/mimir-agents/core';
 // Implementations from runtime
-import { AnthropicProvider } from '@codedir/mimir-agents-runtime/providers';
-import { NativeExecutor } from '@codedir/mimir-agents-runtime/execution';
+import { AnthropicProvider } from '@codedir/mimir-agents-node/providers';
+import { NativeExecutor } from '@codedir/mimir-agents-node/execution';
 ```
 
 **Key Principle:** CLI is just a consumer. It **composes** core logic + runtime implementations + UI.
@@ -117,11 +117,11 @@ import { NativeExecutor } from '@codedir/mimir-agents-runtime/execution';
 
 ### 🚨 CRITICAL RULES:
 
-1. **`mimir-agents` NEVER imports from `mimir-agents-runtime`**
+1. **`mimir-agents` NEVER imports from `mimir-agents-node`**
    - Core defines interfaces only
    - Runtime implements interfaces
 
-2. **`mimir-agents-runtime` imports interfaces from `mimir-agents`**
+2. **`mimir-agents-node` imports interfaces from `mimir-agents`**
    - Runtime depends on core
    - Implements core interfaces
 
@@ -134,7 +134,7 @@ import { NativeExecutor } from '@codedir/mimir-agents-runtime/execution';
    - No external SDKs (Anthropic, OpenAI)
    - Only pure TypeScript + Zod
 
-5. **When working on platform integration → `mimir-agents-runtime`**
+5. **When working on platform integration → `mimir-agents-node`**
    - Node.js APIs allowed
    - External SDKs allowed
    - Must implement interfaces from `mimir-agents`
@@ -144,20 +144,58 @@ import { NativeExecutor } from '@codedir/mimir-agents-runtime/execution';
 ### 📚 Required Reading When Working With Packages:
 
 - **Before editing `packages/mimir-agents/`**: Read `packages/mimir-agents/README.md`
-- **Before editing `packages/mimir-agents-runtime/`**: Read `packages/mimir-agents-runtime/README.md`
+- **Before editing `packages/mimir-agents-node/`**: Read `packages/mimir-agents-node/README.md`
 - **Architecture rationale**: See `.claude/best-practices/package_architecture.md`
 
 ## Development Commands
 
+### Validation (Run After Making Changes)
+
+**Quick validation** - run before committing:
 ```bash
-yarn dev              # Development mode
-yarn build            # Build TypeScript
-yarn build:binary     # Platform-specific executables
-yarn test             # All tests
-yarn test:unit        # Unit tests (*.test.ts)
-yarn test:integration # Integration tests (*.spec.ts)
-yarn lint             # ESLint
-yarn format           # Prettier
+yarn validate         # typecheck + lint + test
+```
+
+**Full validation** - run before pushing/PR:
+```bash
+yarn validate:full    # typecheck + lint + test:coverage + deadcode analysis
+```
+
+### Individual Commands
+
+| Command | Description | When to Use |
+|---------|-------------|-------------|
+| `yarn typecheck` | TypeScript type checking | After any code change |
+| `yarn lint` | ESLint (includes complexity + sonarjs rules) | After any code change |
+| `yarn lint:fix` | Auto-fix lint issues | To fix formatting/simple issues |
+| `yarn test` | Run all tests once | After any code change |
+| `yarn test:watch` | Run tests in watch mode | During active development |
+| `yarn test:unit` | Unit tests only | Quick feedback loop |
+| `yarn test:coverage` | Tests with 80% coverage enforcement | Before PR |
+| `yarn format` | Prettier formatting | Before commit |
+
+### Quality Analysis (CI runs these)
+
+| Command | Description |
+|---------|-------------|
+| `yarn quality:deadcode` | Find unused exports/files (Knip) |
+| `yarn quality:duplicates` | Find duplicate code (jscpd) |
+
+### Build Commands
+
+```bash
+yarn dev              # Run CLI in dev mode (tsx)
+yarn build            # Build all packages + CLI
+yarn build:packages   # Build workspace packages only
+yarn build:binary     # Single platform binary (bun)
+yarn build:binary:all # All platform binaries
+yarn clean            # Remove all dist folders
+```
+
+### Package-Specific Commands
+
+```bash
+yarn test:packages    # Run tests for mimir-agents + mimir-agents-node
 ```
 
 ## Architecture
@@ -386,7 +424,30 @@ When implementing:
 5. **Validate input** - Zod schemas
 6. **Handle errors** - Result types or custom errors
 7. **Cross-platform** - Test Windows + Unix
-8. **Document** - Update this file for major components
+8. **Run validation** - `yarn validate` before commit, `yarn validate:full` before PR
+9. **Document** - Update this file for major components
+
+### Git Hooks (Husky)
+
+| Hook | Checks | Blocks on |
+|------|--------|-----------|
+| `pre-commit` | lint-staged, typecheck | TS errors |
+| `pre-push` | validate (typecheck + lint + test), security audit | Any failure |
+
+### CI Quality Gates
+
+PRs must pass these automated checks:
+
+| Gate | Threshold | Workflow |
+|------|-----------|----------|
+| TypeScript | No errors | `test.yml` |
+| ESLint | No errors (warnings allowed) | `test.yml` |
+| Prettier | Formatted | `test.yml` |
+| Test Coverage | 80% lines/functions/branches | `test.yml` |
+| Complexity | Max 15 cyclomatic, 15 cognitive | `code-quality.yml` |
+| Duplication | Max 5% | `code-quality.yml` |
+| Dead Code | Advisory (no block) | `code-quality.yml` |
+| Security | npm audit, CodeQL, secrets scan | `security.yml` |
 
 ## AI Output Organization
 

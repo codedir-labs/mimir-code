@@ -1,8 +1,14 @@
-yarn typecheck
-yarn test:unit
+# Full validation before push
+echo "🔍 Running full validation..."
+yarn validate || {
+  echo "❌ Validation failed - push blocked"
+  echo "Run 'yarn validate' locally to see details"
+  exit 1
+}
+echo "✅ Validation passed (typecheck + lint + tests)"
 
-# Run comprehensive security audit before push
-echo "🔒 Running comprehensive security audit..."
+# Security audit (moderate level for pushes)
+echo "🔒 Running security audit..."
 yarn audit --level moderate || {
   AUDIT_EXIT_CODE=$?
   if [ $AUDIT_EXIT_CODE -ge 16 ]; then
@@ -15,3 +21,6 @@ yarn audit --level moderate || {
   fi
 }
 echo "✅ Security audit passed"
+
+echo ""
+echo "🚀 All checks passed - pushing..."

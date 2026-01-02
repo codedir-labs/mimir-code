@@ -18,6 +18,11 @@ out/
 coverage/
 .nyc_output/
 
+# Code quality tools
+report/
+.jscpd-report/
+knip-report.json
+
 # Mimir user-specific data (keep config in git for team sharing)
 # Note: .mimir/.gitignore has additional selective ignores
 .mimir/logs/

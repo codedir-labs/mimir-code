@@ -56,9 +56,9 @@ mimir/
 
 ---
 
-### Package 2: `@codedir/mimir-agents-runtime` (Node.js Implementations)
+### Package 2: `@codedir/mimir-agents-node` (Node.js Implementations)
 
-**Location:** `packages/mimir-agents-runtime/`
+**Location:** `packages/mimir-agents-node/`
 
 **Contains:**
 - 💾 Platform adapters (FileSystemAdapter, ProcessExecutorAdapter)
@@ -100,7 +100,7 @@ mimir/
                  │
                  │
 ┌─────────────────────────────────────┐
-│ @codedir/mimir-agents-runtime       │
+│ @codedir/mimir-agents-node          │
 │ (Runtime Package)                   │
 │                                     │
 │ Exports:                            │
@@ -198,7 +198,7 @@ export class Agent {
 
 **Runtime Package:**
 ```typescript
-// @codedir/mimir-agents-runtime/platform/FileSystemAdapter.ts
+// @codedir/mimir-agents-node/platform/FileSystemAdapter.ts
 import fs from 'node:fs/promises';
 import type { IFileSystem } from '@codedir/mimir-agents';
 
@@ -208,7 +208,7 @@ export class FileSystemAdapter implements IFileSystem {
   }
 }
 
-// @codedir/mimir-agents-runtime/providers/AnthropicProvider.ts
+// @codedir/mimir-agents-node/providers/AnthropicProvider.ts
 import Anthropic from '@anthropic-ai/sdk';
 import type { ILLMProvider } from '@codedir/mimir-agents';
 
@@ -230,8 +230,8 @@ export class AnthropicProvider implements ILLMProvider {
 ```typescript
 // mimir/src/cli.ts
 import { Agent } from '@codedir/mimir-agents/core';
-import { AnthropicProvider } from '@codedir/mimir-agents-runtime/providers';
-import { FileSystemAdapter } from '@codedir/mimir-agents-runtime/platform';
+import { AnthropicProvider } from '@codedir/mimir-agents-node/providers';
+import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
 
 const agent = new Agent(
   new AnthropicProvider({ apiKey: process.env.ANTHROPIC_API_KEY }),
@@ -270,7 +270,7 @@ await agent.execute('List files');
 
 ---
 
-### Working on `@codedir/mimir-agents-runtime`
+### Working on `@codedir/mimir-agents-node`
 
 **When:**
 - Adding new LLM provider
@@ -327,8 +327,8 @@ test('agent executes task', async () => {
 ### Runtime Package Tests
 
 ```typescript
-// @codedir/mimir-agents-runtime/tests/platform/FileSystemAdapter.test.ts
-import { FileSystemAdapter } from '@codedir/mimir-agents-runtime/platform';
+// @codedir/mimir-agents-node/tests/platform/FileSystemAdapter.test.ts
+import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
 import fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -362,8 +362,8 @@ Currently, implementations are in CLI (`src/shared/*`). We need to:
 - ✅ Moved `PermissionManager`, `RiskAssessor` to `mimir-agents/core`
 - ✅ Updated imports in CLI
 
-### Phase 2: Create Runtime Package (TODO)
-1. Create `packages/mimir-agents-runtime/` structure
+### Phase 2: Create Runtime Package (DONE ✅)
+1. Created `packages/mimir-agents-node/` structure
 2. Move platform adapters from `src/shared/platform/`
 3. Move LLM providers from `src/shared/providers/`
 4. Move storage from `src/shared/storage/`
@@ -373,7 +373,7 @@ Currently, implementations are in CLI (`src/shared/*`). We need to:
 
 ### Phase 3: Extract Interfaces (TODO)
 1. Keep interfaces in `mimir-agents`
-2. Move implementations to `mimir-agents-runtime`
+2. Move implementations to `mimir-agents-node`
 3. Ensure zero Node.js dependencies in core
 
 ---
@@ -427,7 +427,7 @@ export interface IExecutor {
   execute(cmd: string): Promise<ExecuteResult>;
 }
 
-// @codedir/mimir-agents-runtime/execution/NativeExecutor.ts
+// @codedir/mimir-agents-node/execution/NativeExecutor.ts
 import { exec } from 'node:child_process';  // ✅ OK in runtime package!
 
 export class NativeExecutor implements IExecutor {
@@ -442,7 +442,7 @@ export class NativeExecutor implements IExecutor {
 ### ❌ Mistake 3: Runtime Importing Core Implementations
 
 ```typescript
-// @codedir/mimir-agents-runtime/execution/DockerExecutor.ts
+// @codedir/mimir-agents-node/execution/DockerExecutor.ts
 import { PermissionManager } from '@codedir/mimir-agents/core';  // ❌ Importing implementation
 
 export class DockerExecutor {
@@ -452,7 +452,7 @@ export class DockerExecutor {
 
 **Fix:**
 ```typescript
-// @codedir/mimir-agents-runtime/execution/DockerExecutor.ts
+// @codedir/mimir-agents-node/execution/DockerExecutor.ts
 import type { IPermissionManager } from '@codedir/mimir-agents';  // ✅ Type import only
 
 export class DockerExecutor {
@@ -468,7 +468,7 @@ export class DockerExecutor {
 
 With this architecture, we can create:
 
-### `@codedir/mimir-agents-runtime-deno`
+### `@codedir/mimir-agents-deno`
 ```typescript
 // Deno implementations
 import { IFileSystem } from '@codedir/mimir-agents';
@@ -480,7 +480,7 @@ export class DenoFileSystemAdapter implements IFileSystem {
 }
 ```
 
-### `@codedir/mimir-agents-runtime-cloudflare`
+### `@codedir/mimir-agents-cloudflare`
 ```typescript
 // Cloudflare Workers implementations
 import { IStorageBackend } from '@codedir/mimir-agents';
@@ -492,7 +492,7 @@ export class KVStorageBackend implements IStorageBackend {
 }
 ```
 
-### `@codedir/mimir-agents-runtime-browser`
+### `@codedir/mimir-agents-browser`
 ```typescript
 // Browser implementations
 import { IStorageBackend } from '@codedir/mimir-agents';
@@ -512,20 +512,20 @@ export class IndexedDBBackend implements IStorageBackend {
 
 ### The Golden Rule
 
-> **Interfaces live in `mimir-agents`, implementations live in `mimir-agents-runtime`.**
+> **Interfaces live in `mimir-agents`, implementations live in `mimir-agents-node`.**
 
 ### Quick Reference
 
 | Task | Package | Allowed |
 |------|---------|---------|
 | Define interface | `mimir-agents` | ✅ |
-| Implement interface | `mimir-agents-runtime` | ✅ |
-| Use Node.js APIs | `mimir-agents-runtime` | ✅ |
+| Implement interface | `mimir-agents-node` | ✅ |
+| Use Node.js APIs | `mimir-agents-node` | ✅ |
 | Use Node.js APIs | `mimir-agents` | ❌ |
-| Import external SDKs | `mimir-agents-runtime` | ✅ |
+| Import external SDKs | `mimir-agents-node` | ✅ |
 | Import external SDKs | `mimir-agents` | ❌ |
 | Business logic | `mimir-agents` | ✅ |
-| Platform adapters | `mimir-agents-runtime` | ✅ |
+| Platform adapters | `mimir-agents-node` | ✅ |
 
 ---
 
@@ -535,7 +535,7 @@ export class IndexedDBBackend implements IStorageBackend {
   → `mimir-agents/core` - It's business logic, not platform-specific
 
 - **"Where should `FileSystemAdapter` live?"**
-  → `mimir-agents-runtime/platform` - It uses Node.js `fs`
+  → `mimir-agents-node/platform` - It uses Node.js `fs`
 
 - **"Where should `IFileSystem` interface live?"**
   → `mimir-agents/platform` - It's an abstraction

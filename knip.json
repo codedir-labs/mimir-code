@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/cli.ts", "src/index.ts"],
+  "project": ["src/**/*.ts"],
+  "ignore": ["**/*.d.ts", "**/*.test.ts", "**/*.spec.ts"],
+  "ignoreDependencies": [
+    "react-devtools-core",
+    "testcontainers",
+    "msw",
+    "ink-testing-library"
+  ],
+  "ignoreWorkspaces": ["docs"],
+  "workspaces": {
+    "packages/mimir-agents": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/mimir-agents-node": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

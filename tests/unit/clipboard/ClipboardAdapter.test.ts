@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ClipboardAdapter } from '../../../packages/mimir-agents-runtime/src/clipboard/ClipboardAdapter.js';
+import { ClipboardAdapter } from '../../../packages/mimir-agents-node/src/clipboard/ClipboardAdapter.js';
 import type { IProcessExecutor } from '@codedir/mimir-agents';
 import type { ExecuteResult } from '@codedir/mimir-agents';
 import os from 'os';

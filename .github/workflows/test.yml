@@ -47,11 +47,17 @@ jobs:
       - name: Format check
         run: yarn format:check
 
-      - name: Run unit tests
-        run: yarn test:unit
+      - name: Run unit tests with coverage
+        run: yarn test:unit --coverage
 
       - name: Run integration tests
         run: yarn test:integration
+
+      - name: Enforce coverage thresholds
+        run: |
+          # Vitest will fail if thresholds aren't met (configured in vitest.config.ts)
+          # Thresholds: 80% lines, functions, branches, statements
+          yarn test:coverage --run
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
