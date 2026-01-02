@@ -132,30 +132,6 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@codedir/mimir-agents-node@file:./packages/mimir-agents-runtime":
-  version "0.1.0"
-  dependencies:
-    "@ai-sdk/anthropic" "^3.0.1"
-    "@ai-sdk/google" "^3.0.1"
-    "@ai-sdk/mistral" "^3.0.1"
-    "@ai-sdk/openai" "^3.0.1"
-    "@ai-sdk/openai-compatible" "^2.0.1"
-    "@codedir/mimir-agents" "*"
-    ai "^6.0.3"
-    axios "^1.7.9"
-    drizzle-orm "^0.38.3"
-    execa "^9.5.2"
-    fast-glob "^3.3.3"
-    gpt-tokenizer "^2.6.1"
-    sql.js "^1.12.0"
-    uuid "^11.0.4"
-    zod "^3.25.76"
-
-"@codedir/mimir-agents@file:./packages/mimir-agents":
-  version "0.1.0"
-  dependencies:
-    zod "^3.24.1"
-
 "@colors/colors@1.6.0", "@colors/colors@^1.6.0":
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.6.0.tgz#ec6cd237440700bc23ca23087f513c75508958b0"
@@ -893,6 +869,13 @@
   resolved "https://registry.yarnpkg.com/@types/aria-query/-/aria-query-5.0.4.tgz#1a31c3d378850d2778dabb6374d036dcba4ba708"
   integrity sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==
 
+"@types/better-sqlite3@^7.6.12":
+  version "7.6.13"
+  resolved "https://registry.yarnpkg.com/@types/better-sqlite3/-/better-sqlite3-7.6.13.tgz#a72387f00d2f53cab699e63f2e2c05453cf953f0"
+  integrity sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==
+  dependencies:
+    "@types/node" "*"
+
 "@types/crypto-js@^4.2.2":
   version "4.2.2"
   resolved "https://registry.yarnpkg.com/@types/crypto-js/-/crypto-js-4.2.2.tgz#771c4a768d94eb5922cc202a3009558204df0cea"
@@ -906,7 +889,7 @@
     "@types/node" "*"
     "@types/ssh2" "*"
 
-"@types/dockerode@^3.3.33", "@types/dockerode@^3.3.35":
+"@types/dockerode@^3.3.31", "@types/dockerode@^3.3.33", "@types/dockerode@^3.3.35":
   version "3.3.47"
   resolved "https://registry.yarnpkg.com/@types/dockerode/-/dockerode-3.3.47.tgz#cf8c6b4efcd0bb28b0e6009e613e7faab1b96e75"
   integrity sha512-ShM1mz7rCjdssXt7Xz0u1/R2BJC7piWa3SJpUBiVjCf2A3XNn4cP6pUVaD8bLanpPVVn4IKzJuw3dOvkJ8IbYw==
@@ -4713,7 +4696,7 @@ test-exclude@^7.0.1:
     glob "^10.4.1"
     minimatch "^9.0.4"
 
-testcontainers@^10.17.2:
+testcontainers@^10.17.1, testcontainers@^10.17.2:
   version "10.28.0"
   resolved "https://registry.yarnpkg.com/testcontainers/-/testcontainers-10.28.0.tgz#73d3757fcd60405c20dd55599ca89e44cadc8ccf"
   integrity sha512-1fKrRRCsgAQNkarjHCMKzBKXSJFmzNTiTbhb5E/j5hflRXChEtHvkefjaHlgkNUjfw92/Dq8LTgwQn6RDBFbMg==

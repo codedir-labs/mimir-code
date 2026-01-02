@@ -58,8 +58,8 @@
     "url": "https://github.com/codedir-labs/mimir-code/issues"
   },
   "dependencies": {
-    "@codedir/mimir-agents": "file:./packages/mimir-agents",
-    "@codedir/mimir-agents-node": "file:./packages/mimir-agents-runtime",
+    "@codedir/mimir-agents": "*",
+    "@codedir/mimir-agents-node": "*",
     "axios": "^1.7.9",
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
