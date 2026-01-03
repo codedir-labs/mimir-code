@@ -30,8 +30,12 @@ import { ProviderFactory } from '@codedir/mimir-agents-node/providers';
 import type { ILLMProvider } from '@codedir/mimir-agents';
 import { ConfigurationError } from '@/shared/utils/errors.js';
 import { TaskComplexityAnalyzer } from '@/features/chat/agent/TaskComplexityAnalyzer.js';
-import { TaskDecomposer, WorkflowOrchestrator } from '@codedir/mimir-agents/orchestration';
-import { WorkflowPlan } from '@codedir/mimir-agents/core';
+import {
+  TaskDecomposer,
+  WorkflowOrchestrator,
+  SubAgentState,
+} from '@codedir/mimir-agents/orchestration';
+import { WorkflowPlan, type AgentRole, type AgentStatus } from '@codedir/mimir-agents/core';
 import { ToolRegistry } from '@codedir/mimir-agents/tools';
 import { NativeExecutor } from '@codedir/mimir-agents-node/execution';
 import { AgentSelectionUI } from '@/features/chat/components/AgentSelectionUI.js';
@@ -46,6 +50,49 @@ import yaml from 'yaml';
 type ChatMode = 'plan' | 'act' | 'discuss';
 
 /**
+ * UI mode for workflow handling
+ */
+type UIMode = 'chat' | 'workflow-approval' | 'workflow-execution';
+
+/**
+ * Workflow status type
+ */
+type WorkflowStatus = 'running' | 'completed' | 'failed' | 'interrupted';
+
+/**
+ * Chat state interface for managing session state
+ */
+interface ChatState {
+  messages: Message[];
+  currentMode: ChatMode;
+  totalCost: number;
+  provider: ILLMProvider | undefined;
+  config: Config;
+  uiMode: UIMode;
+  pendingWorkflowPlan: WorkflowPlan | undefined;
+  currentUserInput: string | undefined;
+  workflowOrchestrator: WorkflowOrchestrator | undefined;
+  workflowStatus: WorkflowStatus;
+  workflowStartTime: number;
+  agentProgressData: AgentProgressData[];
+}
+
+/**
+ * Valid LLM providers
+ */
+const VALID_PROVIDERS = [
+  'deepseek',
+  'anthropic',
+  'openai',
+  'google',
+  'gemini',
+  'qwen',
+  'ollama',
+] as const;
+
+type ValidProvider = (typeof VALID_PROVIDERS)[number];
+
+/**
  * Convert MessageContent to string
  * Handles both string content and multi-part content (text + images)
  */
@@ -58,6 +105,63 @@ function messageContentToString(content: MessageContent): string {
     .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
     .map((part) => part.text)
     .join('\n');
+}
+
+/**
+ * Get default model for a provider
+ */
+function getDefaultModel(provider: string): string {
+  switch (provider.toLowerCase()) {
+    case 'deepseek':
+      return 'deepseek-chat';
+    case 'anthropic':
+      return 'claude-sonnet-4-5-20250929';
+    case 'openai':
+      return 'gpt-4';
+    case 'google':
+    case 'gemini':
+      return 'gemini-pro';
+    default:
+      return provider;
+  }
+}
+
+/**
+ * Map SubAgentState status to AgentStatus for UI
+ * SubAgentState uses: 'pending' | 'running' | 'completed' | 'failed'
+ * AgentStatus uses: 'idle' | 'reasoning' | 'acting' | 'observing' | 'completed' | 'failed' | 'interrupted'
+ */
+function mapSubAgentStatus(status: SubAgentState['status']): AgentStatus {
+  switch (status) {
+    case 'pending':
+      return 'idle';
+    case 'running':
+      return 'acting';
+    case 'completed':
+      return 'completed';
+    case 'failed':
+      return 'failed';
+    default:
+      return 'idle';
+  }
+}
+
+/**
+ * Safely cast role string to AgentRole, defaulting to 'general' if unknown
+ */
+function toAgentRole(role: string): AgentRole {
+  const validRoles: AgentRole[] = [
+    'finder',
+    'thinker',
+    'librarian',
+    'refactoring',
+    'reviewer',
+    'tester',
+    'rush',
+    'security',
+    'general',
+  ];
+  return validRoles.includes(role as AgentRole) ? (role as AgentRole) : 'general';
 }
 
 export class ChatCommand {
@@ -258,7 +362,7 @@ export class ChatCommand {
       // Return error message
       const errorMessage: Message = {
         role: 'assistant',
-        content: `❌ Error: ${(error as Error).message}`,
+        content: `Error: ${(error as Error).message}`,
         metadata: {
           timestamp: Date.now(),
           duration,
@@ -272,19 +376,629 @@ export class ChatCommand {
     }
   }
 
-  async execute(workspaceRoot?: string): Promise<void> {
-    // Use provided workspace root or fall back to process.cwd()
-    // In production, this should be passed from CLI entry point
-    const cwd = workspaceRoot ?? process.cwd();
+  /**
+   * Handle model switch request
+   */
+  private async handleModelSwitch(
+    state: ChatState,
+    cwd: string,
+    provider: string,
+    model: string | undefined
+  ): Promise<void> {
+    logger.info('Model switch requested', { provider, model });
 
-    // Check if first run
-    if (await this.firstRunDetector.isFirstRun()) {
-      logger.info('First run detected, launching setup wizard');
-      await this.setupCommand.execute();
-      // Wizard exits alternate screen buffer on completion, returning to main buffer
+    // Validate provider type
+    if (!VALID_PROVIDERS.includes(provider as ValidProvider)) {
+      state.messages.push({
+        role: 'assistant',
+        content: `Invalid provider: ${provider}. Valid providers: ${VALID_PROVIDERS.join(', ')}`,
+      });
+      return;
     }
 
-    // Auto-initialize workspace if .mimir doesn't exist
+    // Update config
+    state.config.llm.provider = provider as ValidProvider;
+    state.config.llm.model = model ?? getDefaultModel(provider);
+
+    // Save config
+    try {
+      await this.saveConfig(cwd, state.config);
+
+      // Reinitialize provider
+      const newProviderResult = await this.initializeProvider(state.config);
+      if (newProviderResult.provider) {
+        state.provider = newProviderResult.provider;
+        state.messages.push({
+          role: 'assistant',
+          content: 'Switched to ' + provider + (model ? '/' + model : ''),
+        });
+      } else {
+        state.messages.push({
+          role: 'assistant',
+          content: `Failed to switch: ${newProviderResult.error}`,
+        });
+      }
+    } catch (error) {
+      state.messages.push({
+        role: 'assistant',
+        content: `Failed to save config: ${(error as Error).message}`,
+      });
+    }
+  }
+
+  /**
+   * Handle theme change request
+   */
+  private async handleThemeChange(
+    state: ChatState,
+    cwd: string,
+    theme: string,
+    renderUI: () => void
+  ): Promise<void> {
+    // Create new config object with updated theme to trigger React rerender
+    state.config = {
+      ...state.config,
+      ui: {
+        ...state.config.ui,
+        theme: theme as ThemeType,
+      },
+    };
+
+    try {
+      await this.saveConfig(cwd, state.config);
+      logger.info('Theme changed and saved', { theme });
+
+      // Force immediate rerender with new theme
+      renderUI();
+    } catch (error) {
+      logger.error('Failed to save theme change', { error });
+    }
+  }
+
+  /**
+   * Create workflow orchestrator with proper dependencies
+   */
+  private async createWorkflowOrchestrator(state: ChatState): Promise<WorkflowOrchestrator> {
+    const { RoleRegistry } = await import('@codedir/mimir-agents/core');
+    const { FileSystemAdapter } = await import('@codedir/mimir-agents-node/platform');
+    const { ProcessExecutorAdapter } = await import('@codedir/mimir-agents-node/platform');
+
+    const roleRegistry = new RoleRegistry();
+    const toolRegistry = new ToolRegistry();
+
+    // Create NativeExecutor for tool execution
+    const fs = new FileSystemAdapter();
+    const processExecutor = new ProcessExecutorAdapter();
+
+    // Build permission config from merged config
+    const permissionConfig: PermissionManagerConfig = {
+      allowlist: [...(state.config.permissions?.alwaysAcceptCommands || [])],
+      blocklist: [],
+      acceptRiskLevel: state.config.permissions?.acceptRiskLevel || 'medium',
+      autoAccept: state.config.permissions?.autoAccept !== false,
+    };
+
+    const executor = new NativeExecutor(fs, processExecutor, permissionConfig, {
+      mode: 'native',
+      projectDir: process.cwd(),
+    });
+
+    // Initialize executor
+    await executor.initialize();
+
+    return new WorkflowOrchestrator(roleRegistry, toolRegistry, state.provider!, executor, {
+      promptForApproval: false,
+    });
+  }
+
+  /**
+   * Map SubAgentState to AgentProgressData for UI
+   */
+  private mapAgentStateToProgressData(
+    agentState: SubAgentState,
+    index: number,
+    now: number
+  ): AgentProgressData {
+    const startTime = agentState.startTime ? agentState.startTime.getTime() : now;
+    const endTime = agentState.endTime ? agentState.endTime.getTime() : now;
+    const elapsedTime =
+      agentState.status === 'completed' || agentState.status === 'failed'
+        ? endTime - startTime
+        : now - startTime;
+
+    return {
+      index: index + 1,
+      role: toAgentRole(agentState.agent.role),
+      status: mapSubAgentStatus(agentState.status),
+      elapsedTime,
+      cost: agentState.result?.totalCost || 0,
+      tokens: agentState.result?.totalTokens || 0,
+      currentTask: agentState.task,
+      todoCount: 0,
+      currentTodo: undefined,
+    };
+  }
+
+  /**
+   * Handle workflow completion
+   */
+  private handleWorkflowCompletion(
+    state: ChatState,
+    plan: WorkflowPlan,
+    workflowResult: {
+      agents: Array<{
+        agentId: string;
+        status: string;
+        result?: { finalResponse?: string; totalCost?: number; totalTokens?: number };
+        error?: string;
+      }>;
+      totalCost: number;
+      totalTokens: number;
+    },
+    renderUI: () => void
+  ): void {
+    logger.info('Workflow execution completed', {
+      planId: plan.id,
+      workflowResult,
+    });
+
+    state.workflowStatus = 'completed';
+
+    // Add individual agent result messages for audit trail
+    workflowResult.agents.forEach((agent) => {
+      const isSuccess = agent.status === 'completed';
+      const output = agent.result?.finalResponse ?? agent.error ?? 'Completed';
+      state.messages.push({
+        role: 'assistant',
+        content: `${isSuccess ? 'Agent' : 'Agent failed'} [${agent.agentId}]: ${output}`,
+        metadata: {
+          timestamp: Date.now(),
+          type: 'agent',
+          agentName: agent.agentId,
+          workflowId: plan.id,
+          cost: agent.result?.totalCost,
+          usage: agent.result?.totalTokens
+            ? {
+                inputTokens: 0,
+                outputTokens: agent.result.totalTokens,
+                totalTokens: agent.result.totalTokens,
+              }
+            : undefined,
+        },
+      });
+    });
+
+    // Use totals from workflow result
+    const totalWorkflowCost = workflowResult.totalCost;
+    const totalTokens = workflowResult.totalTokens;
+
+    // Add workflow completion summary
+    const successCount = workflowResult.agents.filter((a) => a.status === 'completed').length;
+    state.messages.push({
+      role: 'assistant',
+      content: `Workflow completed with ${successCount}/${workflowResult.agents.length} agents successful`,
+      metadata: {
+        timestamp: Date.now(),
+        type: 'workflow',
+        workflowId: plan.id,
+        cost: totalWorkflowCost,
+        usage: { inputTokens: 0, outputTokens: totalTokens, totalTokens },
+      },
+    });
+    state.totalCost += totalWorkflowCost;
+
+    // Return to chat after brief delay
+    setTimeout(() => {
+      state.uiMode = 'chat';
+      state.pendingWorkflowPlan = undefined;
+      state.currentUserInput = undefined;
+      state.workflowOrchestrator = undefined;
+      renderUI();
+    }, 2000);
+  }
+
+  /**
+   * Handle workflow failure
+   */
+  private handleWorkflowFailure(state: ChatState, error: Error, renderUI: () => void): void {
+    logger.error('Workflow execution failed', { error });
+
+    state.workflowStatus = 'failed';
+    state.messages.push({
+      role: 'assistant',
+      content: `Workflow execution failed: ${error.message}`,
+    });
+
+    // Return to chat after brief delay
+    setTimeout(() => {
+      state.uiMode = 'chat';
+      state.pendingWorkflowPlan = undefined;
+      state.currentUserInput = undefined;
+      state.workflowOrchestrator = undefined;
+      renderUI();
+    }, 2000);
+  }
+
+  /**
+   * Start workflow execution after approval
+   */
+  private async startWorkflowExecution(
+    state: ChatState,
+    plan: WorkflowPlan,
+    renderUI: () => void
+  ): Promise<void> {
+    if (!state.provider) {
+      logger.error('No provider available for workflow execution');
+      state.uiMode = 'chat';
+      state.messages.push({
+        role: 'assistant',
+        content: 'Cannot start workflow: No LLM provider configured.',
+      });
+      renderUI();
+      return;
+    }
+
+    try {
+      const orchestrator = await this.createWorkflowOrchestrator(state);
+
+      // Initialize workflow state
+      state.workflowOrchestrator = orchestrator;
+      state.workflowStatus = 'running';
+      state.workflowStartTime = Date.now();
+      state.agentProgressData = [];
+      state.uiMode = 'workflow-execution';
+
+      // Add workflow start message
+      state.messages.push({
+        role: 'assistant',
+        content: `Starting multi-agent workflow with ${plan.tasks.length} agent(s)...`,
+        metadata: {
+          timestamp: Date.now(),
+          type: 'workflow',
+          workflowId: plan.id,
+        },
+      });
+
+      // Set up progress polling (500ms intervals)
+      const progressInterval = setInterval(() => {
+        if (state.uiMode === 'workflow-execution' && state.workflowStatus === 'running') {
+          renderUI();
+        } else {
+          clearInterval(progressInterval);
+        }
+      }, 500);
+
+      // Start execution (async)
+      void orchestrator.executeWorkflow(plan).then(
+        (workflowResult) => {
+          this.handleWorkflowCompletion(state, plan, workflowResult, renderUI);
+        },
+        (error: Error) => {
+          this.handleWorkflowFailure(state, error, renderUI);
+        }
+      );
+
+      // Initial render of workflow execution UI
+      renderUI();
+    } catch (error) {
+      logger.error('Failed to start workflow execution', { error });
+      state.uiMode = 'chat';
+      state.messages.push({
+        role: 'assistant',
+        content: `Failed to start workflow: ${(error as Error).message}`,
+      });
+      renderUI();
+    }
+  }
+
+  /**
+   * Handle workflow interruption
+   */
+  private handleWorkflowInterrupt(state: ChatState, renderUI: () => void): void {
+    logger.info('Workflow interrupted by user');
+    if (state.workflowOrchestrator) {
+      void state.workflowOrchestrator.interrupt();
+    }
+    state.workflowStatus = 'interrupted';
+    state.messages.push({
+      role: 'assistant',
+      content: 'Workflow interrupted by user.',
+    });
+
+    // Return to chat after brief delay
+    setTimeout(() => {
+      state.uiMode = 'chat';
+      state.pendingWorkflowPlan = undefined;
+      state.currentUserInput = undefined;
+      state.workflowOrchestrator = undefined;
+      renderUI();
+    }, 1000);
+  }
+
+  /**
+   * Handle slash command execution
+   */
+  private async handleSlashCommand(
+    state: ChatState,
+    cwd: string,
+    commandName: string,
+    args: string[],
+    renderUI: () => void
+  ): Promise<void> {
+    const result = await this.commandRegistry.execute(commandName, args, {
+      currentMode: state.currentMode,
+      currentProvider: state.config.llm.provider,
+      currentModel: state.config.llm.model ?? 'unknown',
+      messageCount: state.messages.length,
+      requestModeSwitch: (mode): void => {
+        state.currentMode = mode;
+        logger.info('Mode switched via command', { mode });
+        renderUI();
+      },
+      requestModelSwitch: async (provider, model): Promise<void> => {
+        await this.handleModelSwitch(state, cwd, provider, model);
+      },
+      requestNewChat: (): void => {
+        state.messages = [];
+        state.totalCost = 0;
+        logger.info('New chat started');
+      },
+      requestThemeChange: async (theme): Promise<void> => {
+        await this.handleThemeChange(state, cwd, theme, renderUI);
+      },
+      sendPrompt: (prompt): void => {
+        // For custom commands - add as user message
+        state.messages.push({
+          role: 'user',
+          content: prompt,
+        });
+        // TODO: Process through agent
+        state.messages.push({
+          role: 'assistant',
+          content: `Received prompt from command: ${prompt}`,
+        });
+      },
+    });
+
+    if (!result.success) {
+      state.messages.push({
+        role: 'assistant',
+        content: `Error: ${result.error}`,
+      });
+    }
+  }
+
+  /**
+   * Handle user input (slash commands or messages)
+   */
+  private async handleUserInput(
+    state: ChatState,
+    cwd: string,
+    input: MessageContent,
+    renderUI: () => void
+  ): Promise<void> {
+    const inputText = typeof input === 'string' ? input : '';
+    const parseResult = SlashCommandParser.parse(inputText);
+
+    if (parseResult.isCommand && parseResult.commandName) {
+      // Add command to message history for audit trail
+      state.messages.push({
+        role: 'user',
+        content: inputText,
+        metadata: {
+          timestamp: Date.now(),
+          type: 'command',
+          commandName: parseResult.commandName,
+        },
+      });
+
+      await this.handleSlashCommand(
+        state,
+        cwd,
+        parseResult.commandName,
+        parseResult.args || [],
+        renderUI
+      );
+      renderUI();
+      return;
+    }
+
+    // Normal message handling
+    logger.info('User input received', { input });
+
+    // Check if provider is available
+    if (!state.provider) {
+      state.messages.push({
+        role: 'user',
+        content: messageContentToString(input),
+      });
+      state.messages.push({
+        role: 'assistant',
+        content:
+          'No LLM provider configured. Please use /model <provider> <model> to set up a provider.',
+      });
+      renderUI();
+      return;
+    }
+
+    // Check task complexity for multi-agent orchestration
+    const complexityCheck = await this.checkTaskComplexity(state.provider, inputText);
+
+    if (complexityCheck.isComplex) {
+      await this.handleComplexTask(state, input, inputText, renderUI);
+    } else {
+      await this.handleSimpleTask(state, input, renderUI);
+    }
+  }
+
+  /**
+   * Handle complex task with multi-agent workflow
+   */
+  private async handleComplexTask(
+    state: ChatState,
+    input: MessageContent,
+    inputText: string,
+    renderUI: () => void
+  ): Promise<void> {
+    logger.info('Complex task detected, generating workflow plan');
+
+    // Add user message to history
+    state.messages.push({
+      role: 'user',
+      content: messageContentToString(input),
+    });
+
+    // Generate workflow plan
+    const plan = await this.generateWorkflowPlan(state.provider!, inputText);
+
+    if (!plan) {
+      // Fallback to simple mode if plan generation failed
+      state.messages.push({
+        role: 'assistant',
+        content: 'Failed to generate workflow plan. Processing with standard mode...',
+      });
+      await this.processMessage(state.provider!, state.messages, input);
+      const lastMessage = state.messages[state.messages.length - 1];
+      if (lastMessage?.metadata?.cost) {
+        state.totalCost += lastMessage.metadata.cost;
+      }
+      renderUI();
+      return;
+    }
+
+    // Show workflow approval UI
+    state.uiMode = 'workflow-approval';
+    state.pendingWorkflowPlan = plan;
+    state.currentUserInput = messageContentToString(input);
+    renderUI();
+  }
+
+  /**
+   * Handle simple task with direct LLM processing
+   */
+  private async handleSimpleTask(
+    state: ChatState,
+    input: MessageContent,
+    renderUI: () => void
+  ): Promise<void> {
+    state.messages.push({
+      role: 'user',
+      content: messageContentToString(input),
+    });
+    await this.processMessage(state.provider!, state.messages, input);
+
+    // Update total cost
+    const lastMessage = state.messages[state.messages.length - 1];
+    if (lastMessage?.metadata?.cost) {
+      state.totalCost += lastMessage.metadata.cost;
+    }
+
+    renderUI();
+  }
+
+  /**
+   * Create workflow approval UI element
+   */
+  private createWorkflowApprovalUI(state: ChatState, renderUI: () => void): React.ReactElement {
+    return React.createElement(AgentSelectionUI, {
+      plan: state.pendingWorkflowPlan!,
+      theme: state.config.ui.theme,
+      onApprove: (plan: WorkflowPlan): void => {
+        logger.info('Workflow approved by user', { planId: plan.id });
+        void this.startWorkflowExecution(state, plan, renderUI);
+      },
+      onCancel: (): void => {
+        logger.info('Workflow cancelled by user');
+        state.uiMode = 'chat';
+        state.pendingWorkflowPlan = undefined;
+        state.currentUserInput = undefined;
+        state.messages.push({
+          role: 'assistant',
+          content: 'Workflow cancelled. Returning to chat...',
+        });
+        renderUI();
+      },
+      onEdit: (): void => {
+        logger.info('Workflow edit requested');
+        state.uiMode = 'chat';
+        state.pendingWorkflowPlan = undefined;
+        state.messages.push({
+          role: 'assistant',
+          content: 'Edit mode: Please enter your revised task description.',
+        });
+        renderUI();
+      },
+    });
+  }
+
+  /**
+   * Create workflow execution UI element
+   */
+  private createWorkflowExecutionUI(state: ChatState, renderUI: () => void): React.ReactElement {
+    // Update agent progress data from orchestrator
+    if (state.workflowOrchestrator) {
+      const agents = state.workflowOrchestrator.getAgents();
+      const now = Date.now();
+      state.agentProgressData = agents.map((agentState, index) =>
+        this.mapAgentStateToProgressData(agentState, index, now)
+      );
+    }
+
+    // Calculate totals
+    const totalElapsedTime = Date.now() - state.workflowStartTime;
+    const totalCost = state.agentProgressData.reduce((sum, a) => sum + a.cost, 0);
+    const totalTokens = state.agentProgressData.reduce((sum, a) => sum + a.tokens, 0);
+
+    return React.createElement(MultiAgentProgressView, {
+      agents: state.agentProgressData,
+      theme: state.config.ui.theme,
+      workflowStatus: state.workflowStatus,
+      totalElapsedTime,
+      totalCost,
+      totalTokens,
+      onGetAgentDetails: (_agentIndex: number) => {
+        // TODO: Return detailed agent data
+        return null;
+      },
+      onInterrupt: (): void => {
+        this.handleWorkflowInterrupt(state, renderUI);
+      },
+    });
+  }
+
+  /**
+   * Create chat UI element
+   */
+  private createChatUI(
+    state: ChatState,
+    cwd: string,
+    renderUI: () => void,
+    onExit: () => void
+  ): React.ReactElement {
+    return React.createElement(ChatApp, {
+      fs: this.fs,
+      projectRoot: process.cwd(),
+      config: state.config,
+      messages: state.messages,
+      currentMode: state.currentMode,
+      totalCost: state.totalCost,
+      commandRegistry: this.commandRegistry,
+      onUserInput: (input: MessageContent): void => {
+        void this.handleUserInput(state, cwd, input, renderUI);
+      },
+      onModeSwitch: (mode: 'plan' | 'act' | 'discuss'): void => {
+        state.currentMode = mode;
+        logger.info('Mode switched', { mode });
+        renderUI();
+      },
+      onExit: onExit,
+    });
+  }
+
+  /**
+   * Initialize workspace if needed
+   */
+  private async ensureWorkspaceInitialized(cwd: string): Promise<void> {
     const initializer = new MimirInitializer(this.fs, this.configLoader);
     if (!(await initializer.isWorkspaceInitialized(cwd))) {
       logger.info('Workspace not initialized. Running setup...');
@@ -298,885 +1012,149 @@ export class ChatCommand {
 
       logger.info('Workspace initialized successfully');
     }
+  }
 
-    // Enter alternate screen buffer to prevent layout shifts
-    // This ensures the app renders in a separate buffer and doesn't push content down
+  /**
+   * Create initial chat state
+   */
+  private createInitialState(
+    config: Config,
+    provider: ILLMProvider | undefined,
+    providerError: string | undefined
+  ): ChatState {
+    const state: ChatState = {
+      messages: [],
+      currentMode: 'discuss',
+      totalCost: 0,
+      provider,
+      config,
+      uiMode: 'chat',
+      pendingWorkflowPlan: undefined,
+      currentUserInput: undefined,
+      workflowOrchestrator: undefined,
+      workflowStatus: 'running',
+      workflowStartTime: 0,
+      agentProgressData: [],
+    };
+
+    // Show welcome message or error if provider not configured
+    if (!provider && providerError) {
+      state.messages.push({
+        role: 'assistant',
+        content: `${providerError}\n\nTo use the chat, you need to:\n1. Set up an API key as an environment variable (e.g., DEEPSEEK_API_KEY or ANTHROPIC_API_KEY)\n2. Or use /model <provider> <model> to switch to a configured provider\n\nAvailable providers: deepseek, anthropic`,
+      });
+    }
+
+    return state;
+  }
+
+  async execute(workspaceRoot?: string): Promise<void> {
+    const cwd = workspaceRoot ?? process.cwd();
+
+    // Check if first run
+    if (await this.firstRunDetector.isFirstRun()) {
+      logger.info('First run detected, launching setup wizard');
+      await this.setupCommand.execute();
+    }
+
+    // Auto-initialize workspace if .mimir doesn't exist
+    await this.ensureWorkspaceInitialized(cwd);
+
+    // Enter alternate screen buffer
     process.stdout.write('\x1b[?1049h');
 
     // Load configuration
-    const { config } = await this.configLoader.load({
-      projectRoot: cwd,
-    });
+    const { config } = await this.configLoader.load({ projectRoot: cwd });
 
     // Initialize slash commands
     await this.initializeCommands(cwd);
 
     // Initialize LLM provider
-    let providerResult = await this.initializeProvider(config);
+    const providerResult = await this.initializeProvider(config);
 
     // Initialize chat state
-    const state = {
-      messages: [] as Message[],
-      currentMode: 'discuss' as ChatMode,
-      totalCost: 0,
-      provider: providerResult.provider,
-      config,
-      // UI mode tracking for workflow approval
-      uiMode: 'chat' as 'chat' | 'workflow-approval' | 'workflow-execution',
-      pendingWorkflowPlan: undefined as WorkflowPlan | undefined,
-      currentUserInput: undefined as string | undefined,
-      // Workflow execution state
-      workflowOrchestrator: undefined as WorkflowOrchestrator | undefined,
-      workflowStatus: 'running' as 'running' | 'completed' | 'failed' | 'interrupted',
-      workflowStartTime: 0,
-      agentProgressData: [] as AgentProgressData[],
-    };
-
-    // Show welcome message or error if provider not configured
-    if (!state.provider && providerResult.error) {
-      state.messages.push({
-        role: 'assistant',
-        content: `⚠️  ${providerResult.error}\n\nTo use the chat, you need to:\n1. Set up an API key as an environment variable (e.g., DEEPSEEK_API_KEY or ANTHROPIC_API_KEY)\n2. Or use /model <provider> <model> to switch to a configured provider\n\nAvailable providers: deepseek, anthropic`,
-      });
-    }
+    const state = this.createInitialState(config, providerResult.provider, providerResult.error);
 
     return new Promise((resolve) => {
-      // Render function to update UI
-      const renderUI = (rerender: (element: React.ReactElement) => void): void => {
-        let element: React.ReactElement;
-
-        // Conditional rendering based on UI mode
-        if (state.uiMode === 'workflow-approval' && state.pendingWorkflowPlan) {
-          // Show workflow approval UI
-          element = React.createElement(AgentSelectionUI, {
-            plan: state.pendingWorkflowPlan,
-            theme: state.config.ui.theme,
-            onApprove: async (plan: WorkflowPlan) => {
-              logger.info('Workflow approved by user', {
-                planId: plan.id,
-              });
-
-              if (!state.provider) {
-                logger.error('No provider available for workflow execution');
-                state.uiMode = 'chat';
-                state.messages.push({
-                  role: 'assistant',
-                  content: '❌ Cannot start workflow: No LLM provider configured.',
-                });
-                renderUI(rerender);
-                return;
-              }
-
-              try {
-                // Create WorkflowOrchestrator with proper dependencies
-                const { RoleRegistry } = await import('@codedir/mimir-agents/core');
-                const { FileSystemAdapter } = await import('@codedir/mimir-agents-node/platform');
-                const { ProcessExecutorAdapter } =
-                  await import('@codedir/mimir-agents-node/platform');
-
-                const roleRegistry = new RoleRegistry();
-                const toolRegistry = new ToolRegistry();
-
-                // Create NativeExecutor for tool execution
-                const fs = new FileSystemAdapter();
-                const processExecutor = new ProcessExecutorAdapter();
-
-                // Build permission config from merged config
-                const permissionConfig: PermissionManagerConfig = {
-                  allowlist: [...(state.config.permissions?.alwaysAcceptCommands || [])],
-                  blocklist: [],
-                  acceptRiskLevel: state.config.permissions?.acceptRiskLevel || 'medium',
-                  autoAccept: state.config.permissions?.autoAccept !== false,
-                };
-
-                const executor = new NativeExecutor(fs, processExecutor, permissionConfig, {
-                  mode: 'native',
-                  projectDir: process.cwd(),
-                });
-
-                // Initialize executor
-                await executor.initialize();
-
-                const orchestrator = new WorkflowOrchestrator(
-                  roleRegistry,
-                  toolRegistry,
-                  state.provider,
-                  executor,
-                  { promptForApproval: false }
-                );
-
-                // Initialize workflow state
-                state.workflowOrchestrator = orchestrator;
-                state.workflowStatus = 'running';
-                state.workflowStartTime = Date.now();
-                state.agentProgressData = [];
-                state.uiMode = 'workflow-execution';
-
-                // Add workflow start message
-                state.messages.push({
-                  role: 'assistant',
-                  content: `Starting multi-agent workflow with ${plan.tasks.length} agent(s)...`,
-                  metadata: {
-                    timestamp: Date.now(),
-                    type: 'workflow',
-                    workflowId: plan.id,
-                  },
-                });
-
-                // Set up progress polling (500ms intervals)
-                // eslint-disable-next-line sonarjs/no-nested-functions
-                const progressInterval = setInterval(() => {
-                  if (state.uiMode === 'workflow-execution' && state.workflowStatus === 'running') {
-                    renderUI(rerender);
-                  } else {
-                    clearInterval(progressInterval);
-                  }
-                }, 500);
-
-                // Start execution (async)
-
-                void orchestrator.executeWorkflow(plan).then(
-                  // eslint-disable-next-line sonarjs/no-nested-functions
-                  (workflowResult) => {
-                    logger.info('Workflow execution completed', {
-                      planId: plan.id,
-                      workflowResult,
-                    });
-
-                    state.workflowStatus = 'completed';
-
-                    // Add individual agent result messages for audit trail
-                    workflowResult.agents.forEach((agent) => {
-                      const isSuccess = agent.status === 'completed';
-                      const output = agent.result?.finalResponse ?? agent.error ?? 'Completed';
-                      state.messages.push({
-                        role: 'assistant',
-                        content: `${isSuccess ? '✓' : '✗'} Agent [${agent.agentId}]: ${output}`,
-                        metadata: {
-                          timestamp: Date.now(),
-                          type: 'agent',
-                          agentName: agent.agentId,
-                          workflowId: plan.id,
-                          cost: agent.result?.totalCost,
-                          usage: agent.result?.totalTokens
-                            ? {
-                                inputTokens: 0,
-                                outputTokens: agent.result.totalTokens,
-                                totalTokens: agent.result.totalTokens,
-                              }
-                            : undefined,
-                        },
-                      });
-                    });
-
-                    // Use totals from workflow result
-                    const totalWorkflowCost = workflowResult.totalCost;
-                    const totalTokens = workflowResult.totalTokens;
-
-                    // Add workflow completion summary
-                    const successCount = workflowResult.agents.filter(
-                      (a) => a.status === 'completed'
-                    ).length;
-                    state.messages.push({
-                      role: 'assistant',
-                      content: `Workflow completed with ${successCount}/${workflowResult.agents.length} agents successful`,
-                      metadata: {
-                        timestamp: Date.now(),
-                        type: 'workflow',
-                        workflowId: plan.id,
-                        cost: totalWorkflowCost,
-                        usage: { inputTokens: 0, outputTokens: totalTokens, totalTokens },
-                      },
-                    });
-                    state.totalCost += totalWorkflowCost;
-
-                    // Return to chat after brief delay
-                    setTimeout(() => {
-                      state.uiMode = 'chat';
-                      state.pendingWorkflowPlan = undefined;
-                      state.currentUserInput = undefined;
-                      state.workflowOrchestrator = undefined;
-                      renderUI(rerender);
-                    }, 2000);
-                  },
-                  // eslint-disable-next-line sonarjs/no-nested-functions
-                  (error) => {
-                    logger.error('Workflow execution failed', { error });
-
-                    state.workflowStatus = 'failed';
-                    state.messages.push({
-                      role: 'assistant',
-                      content: `❌ Workflow execution failed: ${(error as Error).message}`,
-                    });
-
-                    // Return to chat after brief delay
-                    setTimeout(() => {
-                      state.uiMode = 'chat';
-                      state.pendingWorkflowPlan = undefined;
-                      state.currentUserInput = undefined;
-                      state.workflowOrchestrator = undefined;
-                      renderUI(rerender);
-                    }, 2000);
-                  }
-                );
-
-                // Initial render of workflow execution UI
-                renderUI(rerender);
-              } catch (error) {
-                logger.error('Failed to start workflow execution', { error });
-                state.uiMode = 'chat';
-                state.messages.push({
-                  role: 'assistant',
-                  content: `❌ Failed to start workflow: ${(error as Error).message}`,
-                });
-                renderUI(rerender);
-              }
-            },
-            onCancel: () => {
-              logger.info('Workflow cancelled by user');
-              state.uiMode = 'chat';
-              state.pendingWorkflowPlan = undefined;
-              state.currentUserInput = undefined;
-              state.messages.push({
-                role: 'assistant',
-                content: '❌ Workflow cancelled. Returning to chat...',
-              });
-              renderUI(rerender);
-            },
-            onEdit: () => {
-              logger.info('Workflow edit requested');
-
-              // Return to chat to allow user to edit the input
-              state.uiMode = 'chat';
-              state.pendingWorkflowPlan = undefined;
-              state.messages.push({
-                role: 'assistant',
-                content: 'ℹ️ Edit mode: Please enter your revised task description.',
-              });
-              renderUI(rerender);
-            },
-          });
-        } else if (state.uiMode === 'workflow-execution' && state.workflowOrchestrator) {
-          // Show workflow execution progress UI
-
-          // Update agent progress data from orchestrator
-          if (state.workflowOrchestrator) {
-            const agents = state.workflowOrchestrator.getAgents();
-            state.agentProgressData = agents.map((agentState, index) => {
-              // Calculate elapsed time
-              const now = Date.now();
-              const startTime = agentState.startTime ? agentState.startTime.getTime() : now;
-              const endTime = agentState.endTime ? agentState.endTime.getTime() : now;
-              const elapsedTime =
-                agentState.status === 'completed' || agentState.status === 'failed'
-                  ? endTime - startTime
-                  : now - startTime;
-
-              return {
-                index: index + 1,
-                role: agentState.agent.config.role,
-                status: agentState.status,
-                elapsedTime,
-                cost: agentState.result?.totalCost || 0,
-                tokens: agentState.result?.totalTokens || 0,
-                currentTask: agentState.task,
-                todoCount: 0, // Not available in SubAgentState
-                currentTodo: undefined, // Not available in SubAgentState
-              };
-            });
-          }
-
-          // Calculate totals
-          const totalElapsedTime = Date.now() - state.workflowStartTime;
-          const totalCost = state.agentProgressData.reduce((sum, a) => sum + a.cost, 0);
-          const totalTokens = state.agentProgressData.reduce((sum, a) => sum + a.tokens, 0);
-
-          element = React.createElement(MultiAgentProgressView, {
-            agents: state.agentProgressData,
-            theme: state.config.ui.theme,
-            workflowStatus: state.workflowStatus,
-            totalElapsedTime,
-            totalCost,
-            totalTokens,
-            onGetAgentDetails: (_agentIndex: number) => {
-              // TODO: Return detailed agent data
-              return null;
-            },
-            onInterrupt: () => {
-              logger.info('Workflow interrupted by user');
-              if (state.workflowOrchestrator) {
-                state.workflowOrchestrator.interrupt();
-              }
-              state.workflowStatus = 'interrupted';
-              state.messages.push({
-                role: 'assistant',
-                content: '⏸ Workflow interrupted by user.',
-              });
-
-              // Return to chat after brief delay
-              // eslint-disable-next-line sonarjs/no-nested-functions
-              setTimeout(() => {
-                state.uiMode = 'chat';
-                state.pendingWorkflowPlan = undefined;
-                state.currentUserInput = undefined;
-                state.workflowOrchestrator = undefined;
-                renderUI(rerender);
-              }, 1000);
-            },
-          });
-        } else {
-          // Default: show chat UI
-          element = React.createElement(ChatApp, {
-            fs: this.fs,
-            projectRoot: process.cwd(),
-            config: state.config,
-            messages: state.messages,
-            currentMode: state.currentMode,
-            totalCost: state.totalCost,
-            commandRegistry: this.commandRegistry,
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            onUserInput: async (input: MessageContent) => {
-              // Extract text for slash command parsing (only works with string content)
-              const inputText = typeof input === 'string' ? input : '';
-              const parseResult = SlashCommandParser.parse(inputText);
-
-              if (parseResult.isCommand && parseResult.commandName) {
-                // Add command to message history for audit trail
-                state.messages.push({
-                  role: 'user',
-                  content: inputText,
-                  metadata: {
-                    timestamp: Date.now(),
-                    type: 'command',
-                    commandName: parseResult.commandName,
-                  },
-                });
-
-                // Execute slash command
-                const result = await this.commandRegistry.execute(
-                  parseResult.commandName,
-                  parseResult.args || [],
-                  {
-                    currentMode: state.currentMode,
-                    currentProvider: state.config.llm.provider,
-                    currentModel: state.config.llm.model ?? 'unknown',
-                    messageCount: state.messages.length,
-                    // eslint-disable-next-line sonarjs/no-nested-functions
-                    requestModeSwitch: (mode): void => {
-                      state.currentMode = mode;
-                      logger.info('Mode switched via command', { mode });
-                      // Force rerender to update mode colors (MimirHeader logo, etc.)
-                      renderUI(rerender);
-                    },
-                    // eslint-disable-next-line sonarjs/no-nested-functions
-                    requestModelSwitch: async (provider, model): Promise<void> => {
-                      logger.info('Model switch requested', { provider, model });
-
-                      // Validate provider type
-                      const validProviders = [
-                        'deepseek',
-                        'anthropic',
-                        'openai',
-                        'google',
-                        'gemini',
-                        'qwen',
-                        'ollama',
-                      ] as const;
-                      if (!validProviders.includes(provider as (typeof validProviders)[number])) {
-                        state.messages.push({
-                          role: 'assistant',
-                          content: `❌ Invalid provider: ${provider}. Valid providers: ${validProviders.join(', ')}`,
-                        });
-                        return;
-                      }
-
-                      // Update config
-                      state.config.llm.provider = provider as (typeof validProviders)[number];
-
-                      // Set model - use provided model or default for provider
-                      if (model) {
-                        state.config.llm.model = model;
-                      } else {
-                        // Set default model for provider
-                        switch (provider.toLowerCase()) {
-                          case 'deepseek':
-                            state.config.llm.model = 'deepseek-chat';
-                            break;
-                          case 'anthropic':
-                            state.config.llm.model = 'claude-sonnet-4-5-20250929';
-                            break;
-                          case 'openai':
-                            state.config.llm.model = 'gpt-4';
-                            break;
-                          case 'google':
-                          case 'gemini':
-                            state.config.llm.model = 'gemini-pro';
-                            break;
-                          default:
-                            state.config.llm.model = provider; // fallback
-                        }
-                      }
-
-                      // Save config
-                      try {
-                        await this.saveConfig(cwd, state.config);
-
-                        // Reinitialize provider
-                        const newProviderResult = await this.initializeProvider(state.config);
-                        if (newProviderResult.provider) {
-                          state.provider = newProviderResult.provider;
-                          state.messages.push({
-                            role: 'assistant',
-                            content: '✓ Switched to ' + provider + (model ? '/' + model : ''),
-                          });
-                        } else {
-                          state.messages.push({
-                            role: 'assistant',
-                            content: `❌ Failed to switch: ${newProviderResult.error}`,
-                          });
-                        }
-                      } catch (error) {
-                        state.messages.push({
-                          role: 'assistant',
-                          content: `❌ Failed to save config: ${(error as Error).message}`,
-                        });
-                      }
-                    },
-                    // eslint-disable-next-line sonarjs/no-nested-functions
-                    requestNewChat: (): void => {
-                      state.messages = [];
-                      state.totalCost = 0;
-                      logger.info('New chat started');
-                    },
-                    // eslint-disable-next-line sonarjs/no-nested-functions
-                    requestThemeChange: async (theme): Promise<void> => {
-                      // Create new config object with updated theme to trigger React rerender
-                      state.config = {
-                        ...state.config,
-                        ui: {
-                          ...state.config.ui,
-                          theme: theme as ThemeType,
-                        },
-                      };
-
-                      try {
-                        await this.saveConfig(cwd, state.config);
-                        logger.info('Theme changed and saved', { theme });
-
-                        // Force immediate rerender with new theme
-                        renderUI(rerender);
-                      } catch (error) {
-                        logger.error('Failed to save theme change', { error });
-                      }
-                    },
-                    // eslint-disable-next-line sonarjs/no-nested-functions
-                    sendPrompt: (prompt) => {
-                      // For custom commands - add as user message
-                      state.messages.push({
-                        role: 'user',
-                        content: prompt,
-                      });
-                      // TODO: Process through agent
-                      state.messages.push({
-                        role: 'assistant',
-                        content: `Received prompt from command: ${prompt}`,
-                      });
-                    },
-                  }
-                );
-
-                if (!result.success) {
-                  // Show error message
-                  state.messages.push({
-                    role: 'assistant',
-                    content: `Error: ${result.error}`,
-                  });
-                }
-
-                // Re-render
-                renderUI(rerender);
-                return;
-              }
-
-              // Normal message handling
-              logger.info('User input received', { input });
-
-              // Check if provider is available
-              if (!state.provider) {
-                state.messages.push({
-                  role: 'user',
-                  content: messageContentToString(input),
-                });
-                state.messages.push({
-                  role: 'assistant',
-                  content:
-                    '❌ No LLM provider configured. Please use /model <provider> <model> to set up a provider.',
-                });
-                renderUI(rerender);
-                return;
-              }
-
-              // Check task complexity for multi-agent orchestration
-              // Use inputText (string) not input (which may be MessageContentPart[])
-              const complexityCheck = await this.checkTaskComplexity(state.provider, inputText);
-
-              if (complexityCheck.isComplex) {
-                // Complex task detected - generate workflow plan
-                logger.info('Complex task detected, generating workflow plan', {
-                  reasoning: complexityCheck.reasoning,
-                });
-
-                // Add user message to history
-                state.messages.push({
-                  role: 'user',
-                  content: messageContentToString(input),
-                });
-
-                // Generate workflow plan
-                const plan = await this.generateWorkflowPlan(state.provider, inputText);
-
-                if (!plan) {
-                  // Fallback to simple mode if plan generation failed
-                  state.messages.push({
-                    role: 'assistant',
-                    content:
-                      '⚠️ Failed to generate workflow plan. Processing with standard mode...',
-                  });
-                  await this.processMessage(state.provider, state.messages, input);
-                  const lastMessage = state.messages[state.messages.length - 1];
-                  if (lastMessage?.metadata?.cost) {
-                    state.totalCost += lastMessage.metadata.cost;
-                  }
-                  renderUI(rerender);
-                  return;
-                }
-
-                // Show workflow approval UI
-                state.uiMode = 'workflow-approval';
-                state.pendingWorkflowPlan = plan;
-                state.currentUserInput = messageContentToString(input);
-                renderUI(rerender);
-                // Don't process message yet - wait for user approval
-              } else {
-                // Simple task - process through LLM directly
-                state.messages.push({
-                  role: 'user',
-                  content: messageContentToString(input),
-                });
-                await this.processMessage(state.provider, state.messages, input);
-
-                // Update total cost
-                const lastMessage = state.messages[state.messages.length - 1];
-                if (lastMessage?.metadata?.cost) {
-                  state.totalCost += lastMessage.metadata.cost;
-                }
-
-                // Re-render with updated messages
-                renderUI(rerender);
-              }
-            },
-            onModeSwitch: (mode: 'plan' | 'act' | 'discuss'): void => {
-              state.currentMode = mode;
-              logger.info('Mode switched', { mode });
-              // Force rerender to sync mode changes (e.g., from Shift+Tab)
-              renderUI(rerender);
-            },
-            onExit: (): void => {
-              logger.info('Chat session ended');
-              // Exit alternate screen buffer before resolving
-              process.stdout.write('\x1b[?1049l');
-              resolve();
-            },
-          });
-        }
-
-        rerender(element);
-      };
-
-      // Disable console logging while Ink UI is active to prevent log pollution
-      logger.disableConsole();
-
-      // NOTE: Do NOT manually call process.stdin.setRawMode()!
-      // Ink manages raw mode internally via its stdin handling.
-      // Manual manipulation causes UV_HANDLE_CLOSING crashes on exit.
-
-      const { waitUntilExit, rerender, clear } = render(
-        React.createElement(ChatApp, {
-          fs: this.fs,
-          projectRoot: process.cwd(),
-          config: state.config,
-          messages: state.messages,
-          currentMode: state.currentMode,
-          totalCost: state.totalCost,
-          commandRegistry: this.commandRegistry,
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          onUserInput: async (input: MessageContent) => {
-            // Extract text for slash command parsing (only works with string content)
-            const inputText = typeof input === 'string' ? input : '';
-            const parseResult = SlashCommandParser.parse(inputText);
-
-            if (parseResult.isCommand && parseResult.commandName) {
-              // Add command to message history for audit trail
-              state.messages.push({
-                role: 'user',
-                content: inputText,
-                metadata: {
-                  timestamp: Date.now(),
-                  type: 'command',
-                  commandName: parseResult.commandName,
-                },
-              });
-
-              // Execute slash command
-              const result = await this.commandRegistry.execute(
-                parseResult.commandName,
-                parseResult.args || [],
-                {
-                  currentMode: state.currentMode,
-                  currentProvider: state.config.llm.provider,
-                  currentModel: state.config.llm.model ?? 'unknown',
-                  messageCount: state.messages.length,
-                  requestModeSwitch: (mode): void => {
-                    state.currentMode = mode;
-                    logger.info('Mode switched via command', { mode });
-                    // Force rerender to update mode colors (MimirHeader logo, etc.)
-                    renderUI(rerender);
-                  },
-                  requestModelSwitch: async (provider, model): Promise<void> => {
-                    logger.info('Model switch requested', { provider, model });
-
-                    // Validate provider type
-                    const validProviders = [
-                      'deepseek',
-                      'anthropic',
-                      'openai',
-                      'google',
-                      'gemini',
-                      'qwen',
-                      'ollama',
-                    ] as const;
-                    if (!validProviders.includes(provider as (typeof validProviders)[number])) {
-                      state.messages.push({
-                        role: 'assistant',
-                        content: `❌ Invalid provider: ${provider}. Valid providers: ${validProviders.join(', ')}`,
-                      });
-                      return;
-                    }
-
-                    // Update config
-                    state.config.llm.provider = provider as (typeof validProviders)[number];
-
-                    // Set model - use provided model or default for provider
-                    if (model) {
-                      state.config.llm.model = model;
-                    } else {
-                      // Set default model for provider
-                      switch (provider.toLowerCase()) {
-                        case 'deepseek':
-                          state.config.llm.model = 'deepseek-chat';
-                          break;
-                        case 'anthropic':
-                          state.config.llm.model = 'claude-sonnet-4-5-20250929';
-                          break;
-                        case 'openai':
-                          state.config.llm.model = 'gpt-4';
-                          break;
-                        case 'google':
-                        case 'gemini':
-                          state.config.llm.model = 'gemini-pro';
-                          break;
-                        default:
-                          state.config.llm.model = provider; // fallback
-                      }
-                    }
-
-                    // Save config
-                    try {
-                      await this.saveConfig(cwd, state.config);
-
-                      // Reinitialize provider
-                      const newProviderResult = await this.initializeProvider(state.config);
-                      if (newProviderResult.provider) {
-                        state.provider = newProviderResult.provider;
-                        state.messages.push({
-                          role: 'assistant',
-                          content: '✓ Switched to ' + provider + (model ? '/' + model : ''),
-                        });
-                      } else {
-                        state.messages.push({
-                          role: 'assistant',
-                          content: `❌ Failed to switch: ${newProviderResult.error}`,
-                        });
-                      }
-                    } catch (error) {
-                      state.messages.push({
-                        role: 'assistant',
-                        content: `❌ Failed to save config: ${(error as Error).message}`,
-                      });
-                    }
-                  },
-                  requestNewChat: (): void => {
-                    state.messages = [];
-                    state.totalCost = 0;
-                    logger.info('New chat started');
-                  },
-                  requestThemeChange: async (theme): Promise<void> => {
-                    // Create new config object with updated theme to trigger React rerender
-                    state.config = {
-                      ...state.config,
-                      ui: {
-                        ...state.config.ui,
-                        theme: theme as ThemeType,
-                      },
-                    };
-
-                    try {
-                      await this.saveConfig(cwd, state.config);
-                      logger.info('Theme changed and saved', { theme });
-
-                      // Force immediate rerender with new theme
-                      renderUI(rerender);
-                    } catch (error) {
-                      logger.error('Failed to save theme change', { error });
-                    }
-                  },
-                  sendPrompt: (prompt): void => {
-                    // For custom commands - add as user message
-                    state.messages.push({
-                      role: 'user',
-                      content: prompt,
-                    });
-                    // TODO: Process through agent
-                    state.messages.push({
-                      role: 'assistant',
-                      content: `Received prompt from command: ${prompt}`,
-                    });
-                  },
-                }
-              );
-
-              if (!result.success) {
-                // Show error message
-                state.messages.push({
-                  role: 'assistant',
-                  content: `Error: ${result.error}`,
-                });
-              }
-
-              // Re-render
-              renderUI(rerender);
-              return;
-            }
-
-            // Normal message handling
-            logger.info('User input received', { input });
-
-            // Check if provider is available
-            if (!state.provider) {
-              state.messages.push({
-                role: 'user',
-                content: messageContentToString(input),
-              });
-              state.messages.push({
-                role: 'assistant',
-                content:
-                  '❌ No LLM provider configured. Please use /model <provider> <model> to set up a provider.',
-              });
-              renderUI(rerender);
-              return;
-            }
-
-            // Check task complexity for multi-agent orchestration
-            // Use inputText (string) not input (which may be MessageContentPart[])
-            const complexityCheck = await this.checkTaskComplexity(state.provider, inputText);
-
-            if (complexityCheck.isComplex) {
-              // TODO: Multi-agent workflow
-              // For now, add a message indicating detection and fall back to simple mode
-              logger.info('Complex task detected, multi-agent workflow not yet implemented', {
-                reasoning: complexityCheck.reasoning,
-              });
-
-              state.messages.push({
-                role: 'assistant',
-                content: `🤖 Complex task detected: ${complexityCheck.reasoning}\n\n_Multi-agent workflow coming soon. Processing with standard mode for now..._`,
-              });
-
-              // Fallback to simple LLM processing
-              await this.processMessage(state.provider, state.messages, input);
-            } else {
-              // Simple task - process through LLM directly
-              await this.processMessage(state.provider, state.messages, input);
-            }
-
-            // Update total cost
-            const lastMessage = state.messages[state.messages.length - 1];
-            if (lastMessage?.metadata?.cost) {
-              state.totalCost += lastMessage.metadata.cost;
-            }
-
-            renderUI(rerender);
-          },
-          onModeSwitch: (mode: 'plan' | 'act' | 'discuss'): void => {
-            state.currentMode = mode;
-            logger.info('Mode switched', { mode });
-            // Force rerender to sync mode changes (e.g., from Shift+Tab)
-            renderUI(rerender);
-          },
-          onExit: (): void => {
+      this.runChatLoop(state, config, cwd, resolve);
+    });
+  }
+
+  /**
+   * Run the main chat loop with Ink rendering
+   */
+  private runChatLoop(state: ChatState, config: Config, cwd: string, resolve: () => void): void {
+    // Render function to update UI
+    const renderUI = (rerender: (element: React.ReactElement) => void): void => {
+      let element: React.ReactElement;
+
+      if (state.uiMode === 'workflow-approval' && state.pendingWorkflowPlan) {
+        element = this.createWorkflowApprovalUI(state, () => renderUI(rerender));
+      } else if (state.uiMode === 'workflow-execution' && state.workflowOrchestrator) {
+        element = this.createWorkflowExecutionUI(state, () => renderUI(rerender));
+      } else {
+        element = this.createChatUI(
+          state,
+          cwd,
+          () => renderUI(rerender),
+          () => {
             logger.info('Chat session ended');
-            // Exit alternate screen buffer before resolving
             process.stdout.write('\x1b[?1049l');
             resolve();
-          },
-        }),
-        {
-          // Prevent console patching to avoid layout shifts from console.log
-          patchConsole: false,
-          // CRITICAL: Disable Ink's default Ctrl+C exit behavior
-          // We handle Ctrl+C manually through our keyboard system
-          exitOnCtrlC: false,
+          }
+        );
+      }
+
+      rerender(element);
+    };
+
+    // Disable console logging while Ink UI is active
+    logger.disableConsole();
+
+    const { waitUntilExit, rerender, clear } = render(
+      this.createChatUI(
+        state,
+        cwd,
+        () => renderUI(rerender),
+        () => {
+          logger.info('Chat session ended');
+          process.stdout.write('\x1b[?1049l');
+          resolve();
         }
-      );
+      ),
+      {
+        patchConsole: false,
+        exitOnCtrlC: false,
+      }
+    );
 
-      // Handle process termination with SignalHandler
-      const signalHandler = installSignalHandlers({
-        keyBindings: config.keyBindings,
-        onCleanup: async () => {
-          // Re-enable console logging for cleanup messages
-          logger.enableConsole();
-          // NOTE: Do NOT call setRawMode here - Ink handles cleanup
-          // Manually restoring raw mode causes UV_HANDLE_CLOSING crashes
-          // Exit alternate screen buffer
-          process.stdout.write('\x1b[?1049l');
-          // Clear Ink render
-          clear();
-          logger.info('Chat interface cleanup completed');
-        },
-        emergencyExitCount: 3,
-        cleanupTimeout: 5000,
-      });
-
-      waitUntilExit()
-        .then(() => {
-          // Re-enable console logging after UI exits
-          logger.enableConsole();
-          logger.info('Chat interface exited');
-          // NOTE: Do NOT call setRawMode here - Ink handles cleanup
-          // Exit alternate screen buffer on normal exit
-          process.stdout.write('\x1b[?1049l');
-          // Remove signal handlers
-          signalHandler.uninstall();
-          resolve();
-        })
-        .catch((error) => {
-          logger.error('Error during UI cleanup', { error });
-          // Re-enable console and exit alternate screen even on error
-          logger.enableConsole();
-          process.stdout.write('\x1b[?1049l');
-          signalHandler.uninstall();
-          resolve();
-        });
+    // Handle process termination with SignalHandler
+    const signalHandler = installSignalHandlers({
+      keyBindings: config.keyBindings,
+      onCleanup: async () => {
+        logger.enableConsole();
+        process.stdout.write('\x1b[?1049l');
+        clear();
+        logger.info('Chat interface cleanup completed');
+      },
+      emergencyExitCount: 3,
+      cleanupTimeout: 5000,
     });
+
+    waitUntilExit()
+      .then(() => {
+        logger.enableConsole();
+        logger.info('Chat interface exited');
+        process.stdout.write('\x1b[?1049l');
+        signalHandler.uninstall();
+        resolve();
+      })
+      .catch((error: unknown) => {
+        logger.error('Error during UI cleanup', { error });
+        logger.enableConsole();
+        process.stdout.write('\x1b[?1049l');
+        signalHandler.uninstall();
+        resolve();
+      });
   }
 }

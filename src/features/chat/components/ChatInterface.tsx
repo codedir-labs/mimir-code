@@ -530,7 +530,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // FIRST LINE - log immediately to catch any early failures
       try {
         pasteLog('ChatInterface', '>>> handlePaste ENTRY <<<', { contentLen: content.length });
-        // eslint-disable-next-line sonarjs/no-ignored-exceptions
       } catch {
         // Ignore logging errors - don't want to break paste functionality
       }

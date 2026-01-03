@@ -74,6 +74,65 @@ export function getStaticPricing(provider: string, model: string): ModelPricing 
   return providerPricing[model] || null;
 }
 
+/** Parse DeepSeek pricing from HTML for a specific model */
+function parseDeepSeekPricing(html: string, model: string): ModelPricing | null {
+  const modelLower = model.toLowerCase();
+
+  if (modelLower.includes('chat')) {
+    const chatRegex = /chat.*?\$?0\.14.*?\$?0\.28/i;
+    if (chatRegex.test(html)) {
+      return { inputPerMillionTokens: 0.14, outputPerMillionTokens: 0.28 };
+    }
+  }
+
+  if (modelLower.includes('reasoner')) {
+    const reasonerRegex = /reasoner.*?\$?0\.55.*?\$?2\.19/i;
+    if (reasonerRegex.test(html)) {
+      return { inputPerMillionTokens: 0.55, outputPerMillionTokens: 2.19 };
+    }
+  }
+
+  return null;
+}
+
+/** Fetch DeepSeek pricing from documentation */
+async function fetchDeepSeekPricing(model: string): Promise<ModelPricing | null> {
+  try {
+    const response = await fetch('https://api-docs.deepseek.com/quick_start/pricing');
+    if (!response.ok) return null;
+    const html = await response.text();
+    return parseDeepSeekPricing(html, model);
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch Anthropic pricing from Models API */
+async function fetchAnthropicPricing(model: string, apiKey: string): Promise<ModelPricing | null> {
+  try {
+    const response = await fetch(`https://api.anthropic.com/v1/models/${model}`, {
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    });
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      pricing?: {
+        input_price_per_million_tokens?: number;
+        output_price_per_million_tokens?: number;
+      };
+    };
+
+    const inputPrice = data.pricing?.input_price_per_million_tokens;
+    const outputPrice = data.pricing?.output_price_per_million_tokens;
+    if (inputPrice != null && outputPrice != null) {
+      return { inputPerMillionTokens: inputPrice, outputPerMillionTokens: outputPrice };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Fetch dynamic pricing from provider API or documentation
  */
@@ -84,90 +143,12 @@ export async function fetchDynamicPricing(
 ): Promise<ModelPricing | null> {
   const normalizedProvider = provider.toLowerCase();
 
-  // DeepSeek: Scrape pricing from documentation
   if (normalizedProvider === 'deepseek') {
-    try {
-      const response = await fetch('https://api-docs.deepseek.com/quick_start/pricing');
-      if (!response.ok) {
-        return null;
-      }
-
-      const html = await response.text();
-
-      // Parse pricing from HTML (looking for pricing table or text)
-      // DeepSeek pricing is typically listed as:
-      // - deepseek-chat: $0.14 / $0.28 per million tokens
-      // - deepseek-reasoner: $0.55 / $2.19 per million tokens
-
-      // Try to extract pricing for the specific model
-      const modelLower = model.toLowerCase();
-
-      // For deepseek-chat, look for the first pricing entry
-      if (modelLower.includes('chat')) {
-        const chatRegex = /chat.*?\$?0\.14.*?\$?0\.28/i;
-        const match = chatRegex.exec(html);
-        if (match) {
-          return {
-            inputPerMillionTokens: 0.14,
-            outputPerMillionTokens: 0.28,
-          };
-        }
-      }
-
-      // For deepseek-reasoner, look for reasoner pricing
-      if (modelLower.includes('reasoner')) {
-        const reasonerRegex = /reasoner.*?\$?0\.55.*?\$?2\.19/i;
-        const match = reasonerRegex.exec(html);
-        if (match) {
-          return {
-            inputPerMillionTokens: 0.55,
-            outputPerMillionTokens: 2.19,
-          };
-        }
-      }
-
-      // Fallback to static if scraping fails
-      return null;
-    } catch {
-      // Silently fail and use static pricing - dynamic pricing is optional
-      return null;
-    }
+    return fetchDeepSeekPricing(model);
   }
 
-  // Anthropic Models API (requires API key)
   if (normalizedProvider === 'anthropic' && apiKey) {
-    try {
-      const response = await fetch(`https://api.anthropic.com/v1/models/${model}`, {
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data = (await response.json()) as {
-        pricing?: {
-          input_price_per_million_tokens?: number;
-          output_price_per_million_tokens?: number;
-        };
-      };
-
-      if (
-        data.pricing?.input_price_per_million_tokens != null &&
-        data.pricing?.output_price_per_million_tokens != null
-      ) {
-        return {
-          inputPerMillionTokens: data.pricing.input_price_per_million_tokens,
-          outputPerMillionTokens: data.pricing.output_price_per_million_tokens,
-        };
-      }
-    } catch {
-      // Silently fail and use static pricing - API fetch is optional
-      return null;
-    }
+    return fetchAnthropicPricing(model, apiKey);
   }
 
   return null;

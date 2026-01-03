@@ -64,11 +64,11 @@ export class APIClient {
         },
       });
 
-      const stream = response.data;
+      const stream = response.data as AsyncIterable<Buffer>;
 
       // Read stream chunks
       for await (const chunk of stream) {
-        const chunkStr = chunk.toString('utf-8');
+        const chunkStr = Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : String(chunk);
         yield chunkStr;
       }
     } catch (error) {

@@ -61,9 +61,9 @@ tmp/
 temp/
 *.tmp
 
-# Binary builds
+# Binary builds (root level only, avoid matching packages/mimir-*)
 *.exe
-mimir-*
+/mimir-*
 
 # Git hooks are tracked (.husky/ directory should be in version control)
 # Husky will install hooks automatically on yarn install

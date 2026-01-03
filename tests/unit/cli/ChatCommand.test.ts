@@ -167,7 +167,7 @@ ui:
       // Execute - should auto-initialize
       try {
         await chatCommand.execute(uninitializedWorkspace);
-      } catch (error) {
+      } catch (_error) {
         // May throw due to Ink rendering, but initialization should happen
       }
 
@@ -231,7 +231,7 @@ ui:
       // Execute
       try {
         await chatCommand.execute(initializedWorkspace);
-      } catch (error) {
+      } catch (_error) {
         // Ignore Ink rendering errors
       }
 
@@ -251,7 +251,7 @@ ui:
 
       try {
         await chatCommand.execute(workspace);
-      } catch (error) {
+      } catch (_error) {
         // Ignore rendering errors
       }
 
@@ -281,7 +281,7 @@ ui:
 
       try {
         await chatCommand.execute(workspace);
-      } catch (error) {
+      } catch (_error) {
         // Ignore rendering errors
       }
 

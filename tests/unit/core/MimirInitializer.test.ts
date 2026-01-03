@@ -10,7 +10,6 @@ import type { IFileSystem } from '@codedir/mimir-agents';
 import { mkdtemp, rm, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { homedir } from 'os';
 import { closeDatabaseManager } from '@codedir/mimir-agents-node/storage';
 
 describe('MimirInitializer', () => {
@@ -29,7 +28,6 @@ describe('MimirInitializer', () => {
     await mkdir(mockHomeDir, { recursive: true });
 
     // Mock HOME/USERPROFILE to use test directory
-    const originalHome = process.env.HOME || process.env.USERPROFILE;
     if (process.platform === 'win32') {
       process.env.USERPROFILE = mockHomeDir;
     } else {
@@ -210,7 +208,9 @@ describe('MimirInitializer', () => {
           return fs.rmdir(path, options);
         }),
         copyFile: vi.fn(async (src: string, dest: string) => fs.copyFile(src, dest)),
-        glob: vi.fn(async (pattern: string, options?: any) => fs.glob(pattern, options)),
+        glob: vi.fn(async (pattern: string, options?: Parameters<IFileSystem['glob']>[1]) =>
+          fs.glob(pattern, options)
+        ),
       };
 
       const spyConfigLoader = new ConfigLoader(spyFs);
@@ -226,8 +226,7 @@ describe('MimirInitializer', () => {
       // Verify readFile was called for theme copying (not readFileSync)
       // Note: This might be 0 if theme source files don't exist in test environment
       // The important thing is that writeFile is called for themes
-      const writeFileCalls = (spyFs.writeFile as any).mock.calls;
-      const themeWrites = writeFileCalls.filter((call: any[]) => call[0].includes('themes/'));
+      const writeFileCalls = vi.mocked(spyFs.writeFile).mock.calls;
 
       // At minimum, should attempt to write gitignore and config
       expect(writeFileCalls.length).toBeGreaterThan(0);

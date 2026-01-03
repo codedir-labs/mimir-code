@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render } from 'ink-testing-library';
-import { ProviderSetupWizard, type ProviderOption, type ProviderConfigResult } from '@/features/providers/components/ProviderSetupWizard.js';
+import { ProviderSetupWizard, type ProviderOption } from '@/features/providers/components/ProviderSetupWizard.js';
 
 // SKIPPED: ink-testing-library does not support testing useInput hook
 // The component is correctly implemented with useInput for keyboard handling,

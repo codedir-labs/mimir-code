@@ -72,12 +72,9 @@ export function Manifesto() {
   return (
     <section className="relative py-24 px-4 bg-muted/30">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 text-foreground">
-            We believe AI coding agents should be...
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Principles that guide everything we build
+        <div className="mb-12">
+          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
+            We believe AI coding agents should be
           </p>
         </div>
 

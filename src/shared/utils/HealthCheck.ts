@@ -55,11 +55,11 @@ export class HealthChecker {
     });
 
     // Run initial check
-    this.runHealthCheck();
+    void this.runHealthCheck();
 
     // Schedule periodic checks
     this.checkInterval = setInterval(() => {
-      this.runHealthCheck();
+      void this.runHealthCheck();
     }, this.intervalSeconds * 1000);
   }
 

@@ -2,7 +2,7 @@
  * Unit tests for bracketed paste utilities
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   detectBracketedPaste,
   supportsBracketedPaste,
@@ -101,7 +101,7 @@ describe('Bracketed Paste Utilities', () => {
     });
 
     afterEach(() => {
-      (process.stdout as any).isTTY = originalIsTTY;
+      Object.defineProperty(process.stdout, 'isTTY', { value: originalIsTTY, writable: true });
       if (originalTERM === undefined) {
         delete process.env.TERM;
       } else {
@@ -110,30 +110,30 @@ describe('Bracketed Paste Utilities', () => {
     });
 
     it('should return false if not TTY', () => {
-      (process.stdout as any).isTTY = false;
+      Object.defineProperty(process.stdout, 'isTTY', { value: false, writable: true });
       expect(supportsBracketedPaste()).toBe(false);
     });
 
     it('should return true for TTY with normal TERM', () => {
-      (process.stdout as any).isTTY = true;
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, writable: true });
       process.env.TERM = 'xterm-256color';
       expect(supportsBracketedPaste()).toBe(true);
     });
 
     it('should return false for dumb terminal', () => {
-      (process.stdout as any).isTTY = true;
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, writable: true });
       process.env.TERM = 'dumb';
       expect(supportsBracketedPaste()).toBe(false);
     });
 
     it('should return false for unknown terminal', () => {
-      (process.stdout as any).isTTY = true;
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, writable: true });
       process.env.TERM = 'unknown';
       expect(supportsBracketedPaste()).toBe(false);
     });
 
     it('should default to true for TTY without TERM', () => {
-      (process.stdout as any).isTTY = true;
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, writable: true });
       delete process.env.TERM;
       expect(supportsBracketedPaste()).toBe(true);
     });
@@ -297,18 +297,18 @@ describe('Bracketed Paste Utilities', () => {
   });
 
   describe('enableBracketedPaste', () => {
-    let writeSpy: any;
+    let writeSpy: ReturnType<typeof vi.spyOn>;
     let originalIsTTY: boolean;
 
     beforeEach(() => {
       originalIsTTY = process.stdout.isTTY;
-      (process.stdout as any).isTTY = true;
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, writable: true });
       writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     });
 
     afterEach(() => {
       writeSpy.mockRestore();
-      (process.stdout as any).isTTY = originalIsTTY;
+      Object.defineProperty(process.stdout, 'isTTY', { value: originalIsTTY, writable: true });
     });
 
     it('should write enable sequence to stdout', () => {
@@ -317,25 +317,25 @@ describe('Bracketed Paste Utilities', () => {
     });
 
     it('should not write if not TTY', () => {
-      (process.stdout as any).isTTY = false;
+      Object.defineProperty(process.stdout, 'isTTY', { value: false, writable: true });
       enableBracketedPaste();
       expect(writeSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('disableBracketedPaste', () => {
-    let writeSpy: any;
+    let writeSpy: ReturnType<typeof vi.spyOn>;
     let originalIsTTY: boolean;
 
     beforeEach(() => {
       originalIsTTY = process.stdout.isTTY;
-      (process.stdout as any).isTTY = true;
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, writable: true });
       writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     });
 
     afterEach(() => {
       writeSpy.mockRestore();
-      (process.stdout as any).isTTY = originalIsTTY;
+      Object.defineProperty(process.stdout, 'isTTY', { value: originalIsTTY, writable: true });
     });
 
     it('should write disable sequence to stdout', () => {
@@ -344,7 +344,7 @@ describe('Bracketed Paste Utilities', () => {
     });
 
     it('should not write if not TTY', () => {
-      (process.stdout as any).isTTY = false;
+      Object.defineProperty(process.stdout, 'isTTY', { value: false, writable: true });
       disableBracketedPaste();
       expect(writeSpy).not.toHaveBeenCalled();
     });

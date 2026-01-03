@@ -72,7 +72,7 @@ export class PerformanceMonitor {
 
     const intervalMs = this.config.batchWriteIntervalSeconds * 1000;
     this.flushTimer = setInterval(() => {
-      this.flush();
+      void this.flush();
     }, intervalMs);
   }
 
@@ -153,6 +153,36 @@ export class PerformanceMonitor {
   }
 
   /**
+   * Convert metric to database row values
+   */
+  private metricToRow(metric: MetricData): (string | number | null)[] {
+    return [
+      Math.floor(Date.now() / 1000),
+      metric.operation,
+      metric.duration_ms,
+      metric.conversation_id ?? null,
+      metric.session_id ?? null,
+      metric.provider ?? null,
+      metric.model ?? null,
+      metric.input_tokens ?? null,
+      metric.output_tokens ?? null,
+      metric.total_tokens ?? null,
+      metric.cost ?? null,
+      metric.tool_name ?? null,
+      metric.tool_args ? JSON.stringify(metric.tool_args) : null,
+      metric.tool_result_size ?? null,
+      metric.query_type ?? null,
+      metric.table_name ?? null,
+      metric.rows_affected ?? null,
+      metric.success ? 1 : 0,
+      metric.error ?? null,
+      metric.memory_mb ?? null,
+      metric.cpu_percent ?? null,
+      metric.metadata ? JSON.stringify(metric.metadata) : null,
+    ];
+  }
+
+  /**
    * Flush metrics buffer to database
    */
   async flush(): Promise<void> {
@@ -164,45 +194,21 @@ export class PerformanceMonitor {
       const metrics = [...this.metricsBuffer];
       this.metricsBuffer = [];
 
+      const insertSql = `INSERT INTO metrics (
+        timestamp, operation, duration_ms,
+        conversation_id, session_id,
+        provider, model, input_tokens, output_tokens, total_tokens, cost,
+        tool_name, tool_args, tool_result_size,
+        query_type, table_name, rows_affected,
+        success, error,
+        memory_mb, cpu_percent,
+        metadata
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
       // Batch insert
       this.db.transaction(() => {
         for (const metric of metrics) {
-          this.db!.execute(
-            `INSERT INTO metrics (
-              timestamp, operation, duration_ms,
-              conversation_id, session_id,
-              provider, model, input_tokens, output_tokens, total_tokens, cost,
-              tool_name, tool_args, tool_result_size,
-              query_type, table_name, rows_affected,
-              success, error,
-              memory_mb, cpu_percent,
-              metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              Math.floor(Date.now() / 1000),
-              metric.operation,
-              metric.duration_ms,
-              metric.conversation_id || null,
-              metric.session_id || null,
-              metric.provider || null,
-              metric.model || null,
-              metric.input_tokens || null,
-              metric.output_tokens || null,
-              metric.total_tokens || null,
-              metric.cost || null,
-              metric.tool_name || null,
-              metric.tool_args ? JSON.stringify(metric.tool_args) : null,
-              metric.tool_result_size || null,
-              metric.query_type || null,
-              metric.table_name || null,
-              metric.rows_affected || null,
-              metric.success ? 1 : 0,
-              metric.error || null,
-              metric.memory_mb || null,
-              metric.cpu_percent || null,
-              metric.metadata ? JSON.stringify(metric.metadata) : null,
-            ]
-          );
+          this.db!.execute(insertSql, this.metricToRow(metric));
         }
       });
 

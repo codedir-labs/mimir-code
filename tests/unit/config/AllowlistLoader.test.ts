@@ -4,11 +4,15 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AllowlistLoader, AllowlistSchema } from '@/shared/config/AllowlistLoader.js';
-import { IFileSystem } from '@codedir/mimir-agents';
+import type { IFileSystem } from '@codedir/mimir-agents';
 import path from 'path';
 
-// Mock filesystem
-const createMockFs = (): IFileSystem => {
+// Mock filesystem with extended interface for testing
+interface MockFileSystem extends IFileSystem {
+  setFile: (path: string, content: string) => void;
+}
+
+const createMockFs = (): MockFileSystem => {
   const files = new Map<string, string>();
 
   return {
@@ -21,12 +25,18 @@ const createMockFs = (): IFileSystem => {
       files.set(path, content);
     }),
     mkdir: vi.fn(async () => {}),
+    readdir: vi.fn(async () => []),
+    stat: vi.fn(async () => ({ isDirectory: () => false })),
+    unlink: vi.fn(async () => {}),
+    rmdir: vi.fn(async () => {}),
+    copyFile: vi.fn(async () => {}),
+    glob: vi.fn(async () => []),
     setFile: (path: string, content: string) => files.set(path, content),
-  } as any;
+  } as MockFileSystem;
 };
 
 describe('AllowlistLoader', () => {
-  let fs: IFileSystem;
+  let fs: MockFileSystem;
   let loader: AllowlistLoader;
 
   beforeEach(() => {
@@ -50,7 +60,7 @@ bashCommands:
   - 'yarn test'
 `;
 
-      (fs as any).setFile(path.join('/project', '.mimir', 'allowlist.yml'), allowlistYaml);
+      fs.setFile(path.join('/project', '.mimir', 'allowlist.yml'), allowlistYaml);
 
       const allowlist = await loader.loadProjectAllowlist('/project');
 
@@ -73,7 +83,7 @@ bashCommands:
 commands:
   - '/test'
 `;
-      (fs as any).setFile(path.join('/project', '.mimir', 'allowlist.yml'), allowlistYaml);
+      fs.setFile(path.join('/project', '.mimir', 'allowlist.yml'), allowlistYaml);
 
       const allowlist = await loader.loadProjectAllowlist('/project');
 
@@ -87,7 +97,7 @@ commands:
     });
 
     it('should return null on invalid YAML', async () => {
-      (fs as any).setFile(path.join('/project', '.mimir', 'allowlist.yml'), 'invalid: yaml: :');
+      fs.setFile(path.join('/project', '.mimir', 'allowlist.yml'), 'invalid: yaml: :');
 
       const allowlist = await loader.loadProjectAllowlist('/project');
       expect(allowlist).toBeNull();
@@ -102,7 +112,7 @@ commands:
   - '/status'
   - '/help'
 `;
-      (fs as any).setFile(path.join(homeDir, '.mimir', 'allowlist.yml'), allowlistYaml);
+      fs.setFile(path.join(homeDir, '.mimir', 'allowlist.yml'), allowlistYaml);
 
       const allowlist = await loader.loadGlobalAllowlist();
 

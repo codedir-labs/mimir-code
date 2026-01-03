@@ -37,8 +37,6 @@ export class MockTeamsAPIClient {
   constructor(config: { baseURL: string; accessToken?: string }) {
     this.baseURL = config.baseURL;
     this.accessToken = config.accessToken;
-
-    console.warn('⚠️  Using MockTeamsAPIClient - Backend responses are simulated');
   }
 
   /**
@@ -148,7 +146,7 @@ export class MockTeamsAPIClient {
       // TODO-MOCK: Replace with real API call
       await this.mockDelay(300);
 
-      const mockOrgs: Record<string, any> = {
+      const mockOrgs: Record<string, GetOrganizationResponse['organization']> = {
         'acme-corp': {
           id: 'mock-org-001',
           slug: 'acme-corp',
@@ -186,7 +184,7 @@ export class MockTeamsAPIClient {
         throw new Error(`Organization not found: ${slug}`);
       }
 
-      return { organization: org };
+      return { organization: org } as GetOrganizationResponse;
     },
   };
 
@@ -243,7 +241,8 @@ export class MockTeamsAPIClient {
       await this.mockDelay(300);
 
       // Mock team detection based on repository
-      const mockTeamMappings: Record<string, any[]> = {
+      type DetectedTeam = DetectTeamResponse['teams'][number];
+      const mockTeamMappings: Record<string, DetectedTeam[]> = {
         'git@github.com:acme/frontend.git': [
           {
             teamId: 'mock-team-001',
@@ -277,7 +276,7 @@ export class MockTeamsAPIClient {
         ],
       };
 
-      const teams = mockTeamMappings[request.repository] || [];
+      const teams: DetectedTeam[] = mockTeamMappings[request.repository] ?? [];
       return { teams };
     },
   };

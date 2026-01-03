@@ -109,7 +109,6 @@ describe('Multi-Agent Workflow Keyboard Integration', () => {
     it('should handle number keys for agent selection (1-5)', () => {
       // Note: Number key handling for agent selection is currently a TODO
       // This test documents expected behavior
-      const selectAgentSpy = vi.fn();
 
       // In the future, number keys should trigger agent selection
       // For now, they may not have bindings
@@ -265,7 +264,7 @@ describe('Multi-Agent Workflow Keyboard Integration', () => {
     });
 
     it('should provide readonly context to event handlers', () => {
-      let capturedContext: any;
+      let capturedContext: Record<string, unknown> | undefined;
 
       keyboardBus.subscribe('accept', (event) => {
         capturedContext = event.context;

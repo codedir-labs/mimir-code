@@ -3,17 +3,15 @@
  * Tests Ink rendering, keyboard shortcuts, and user interactions
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render } from 'ink-testing-library';
 import { AgentSelectionUI } from '@/features/chat/components/AgentSelectionUI.js';
 import { MultiAgentProgressView } from '@/features/chat/components/MultiAgentProgressView.js';
 import { AgentDetailView } from '@/features/chat/components/AgentDetailView.js';
-import type { WorkflowPlan } from '@codedir/mimir-agents/core';
+import type { WorkflowPlan, IFileSystem } from '@codedir/mimir-agents/core';
 import type { AgentProgressData, AgentDetailData } from '@/features/chat/index.js';
 import { KeyboardProvider } from '@/shared/keyboard/KeyboardContext.js';
-import { KeyboardEventBus } from '@/shared/keyboard/KeyboardEventBus.js';
-import { KeyBindingsManager } from '@/shared/utils/KeyBindings.js';
 import type { KeyBindingsConfig } from '@/shared/config/schemas.js';
 
 // Test helper to wrap components in KeyboardProvider
@@ -53,7 +51,7 @@ function withKeyboardProvider(element: React.ReactElement): React.ReactElement {
 
   return React.createElement(
     KeyboardProvider,
-    { bindingsConfig, fs: mockFs as any, projectRoot: '/test' },
+    { bindingsConfig, fs: mockFs as unknown as IFileSystem, projectRoot: '/test' },
     element
   );
 }

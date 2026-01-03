@@ -88,7 +88,7 @@ async function updateProvidersConfig(results: ProviderConfigResult[]): Promise<v
   let config: Partial<Config> = {};
   try {
     const content = await fs.readFile(configPath, 'utf-8');
-    config = YAML.parse(content) || {};
+    config = (YAML.parse(content) as Partial<Config> | null) ?? {};
   } catch (error) {
     // File doesn't exist, will create new
     logger.debug('Config file not found, creating new', { configPath, error });
@@ -138,36 +138,38 @@ async function runWizard(config: Config, preselectedProvider?: string): Promise<
         availableProviders: getAvailableProviders(),
         testConnection: testProviderConnection,
         preselectedProvider,
-        onComplete: async (results: ProviderConfigResult[]) => {
-          try {
-            // Save API keys
-            for (const result of results) {
-              await credentialsManager.setKey(result.provider, result.apiKey, {
-                type: result.storage,
-              });
+        onComplete: (results: ProviderConfigResult[]) => {
+          void (async () => {
+            try {
+              // Save API keys
+              for (const result of results) {
+                await credentialsManager.setKey(result.provider, result.apiKey, {
+                  type: result.storage,
+                });
+              }
+
+              // Update config
+              await updateProvidersConfig(results);
+
+              console.log('\n✓ Setup complete!');
+              console.log(`\nConfigured ${results.length} provider(s):`);
+              for (const result of results) {
+                console.log(`  • ${result.provider} (${result.storage})`);
+              }
+              console.log('\nYou can now start chatting: mimir\n');
+
+              void waitUntilExit();
+              resolve();
+            } catch (error) {
+              logger.error('Failed to save provider configuration', { error });
+              void waitUntilExit();
+              reject(error);
             }
-
-            // Update config
-            await updateProvidersConfig(results);
-
-            console.log('\n✓ Setup complete!');
-            console.log(`\nConfigured ${results.length} provider(s):`);
-            for (const result of results) {
-              console.log(`  • ${result.provider} (${result.storage})`);
-            }
-            console.log('\nYou can now start chatting: mimir\n');
-
-            waitUntilExit();
-            resolve();
-          } catch (error) {
-            logger.error('Failed to save provider configuration', { error });
-            waitUntilExit();
-            reject(error);
-          }
+          })();
         },
         onCancel: () => {
           console.log('\nSetup cancelled.\n');
-          waitUntilExit();
+          void waitUntilExit();
           resolve();
         },
       })
@@ -275,7 +277,7 @@ export function createConnectCommand(): Command {
         }
       } catch (error) {
         logger.error('Connect command failed', { error });
-        console.error('\nError:', (error as Error).message);
+        console.error('\nError: ' + (error as Error).message);
         process.exit(1);
       }
     });

@@ -3,7 +3,7 @@
  * Tests clipboard image detection and attachment creation
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { AttachmentManager } from '@/features/chat/utils/AttachmentManager.js';
 import type { MessageContentPart } from '@codedir/mimir-agents';
 
@@ -221,7 +221,7 @@ describe('Image Paste Workflow', () => {
 
   describe('Image Format Handling', () => {
     it('should support PNG format', () => {
-      const attachment = attachmentManager.addImageAttachment(Buffer.from('png'), 'png');
+      attachmentManager.addImageAttachment(Buffer.from('png'), 'png');
       const parts = attachmentManager.expandForAPI('');
 
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;
@@ -229,7 +229,7 @@ describe('Image Paste Workflow', () => {
     });
 
     it('should support JPEG format', () => {
-      const attachment = attachmentManager.addImageAttachment(Buffer.from('jpg'), 'jpg');
+      attachmentManager.addImageAttachment(Buffer.from('jpg'), 'jpg');
       const parts = attachmentManager.expandForAPI('');
 
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;
@@ -237,7 +237,7 @@ describe('Image Paste Workflow', () => {
     });
 
     it('should support JPEG format', () => {
-      const attachment = attachmentManager.addImageAttachment(Buffer.from('jpeg'), 'jpeg');
+      attachmentManager.addImageAttachment(Buffer.from('jpeg'), 'jpeg');
       const parts = attachmentManager.expandForAPI('');
 
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;
@@ -245,7 +245,7 @@ describe('Image Paste Workflow', () => {
     });
 
     it('should support GIF format', () => {
-      const attachment = attachmentManager.addImageAttachment(Buffer.from('gif'), 'gif');
+      attachmentManager.addImageAttachment(Buffer.from('gif'), 'gif');
       const parts = attachmentManager.expandForAPI('');
 
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;
@@ -253,7 +253,7 @@ describe('Image Paste Workflow', () => {
     });
 
     it('should support WebP format', () => {
-      const attachment = attachmentManager.addImageAttachment(Buffer.from('webp'), 'webp');
+      attachmentManager.addImageAttachment(Buffer.from('webp'), 'webp');
       const parts = attachmentManager.expandForAPI('');
 
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;
@@ -263,7 +263,7 @@ describe('Image Paste Workflow', () => {
     it('should default to PNG if format not specified', () => {
       const imageData = Buffer.from('test');
       // Manually create attachment without format
-      const attachment = attachmentManager.addImageAttachment(imageData, '');
+      attachmentManager.addImageAttachment(imageData, '');
       const parts = attachmentManager.expandForAPI('');
 
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;
@@ -374,7 +374,7 @@ describe('Image Paste Workflow', () => {
     it('should handle image with string content (edge case)', () => {
       // AttachmentManager stores image as Buffer, but test type compatibility
       const imageData = Buffer.from('test-string-as-buffer');
-      const attachment = attachmentManager.addImageAttachment(imageData, 'png');
+      const _attachment = attachmentManager.addImageAttachment(imageData, 'png');
 
       const parts = attachmentManager.expandForAPI('');
       const imagePart = parts[0] as Extract<MessageContentPart, { type: 'image_url' }>;

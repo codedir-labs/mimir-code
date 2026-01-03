@@ -3,7 +3,17 @@ name: Code Quality
 on:
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '!CLAUDE.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
+      - '.vscode/**'
   workflow_call:
+
+permissions:
+  contents: read
 
 concurrency:
   group: code-quality-${{ github.event.pull_request.number || github.ref }}
@@ -17,13 +27,21 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
-          node-version: '22'
+          node-version: ${{ vars.NODE_VERSION || '22' }}
           cache: 'yarn'
+
+      - name: Cache TypeScript build
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: |
+            **/tsconfig.tsbuildinfo
+            **/.tsbuildinfo
+          key: tsc-${{ runner.os }}-${{ hashFiles('**/tsconfig.json') }}-${{ hashFiles('**/*.ts') }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -34,7 +52,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Run ESLint with complexity rules (sonarjs plugin)
-          # This checks: cyclomatic complexity, cognitive complexity, code smells
           yarn lint 2>&1 | tee lint-output.txt || true
 
           # Count complexity warnings
@@ -42,7 +59,6 @@ jobs:
 
           echo "- Complexity warnings: $COMPLEXITY_WARNINGS" >> $GITHUB_STEP_SUMMARY
 
-          # Fail if too many complexity issues (threshold: 20)
           if [ "$COMPLEXITY_WARNINGS" -gt 20 ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "❌ Too many complexity issues ($COMPLEXITY_WARNINGS > 20)" >> $GITHUB_STEP_SUMMARY
@@ -58,13 +74,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
-          node-version: '22'
+          node-version: ${{ vars.NODE_VERSION || '22' }}
           cache: 'yarn'
+
+      - name: Cache npx tools
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ~/.npm/_npx
+          key: npx-tools-${{ runner.os }}-${{ hashFiles('.github/workflows/*.yml') }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -74,10 +96,7 @@ jobs:
           echo "## Dead Code Detection (Knip)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Run knip and capture output
           npx knip --reporter markdown >> $GITHUB_STEP_SUMMARY 2>&1 || true
-
-          # Run again for exit code (strict mode warns, doesn't fail)
           npx knip --no-exit-code || true
 
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -90,13 +109,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
-          node-version: '22'
+          node-version: ${{ vars.NODE_VERSION || '22' }}
           cache: 'yarn'
+
+      - name: Cache npx tools
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ~/.npm/_npx
+          key: npx-tools-${{ runner.os }}-${{ hashFiles('.github/workflows/*.yml') }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -106,21 +131,17 @@ jobs:
           echo "## Duplicate Code Detection (jscpd)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Run jscpd on src directory
           npx jscpd src --min-lines 10 --min-tokens 50 --reporters markdown --output ./jscpd-report || JSCPD_EXIT=$?
 
-          # Append report to summary if it exists
           if [ -f "./jscpd-report/jscpd-report.md" ]; then
             cat ./jscpd-report/jscpd-report.md >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Get duplication percentage
           DUPLICATION=$(npx jscpd src --min-lines 10 --min-tokens 50 --reporters json --output ./jscpd-json 2>/dev/null && cat ./jscpd-json/jscpd-report.json | node -e "const d=JSON.parse(require('fs').readFileSync(0));console.log(d.statistics?.total?.percentageTokens||0)" || echo "0")
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Duplication: ${DUPLICATION}%**" >> $GITHUB_STEP_SUMMARY
 
-          # Fail if duplication exceeds 5%
           if [ "$(echo "$DUPLICATION > 5" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "❌ Code duplication too high (${DUPLICATION}% > 5%)" >> $GITHUB_STEP_SUMMARY
@@ -131,18 +152,149 @@ jobs:
 
       - name: Upload duplication report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: jscpd-report
           path: jscpd-report/
           retention-days: 7
           if-no-files-found: ignore
 
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: ${{ vars.NODE_VERSION || '22' }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build project
+        run: yarn build
+
+      - name: Check bundle size
+        run: |
+          MAX_SIZE_MB=50
+          ACTUAL_SIZE=$(du -sm dist | cut -f1)
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Current: ${ACTUAL_SIZE}MB" >> $GITHUB_STEP_SUMMARY
+          echo "- Limit: ${MAX_SIZE_MB}MB" >> $GITHUB_STEP_SUMMARY
+          if [ "$ACTUAL_SIZE" -gt "$MAX_SIZE_MB" ]; then
+            echo "::error::Bundle size ${ACTUAL_SIZE}MB exceeds limit ${MAX_SIZE_MB}MB"
+            exit 1
+          fi
+          echo "✅ Bundle size within limits" >> $GITHUB_STEP_SUMMARY
+
+  dependency-size-delta:
+    name: Dependency Size Delta
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: ${{ vars.NODE_VERSION || '22' }}
+          cache: 'yarn'
+
+      - name: Install PR dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Measure PR node_modules size
+        run: |
+          PR_SIZE=$(du -sm node_modules | cut -f1)
+          echo "PR_SIZE=$PR_SIZE" >> $GITHUB_ENV
+
+      - name: Checkout base branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.base_ref }}
+          clean: false
+
+      - name: Install base dependencies
+        run: |
+          rm -rf node_modules
+          yarn install --frozen-lockfile
+
+      - name: Compare dependency sizes
+        run: |
+          BASE_SIZE=$(du -sm node_modules | cut -f1)
+          DELTA=$((PR_SIZE - BASE_SIZE))
+
+          echo "## Dependency Size Delta" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Base (${{ github.base_ref }}) | ${BASE_SIZE}MB |" >> $GITHUB_STEP_SUMMARY
+          echo "| PR | ${{ env.PR_SIZE }}MB |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Delta** | ${DELTA}MB |" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$DELTA" -gt 10 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Dependency size increased by ${DELTA}MB" >> $GITHUB_STEP_SUMMARY
+          elif [ "$DELTA" -lt -10 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 Dependency size decreased by ${DELTA#-}MB" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Dependency size change within acceptable range" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  typedoc-validation:
+    name: TypeDoc Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: ${{ vars.NODE_VERSION || '22' }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run TypeDoc validation
+        run: |
+          echo "## TypeDoc Validation" >> $GITHUB_STEP_SUMMARY
+
+          npx typedoc src --out typedoc-output 2>&1 | tee typedoc-output.txt || true
+
+          WARNING_COUNT=$(grep -c "Warning:" typedoc-output.txt || echo "0")
+
+          echo "- Warnings: $WARNING_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- Limit: 20" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$WARNING_COUNT" -gt 20 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Too many TypeDoc warnings ($WARNING_COUNT > 20)" >> $GITHUB_STEP_SUMMARY
+            echo "::error::TypeDoc warnings ($WARNING_COUNT) exceed limit (20)"
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ TypeDoc validation passed" >> $GITHUB_STEP_SUMMARY
+          fi
+
   quality-summary:
     name: Quality Summary
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [complexity, dead-code, duplicate-code]
+    needs: [complexity, dead-code, duplicate-code, bundle-size, typedoc-validation]
     if: always()
 
     steps:
@@ -155,10 +307,13 @@ jobs:
           echo "| Complexity & Maintainability | ${{ needs.complexity.result == 'success' && '✅ Pass' || (needs.complexity.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Dead Code Detection | ${{ needs.dead-code.result == 'success' && '✅ Pass' || (needs.dead-code.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Duplicate Code Detection | ${{ needs.duplicate-code.result == 'success' && '✅ Pass' || (needs.duplicate-code.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle Size Check | ${{ needs.bundle-size.result == 'success' && '✅ Pass' || (needs.bundle-size.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| TypeDoc Validation | ${{ needs.typedoc-validation.result == 'success' && '✅ Pass' || (needs.typedoc-validation.result == 'skipped' && '⏭️ Skipped' || '❌ Fail') }} |" >> $GITHUB_STEP_SUMMARY
 
-          # Fail if any critical check failed
           if [[ "${{ needs.complexity.result }}" == "failure" ]] || \
-             [[ "${{ needs.duplicate-code.result }}" == "failure" ]]; then
+             [[ "${{ needs.duplicate-code.result }}" == "failure" ]] || \
+             [[ "${{ needs.bundle-size.result }}" == "failure" ]] || \
+             [[ "${{ needs.typedoc-validation.result }}" == "failure" ]]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "❌ Code quality checks failed" >> $GITHUB_STEP_SUMMARY
             exit 1

@@ -3,25 +3,22 @@
  * Tests platform-specific clipboard access with mocked IProcessExecutor
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { ClipboardAdapter } from '../../../packages/mimir-agents-node/src/clipboard/ClipboardAdapter.js';
-import type { IProcessExecutor } from '@codedir/mimir-agents';
-import type { ExecuteResult } from '@codedir/mimir-agents';
+import type { IProcessExecutor, ProcessResult } from '@codedir/mimir-agents';
 import os from 'os';
 
 describe('ClipboardAdapter', () => {
   let mockExecutor: IProcessExecutor;
+  let mockExecute: Mock<(cmd: string) => Promise<ProcessResult>>;
   let adapter: ClipboardAdapter;
-  let originalPlatform: NodeJS.Platform;
 
   beforeEach(() => {
     // Mock the executor
+    mockExecute = vi.fn();
     mockExecutor = {
-      execute: vi.fn(),
+      execute: mockExecute,
     } as unknown as IProcessExecutor;
-
-    // Store original platform
-    originalPlatform = os.platform();
   });
 
   describe('macOS (darwin)', () => {
@@ -36,7 +33,7 @@ describe('ClipboardAdapter', () => {
 
       // Mock osascript (image) to fail
       // Mock pbpaste (text) to succeed
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((cmd: string) => {
         if (cmd.includes('osascript')) {
           return Promise.resolve({ exitCode: 1, stdout: '', stderr: '' });
         }
@@ -58,7 +55,7 @@ describe('ClipboardAdapter', () => {
       const base64Data = fakeImageData.toString('base64');
 
       // Mock osascript to return base64 image
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((cmd: string) => {
         if (cmd.includes('osascript')) {
           return Promise.resolve({ exitCode: 0, stdout: base64Data, stderr: '' });
         }
@@ -75,7 +72,7 @@ describe('ClipboardAdapter', () => {
     it('should fallback to text if image read fails', async () => {
       const textContent = 'Fallback text';
 
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((cmd: string) => {
         if (cmd.includes('osascript')) {
           throw new Error('Image read failed');
         }
@@ -92,7 +89,7 @@ describe('ClipboardAdapter', () => {
     });
 
     it('should throw error if pbpaste fails', async () => {
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((_cmd: string) => {
         return Promise.resolve({ exitCode: 1, stdout: '', stderr: 'Error' });
       });
 
@@ -102,7 +99,7 @@ describe('ClipboardAdapter', () => {
     it('should validate base64 data for images', async () => {
       const invalidBase64 = 'not-valid-base64!!!';
 
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((cmd: string) => {
         if (cmd.includes('osascript')) {
           return Promise.resolve({ exitCode: 0, stdout: invalidBase64, stderr: '' });
         }
@@ -129,7 +126,7 @@ describe('ClipboardAdapter', () => {
     it('should read text from clipboard', async () => {
       const textContent = 'Hello from Windows clipboard';
 
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((cmd: string) => {
         if (cmd.includes('Get-Clipboard')) {
           return Promise.resolve({ exitCode: 0, stdout: textContent, stderr: '' });
         }
@@ -147,7 +144,7 @@ describe('ClipboardAdapter', () => {
       const fakeImageData = Buffer.from('fake-png-data');
       const base64Data = fakeImageData.toString('base64');
 
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((cmd: string) => {
         if (cmd.includes('GetImage')) {
           return Promise.resolve({ exitCode: 0, stdout: base64Data, stderr: '' });
         }
@@ -164,7 +161,7 @@ describe('ClipboardAdapter', () => {
     it('should fallback to text if image read fails', async () => {
       const textContent = 'Fallback text';
 
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((cmd: string) => {
         if (cmd.includes('GetImage')) {
           throw new Error('Image read failed');
         }
@@ -181,7 +178,7 @@ describe('ClipboardAdapter', () => {
     });
 
     it('should throw error if Get-Clipboard fails', async () => {
-      (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+      mockExecute.mockImplementation((_cmd: string) => {
         return Promise.resolve({ exitCode: 1, stdout: '', stderr: 'Error' });
       });
 
@@ -198,7 +195,7 @@ describe('ClipboardAdapter', () => {
       beforeEach(() => {
         adapter = new ClipboardAdapter(mockExecutor);
 
-        (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+        mockExecute.mockImplementation((cmd: string) => {
           // Mock 'which xclip' to succeed
           if (cmd === 'which xclip') {
             return Promise.resolve({ exitCode: 0, stdout: '/usr/bin/xclip', stderr: '' });
@@ -214,7 +211,7 @@ describe('ClipboardAdapter', () => {
       it('should read text from clipboard', async () => {
         const textContent = 'Hello from Linux clipboard';
 
-        (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+        mockExecute.mockImplementation((cmd: string) => {
           if (cmd === 'which xclip') {
             return Promise.resolve({ exitCode: 0, stdout: '/usr/bin/xclip', stderr: '' });
           }
@@ -241,7 +238,7 @@ describe('ClipboardAdapter', () => {
         const fakeImageData = Buffer.from('fake-png-data');
         const base64Data = fakeImageData.toString('base64');
 
-        (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+        mockExecute.mockImplementation((cmd: string) => {
           if (cmd === 'which xclip') {
             return Promise.resolve({ exitCode: 0, stdout: '/usr/bin/xclip', stderr: '' });
           }
@@ -266,7 +263,7 @@ describe('ClipboardAdapter', () => {
       beforeEach(() => {
         adapter = new ClipboardAdapter(mockExecutor);
 
-        (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+        mockExecute.mockImplementation((cmd: string) => {
           // Mock 'which xclip' to fail
           if (cmd === 'which xclip') {
             return Promise.resolve({ exitCode: 1, stdout: '', stderr: '' });
@@ -282,7 +279,7 @@ describe('ClipboardAdapter', () => {
       it('should read text from clipboard', async () => {
         const textContent = 'Hello from Wayland clipboard';
 
-        (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+        mockExecute.mockImplementation((cmd: string) => {
           if (cmd === 'which xclip') {
             return Promise.resolve({ exitCode: 1, stdout: '', stderr: '' });
           }
@@ -309,7 +306,7 @@ describe('ClipboardAdapter', () => {
         const fakeImageData = Buffer.from('fake-png-data');
         const base64Data = fakeImageData.toString('base64');
 
-        (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+        mockExecute.mockImplementation((cmd: string) => {
           if (cmd === 'which xclip') {
             return Promise.resolve({ exitCode: 1, stdout: '', stderr: '' });
           }
@@ -334,7 +331,7 @@ describe('ClipboardAdapter', () => {
       it('should throw error if no tools available', async () => {
         adapter = new ClipboardAdapter(mockExecutor);
 
-        (mockExecutor.execute as any).mockImplementation((cmd: string) => {
+        mockExecute.mockImplementation((cmd: string) => {
           if (cmd === 'which xclip' || cmd === 'which wl-paste') {
             return Promise.resolve({ exitCode: 1, stdout: '', stderr: '' });
           }

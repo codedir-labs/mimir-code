@@ -1,0 +1,650 @@
+openapi: 3.1.0
+
+info:
+  title: Mimir Teams API
+  version: 1.0.0
+  description: |
+    Mimir Teams backend API for enterprise/team management.
+
+    **Status**: Mock Specification (Backend Not Implemented)
+
+    This OpenAPI spec serves as the source of truth for:
+    - TypeScript types
+    - Zod validation schemas
+    - API client generation
+
+    When the backend is implemented, replace this mock spec with the real one.
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+  contact:
+    name: Codedir
+    url: https://github.com/codedir/mimir-teams-contracts
+
+servers:
+  - url: https://teams.mimir.dev/api/v1
+    description: Production server (not yet implemented)
+  - url: http://localhost:3000/api/v1
+    description: Local development server (mock)
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Organizations
+    description: Organization management
+  - name: Teams
+    description: Team management and detection
+  - name: Configuration
+    description: Configuration management
+  - name: Audit
+    description: Audit logs and compliance
+  - name: Tools
+    description: Custom tools management
+  - name: LLM
+    description: LLM proxy and budget management
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Common types
+    UUID:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    Timestamp:
+      type: string
+      format: date-time
+      example: "2025-12-27T12:00:00Z"
+
+    # Authentication
+    User:
+      type: object
+      required: [id, email, fullName, createdAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        email:
+          type: string
+          format: email
+          example: "alice@example.com"
+        fullName:
+          type: string
+          example: "Alice Johnson"
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    OrganizationMembership:
+      type: object
+      required: [orgId, orgSlug, orgName, role, email]
+      properties:
+        orgId:
+          $ref: '#/components/schemas/UUID'
+        orgSlug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+          example: "acme-corp"
+        orgName:
+          type: string
+          example: "Acme Corporation"
+        role:
+          type: string
+          enum: [owner, admin, member]
+          example: "member"
+        email:
+          type: string
+          format: email
+          description: "User's email in this organization (for SSO)"
+          example: "alice@acme.com"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: "alice@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: "password123"
+        orgSlug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+          description: "Optional: specific organization to login to"
+          example: "acme-corp"
+
+    LoginResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn, user, orgSecret]
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expiresIn:
+          type: integer
+          description: "Token expiration in seconds"
+          example: 900
+        user:
+          allOf:
+            - $ref: '#/components/schemas/User'
+            - type: object
+              required: [organizations]
+              properties:
+                organizations:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrganizationMembership'
+        orgSecret:
+          type: string
+          description: "Organization secret for HMAC signing"
+          example: "org-secret-for-hmac"
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken, orgSlug]
+      properties:
+        refreshToken:
+          type: string
+        orgSlug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+
+    RefreshResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+        orgSlug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+        all:
+          type: boolean
+          description: "Logout from all organizations"
+          default: false
+
+    LogoutResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    # Organizations
+    SubscriptionTier:
+      type: string
+      enum: [free, teams, enterprise]
+      example: "teams"
+
+    Organization:
+      type: object
+      required: [id, slug, name, subscriptionTier, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        slug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+          example: "acme-corp"
+        name:
+          type: string
+          example: "Acme Corporation"
+        subscriptionTier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    OrganizationWithRole:
+      allOf:
+        - $ref: '#/components/schemas/Organization'
+        - type: object
+          required: [role, userEmail]
+          properties:
+            role:
+              type: string
+              enum: [owner, admin, member]
+            userEmail:
+              type: string
+              format: email
+
+    OrganizationDetails:
+      allOf:
+        - $ref: '#/components/schemas/Organization'
+        - type: object
+          required: [budget, memberCount, teamCount]
+          properties:
+            budget:
+              type: object
+              required: [monthlyLimit, currentUsage, remaining]
+              properties:
+                monthlyLimit:
+                  type: number
+                  format: float
+                  example: 5000.00
+                currentUsage:
+                  type: number
+                  format: float
+                  example: 1234.56
+                remaining:
+                  type: number
+                  format: float
+                  example: 3765.44
+            memberCount:
+              type: integer
+              minimum: 0
+              example: 25
+            teamCount:
+              type: integer
+              minimum: 0
+              example: 5
+
+    # Teams
+    TeamRole:
+      type: string
+      enum: [admin, developer, viewer]
+      example: "developer"
+
+    Team:
+      type: object
+      required: [id, orgId, slug, name, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        orgId:
+          $ref: '#/components/schemas/UUID'
+        slug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+          example: "frontend-team"
+        name:
+          type: string
+          example: "Frontend Team"
+        description:
+          type: string
+          example: "Frontend development team"
+        repository:
+          type: string
+          description: "Git repository URL"
+          example: "git@github.com:acme/frontend.git"
+        budgetMonthlyUsd:
+          type: number
+          format: float
+          minimum: 0
+          example: 2000.00
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    TeamWithMemberInfo:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          required: [role, memberCount, budget]
+          properties:
+            role:
+              $ref: '#/components/schemas/TeamRole'
+            memberCount:
+              type: integer
+              minimum: 0
+            budget:
+              type: object
+              required: [currentUsage]
+              properties:
+                monthlyLimit:
+                  type: number
+                  format: float
+                currentUsage:
+                  type: number
+                  format: float
+                remaining:
+                  type: number
+                  format: float
+
+    TeamContext:
+      type: object
+      required: [teamId, teamSlug, teamName, role]
+      properties:
+        teamId:
+          $ref: '#/components/schemas/UUID'
+        teamSlug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+        teamName:
+          type: string
+        role:
+          $ref: '#/components/schemas/TeamRole'
+
+    DetectTeamRequest:
+      type: object
+      required: [repository, userId]
+      properties:
+        repository:
+          type: string
+          description: "Git repository URL"
+          example: "git@github.com:acme/frontend.git"
+        userId:
+          $ref: '#/components/schemas/UUID'
+
+    # Configuration
+    EnforcementConfig:
+      type: object
+      properties:
+        allowedModels:
+          type: array
+          items:
+            type: string
+          example: ["claude-sonnet-4.5", "deepseek-chat"]
+        blockedModels:
+          type: array
+          items:
+            type: string
+          default: []
+        allowedProviders:
+          type: array
+          items:
+            type: string
+          example: ["anthropic", "deepseek"]
+        globalAllowlist:
+          type: array
+          items:
+            type: string
+          example: ["git", "yarn", "npm"]
+        globalBlocklist:
+          type: array
+          items:
+            type: string
+          example: ["rm -rf", "sudo"]
+        dockerMode:
+          type: string
+          enum: [local, cloud, auto]
+          default: local
+        allowLocalOverrides:
+          type: boolean
+          default: false
+
+    OrganizationConfig:
+      type: object
+      required: [apiUrl, slug, name, enforcement]
+      properties:
+        apiUrl:
+          type: string
+          format: uri
+          example: "https://teams.mimir.dev/api/v1"
+        slug:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+        name:
+          type: string
+        enforcement:
+          $ref: '#/components/schemas/EnforcementConfig'
+        offline:
+          type: object
+          properties:
+            cacheTtl:
+              type: integer
+              description: "Cache TTL in seconds"
+              default: 86400
+
+    ConfigResponse:
+      type: object
+      required: [organization, merged]
+      properties:
+        organization:
+          $ref: '#/components/schemas/OrganizationConfig'
+        team:
+          type: object
+          description: "Team-level config overrides"
+        merged:
+          type: object
+          description: "Fully merged configuration"
+
+    # Error response
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: "UNAUTHORIZED"
+        message:
+          type: string
+          example: "Invalid credentials"
+        details:
+          type: object
+          additionalProperties: true
+
+paths:
+  # Authentication endpoints
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login to organization
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout from organization
+      operationId: logout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+
+  # Organizations endpoints
+  /orgs:
+    get:
+      tags: [Organizations]
+      summary: List user's organizations
+      operationId: listOrganizations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organizations]
+                properties:
+                  organizations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrganizationWithRole'
+
+  /orgs/{slug}:
+    get:
+      tags: [Organizations]
+      summary: Get organization details
+      operationId: getOrganization
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        '200':
+          description: Organization details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organization]
+                properties:
+                  organization:
+                    $ref: '#/components/schemas/OrganizationDetails'
+
+  /orgs/{slug}/config:
+    get:
+      tags: [Configuration]
+      summary: Get organization/team configuration
+      operationId: getConfig
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-z0-9-]+$"
+        - name: team_id
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigResponse'
+
+  # Teams endpoints
+  /orgs/{slug}/teams:
+    get:
+      tags: [Teams]
+      summary: List teams in organization
+      operationId: listTeams
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [teams]
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeamWithMemberInfo'
+
+  /orgs/{slug}/teams/detect:
+    post:
+      tags: [Teams]
+      summary: Detect team from workspace repository
+      operationId: detectTeam
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-z0-9-]+$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectTeamRequest'
+      responses:
+        '200':
+          description: Detected teams
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [teams]
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeamContext'

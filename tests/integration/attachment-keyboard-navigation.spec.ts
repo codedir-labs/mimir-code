@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AttachmentManager } from '@/features/chat/utils/AttachmentManager.js';
-import type { Attachment } from '@/features/chat/types/attachment.js';
+import type { Attachment, PasteMetadata } from '@/features/chat/types/attachment.js';
 
 describe('Attachment Keyboard Navigation', () => {
   let attachmentManager: AttachmentManager;
@@ -23,13 +23,14 @@ describe('Attachment Keyboard Navigation', () => {
    * Helper to simulate attachment state
    */
   function addAttachment(content: string, type: 'text' | 'image' = 'text'): Attachment {
+    const metadata: PasteMetadata = {
+      isBracketedPaste: true,
+      detectMethod: 'bracketed',
+      originalLength: content.length,
+    };
     const attachment =
       type === 'text'
-        ? attachmentManager.addTextAttachment(content, {
-            isBracketedPaste: true,
-            detectMethod: 'bracketed',
-            originalLength: content.length,
-          })
+        ? attachmentManager.addTextAttachment(content, metadata)
         : attachmentManager.addImageAttachment(Buffer.from(content), 'png');
 
     attachments.set(attachment.id, attachment);
@@ -96,7 +97,7 @@ describe('Attachment Keyboard Navigation', () => {
 
     it('should wrap from first to last attachment', () => {
       const attachment1 = addAttachment('First');
-      const attachment2 = addAttachment('Second');
+      addAttachment('Second');
       const attachment3 = addAttachment('Third');
 
       selectedAttachmentId = attachment1.id;
@@ -123,8 +124,8 @@ describe('Attachment Keyboard Navigation', () => {
     });
 
     it('should select last attachment if none selected', () => {
-      const attachment1 = addAttachment('First');
-      const attachment2 = addAttachment('Second');
+      addAttachment('First');
+      addAttachment('Second');
       const attachment3 = addAttachment('Third');
 
       selectedAttachmentId = null;
@@ -169,7 +170,7 @@ describe('Attachment Keyboard Navigation', () => {
 
     it('should wrap from last to first attachment', () => {
       const attachment1 = addAttachment('First');
-      const attachment2 = addAttachment('Second');
+      const _attachment2 = addAttachment('Second');
       const attachment3 = addAttachment('Third');
 
       selectedAttachmentId = attachment3.id;
@@ -196,7 +197,7 @@ describe('Attachment Keyboard Navigation', () => {
     });
 
     it('should select first attachment if none selected', () => {
-      const attachment1 = addAttachment('First');
+      const _attachment1 = addAttachment('First');
       const attachment2 = addAttachment('Second');
 
       selectedAttachmentId = null;
@@ -398,9 +399,9 @@ describe('Attachment Keyboard Navigation', () => {
 
   describe('Edge Cases', () => {
     it('should handle rapid navigation changes', () => {
-      const attachment1 = addAttachment('First');
+      addAttachment('First');
       const attachment2 = addAttachment('Second');
-      const attachment3 = addAttachment('Third');
+      addAttachment('Third');
 
       selectedAttachmentId = attachment2.id;
 
@@ -431,8 +432,8 @@ describe('Attachment Keyboard Navigation', () => {
     });
 
     it('should handle invalid selection ID gracefully', () => {
-      const attachment1 = addAttachment('First');
-      const attachment2 = addAttachment('Second');
+      addAttachment('First');
+      addAttachment('Second');
 
       selectedAttachmentId = 'invalid-id-does-not-exist';
 

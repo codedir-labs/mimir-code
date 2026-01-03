@@ -67,7 +67,7 @@ export class ConversationRepository {
    */
   update(id: string, updates: Partial<Conversation>): void {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | null | undefined)[] = [];
 
     if (updates.title !== undefined) {
       fields.push('title = ?');

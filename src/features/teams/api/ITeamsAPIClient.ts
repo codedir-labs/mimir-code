@@ -16,7 +16,7 @@ import type { ConfigResponse } from '@codedir/mimir-teams-contracts';
  * TODO (mimir-teams): Define in @codedir/mimir-teams-contracts
  */
 export interface ProviderRegistryResponse {
-  providers: any[]; // TODO (mimir-teams): Use ProviderDefinition[] from mimir-agents
+  providers: unknown[]; // TODO (mimir-teams): Use ProviderDefinition[] from mimir-agents
   policy?: {
     allowedProviders?: string[];
     blockedProviders?: string[];

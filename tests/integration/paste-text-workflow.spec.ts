@@ -3,7 +3,7 @@
  * Tests the complete flow from paste detection to API submission
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { AttachmentManager } from '@/features/chat/utils/AttachmentManager.js';
 import {
   detectBracketedPaste,
@@ -312,9 +312,9 @@ describe('Text Paste Workflow', () => {
         originalLength: 100,
       };
 
-      const attachment1 = attachmentManager.addTextAttachment('First', metadata);
-      const attachment2 = attachmentManager.addTextAttachment('Second', metadata);
-      const attachment3 = attachmentManager.addTextAttachment('Third', metadata);
+      attachmentManager.addTextAttachment('First', metadata);
+      attachmentManager.addTextAttachment('Second', metadata);
+      attachmentManager.addTextAttachment('Third', metadata);
 
       const parts = attachmentManager.expandForAPI('Message');
 

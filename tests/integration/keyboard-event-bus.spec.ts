@@ -142,7 +142,7 @@ describe('KeyboardEventBus - Integration', () => {
 
   describe('Context management', () => {
     it('should provide current context to handlers', () => {
-      let receivedContext: any = null;
+      let receivedContext: Record<string, unknown> | null = null;
 
       eventBus.subscribe('interrupt', (event) => {
         receivedContext = event.context;
@@ -164,7 +164,7 @@ describe('KeyboardEventBus - Integration', () => {
     });
 
     it('should update context and reflect in subsequent dispatches', () => {
-      const contexts: any[] = [];
+      const contexts: Record<string, unknown>[] = [];
 
       eventBus.subscribe('interrupt', (event) => {
         contexts.push({ ...event.context });
@@ -185,7 +185,7 @@ describe('KeyboardEventBus - Integration', () => {
     });
 
     it('should freeze context (immutable)', () => {
-      let receivedContext: any = null;
+      let receivedContext: Record<string, unknown> | null = null;
 
       eventBus.subscribe('interrupt', (event) => {
         receivedContext = event.context;
@@ -200,7 +200,7 @@ describe('KeyboardEventBus - Integration', () => {
     });
 
     it('should support custom context properties', () => {
-      let receivedContext: any = null;
+      let receivedContext: Record<string, unknown> | null = null;
 
       eventBus.subscribe('interrupt', (event) => {
         receivedContext = event.context;

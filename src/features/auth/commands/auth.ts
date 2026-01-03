@@ -14,8 +14,81 @@ import boxen from 'boxen';
 import { TeamsAuthManager } from '../manager/TeamsAuthManager.js';
 import { logger } from '@/shared/utils/logger.js';
 
+/** Options for the login command */
+interface LoginOptions {
+  org?: string;
+}
+
+/** Options for the logout command */
+interface LogoutOptions {
+  org?: string;
+  all?: boolean;
+}
+
+/** Auth info for display */
+interface AuthInfo {
+  userEmail: string;
+  expiresAt: Date;
+}
+
 // Global auth manager instance
 const authManager = new TeamsAuthManager();
+
+// Status display constants
+const SEPARATOR_LENGTH = 60;
+const STATUS_SEPARATOR = chalk.dim('─'.repeat(SEPARATOR_LENGTH));
+
+/**
+ * Display authenticated status information
+ */
+async function displayAuthenticatedStatus(activeOrg: string | null, orgs: string[]): Promise<void> {
+  console.log(chalk.white('  Mode:            ') + chalk.green('Teams'));
+  console.log(chalk.white('  Authenticated:   ') + chalk.green('Yes'));
+  console.log(chalk.white('  Active Org:      ') + chalk.cyan(activeOrg ?? 'None'));
+
+  if (activeOrg) {
+    const auth: AuthInfo | null = await authManager.getAuth(activeOrg);
+    if (auth) {
+      console.log(chalk.white('  User Email:      ') + chalk.white(auth.userEmail));
+      console.log(
+        chalk.white('  Token Expires:   ') + chalk.white(auth.expiresAt.toLocaleString())
+      );
+    }
+  }
+
+  console.log(chalk.white('  Organizations:   ') + chalk.white(orgs.length.toString()));
+  displayOrganizationsList(orgs, activeOrg);
+}
+
+/**
+ * Display list of authenticated organizations
+ */
+function displayOrganizationsList(orgs: string[], activeOrg: string | null): void {
+  if (orgs.length === 0) {
+    return;
+  }
+
+  console.log(chalk.dim('\n  Authenticated Organizations:'));
+  for (const orgSlug of orgs) {
+    const isActive = orgSlug === activeOrg;
+    const prefix = isActive ? chalk.green('  ● ') : chalk.dim('  ○ ');
+    const suffix = isActive ? chalk.green(' (active)') : '';
+    console.log(prefix + chalk.white(orgSlug) + suffix);
+  }
+}
+
+/**
+ * Display unauthenticated status information
+ */
+function displayUnauthenticatedStatus(): void {
+  console.log(chalk.white('  Mode:            ') + chalk.yellow('Local (BYOK)'));
+  console.log(chalk.white('  Authenticated:   ') + chalk.red('No'));
+  console.log(chalk.white('  Organization:    ') + chalk.dim('N/A'));
+  console.log(chalk.white('  Team:            ') + chalk.dim('N/A'));
+
+  console.log(chalk.dim('\n  Not authenticated to Teams.'));
+  console.log(chalk.dim(`  Use ${chalk.cyan('mimir auth login')} to authenticate.`));
+}
 
 /**
  * Display device code for user authentication
@@ -60,7 +133,7 @@ export function createAuthCommand(): Command {
     .command('login')
     .description('Authenticate with Mimir Teams (OAuth 2.0 Device Flow)')
     .option('--org <slug>', 'Specific organization to login to')
-    .action(async (options) => {
+    .action(async (options: LoginOptions) => {
       const spinner = ora('Requesting device code...').start();
 
       try {
@@ -109,7 +182,7 @@ export function createAuthCommand(): Command {
     .description('Sign out from Teams')
     .option('--org <slug>', 'Specific organization to logout from')
     .option('--all', 'Logout from all organizations')
-    .action(async (options) => {
+    .action(async (options: LogoutOptions) => {
       const spinner = ora('Logging out...').start();
 
       try {
@@ -118,9 +191,9 @@ export function createAuthCommand(): Command {
         if (options.all) {
           spinner.succeed(chalk.green('Logged out from all organizations'));
         } else {
-          const orgSlug = options.org || (await authManager.getActiveOrg());
+          const orgSlug = options.org ?? (await authManager.getActiveOrg());
           spinner.succeed(
-            chalk.green(`Logged out from organization: ${chalk.cyan(orgSlug || 'unknown')}`)
+            chalk.green(`Logged out from organization: ${chalk.cyan(orgSlug ?? 'unknown')}`)
           );
         }
 
@@ -146,46 +219,15 @@ export function createAuthCommand(): Command {
         const isAuthenticated = await authManager.isAuthenticated();
 
         console.log(chalk.blue('\n📊 Authentication Status\n'));
-        console.log(chalk.dim('─'.repeat(60)));
+        console.log(STATUS_SEPARATOR);
 
         if (isAuthenticated) {
-          console.log(chalk.white('  Mode:            ') + chalk.green('Teams'));
-          console.log(chalk.white('  Authenticated:   ') + chalk.green('Yes'));
-          console.log(chalk.white('  Active Org:      ') + chalk.cyan(activeOrg || 'None'));
-
-          if (activeOrg) {
-            const auth = await authManager.getAuth(activeOrg);
-            if (auth) {
-              console.log(chalk.white('  User Email:      ') + chalk.white(auth.userEmail));
-              console.log(
-                chalk.white('  Token Expires:   ') + chalk.white(auth.expiresAt.toLocaleString())
-              );
-            }
-          }
-
-          console.log(chalk.white('  Organizations:   ') + chalk.white(orgs.length.toString()));
-
-          if (orgs.length > 0) {
-            console.log(chalk.dim('\n  Authenticated Organizations:'));
-            for (const orgSlug of orgs) {
-              const isActive = orgSlug === activeOrg;
-              const prefix = isActive ? chalk.green('  ● ') : chalk.dim('  ○ ');
-              console.log(
-                prefix + chalk.white(orgSlug) + (isActive ? chalk.green(' (active)') : '')
-              );
-            }
-          }
+          await displayAuthenticatedStatus(activeOrg, orgs);
         } else {
-          console.log(chalk.white('  Mode:            ') + chalk.yellow('Local (BYOK)'));
-          console.log(chalk.white('  Authenticated:   ') + chalk.red('No'));
-          console.log(chalk.white('  Organization:    ') + chalk.dim('N/A'));
-          console.log(chalk.white('  Team:            ') + chalk.dim('N/A'));
-
-          console.log(chalk.dim('\n  Not authenticated to Teams.'));
-          console.log(chalk.dim(`  Use ${chalk.cyan('mimir auth login')} to authenticate.`));
+          displayUnauthenticatedStatus();
         }
 
-        console.log(chalk.dim('─'.repeat(60)));
+        console.log(STATUS_SEPARATOR);
         console.log();
       } catch (error) {
         console.error(

@@ -1,0 +1,74 @@
+{
+  "name": "@codedir/mimir-teams-contracts",
+  "version": "0.1.0-alpha.1",
+  "description": "API contracts and types for Mimir Teams integration",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./generated": {
+      "types": "./dist/generated/index.d.ts",
+      "import": "./dist/generated/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "generate": "openapi-ts",
+    "generate:watch": "openapi-ts --watch",
+    "generate:from-url": "echo 'TODO: openapi-ts with --input <backend-url>/openapi.json'",
+    "prebuild": "yarn generate",
+    "build": "tsup",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mimir",
+    "teams",
+    "api",
+    "contracts",
+    "cli",
+    "ai",
+    "coding-assistant"
+  ],
+  "author": "Codedir",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codedir/mimir-teams-contracts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/codedir/mimir-teams-contracts/issues"
+  },
+  "homepage": "https://github.com/codedir/mimir-teams-api-contracts#readme",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.89.2",
+    "tsup": "^8.3.5",
+    "@types/node": "^20.10.5",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4",
+    "zod-openapi": "^5.4.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

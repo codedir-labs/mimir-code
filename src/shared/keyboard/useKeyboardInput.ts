@@ -74,90 +74,106 @@ const CONTROL_CHAR_MAP: Record<number, string> = {
 };
 
 /**
- * Convert Ink key event to normalized key string
- * Uses RawKeyMapper result when available for accurate detection
+ * Keys that benefit from raw detection accuracy
  */
-function inkKeyToString(input: string, key: InkKey, rawResult: RawKeyResult | null): string {
-  // If raw detection succeeded with high/medium confidence, prefer that
-  // This handles terminal-specific escape sequences that Ink doesn't detect correctly
-  if (rawResult && rawResult.detectedRaw && rawResult.key && rawResult.confidence !== 'low') {
-    // Map raw key names to our normalized format if needed
-    const rawKey = rawResult.key;
+const RAW_PRIORITY_KEYS = new Set([
+  'Backspace',
+  'Delete',
+  'Home',
+  'End',
+  'Insert',
+  'PageUp',
+  'PageDown',
+]);
 
-    // Handle special cases where raw detection is more accurate
-    // Especially for Backspace/Delete distinction and Home/End
-    if (
-      rawKey === 'Backspace' ||
-      rawKey === 'Delete' ||
-      rawKey === 'Home' ||
-      rawKey === 'End' ||
-      rawKey === 'Insert' ||
-      rawKey === 'PageUp' ||
-      rawKey === 'PageDown' ||
-      rawKey.startsWith('Ctrl+') ||
-      rawKey.startsWith('Alt+') ||
-      rawKey.startsWith('Shift+') ||
-      rawKey.startsWith('F')
-    ) {
-      // Normalize arrow key names to match Ink's format
-      return rawKey
-        .replace('ArrowUp', 'ArrowUp')
-        .replace('ArrowDown', 'ArrowDown')
-        .replace('ArrowLeft', 'ArrowLeft')
-        .replace('ArrowRight', 'ArrowRight')
-        .replace('Ctrl+Shift+ArrowUp', 'Ctrl+Shift+Up')
-        .replace('Ctrl+Shift+ArrowDown', 'Ctrl+Shift+Down')
-        .replace('Ctrl+Shift+ArrowLeft', 'Ctrl+Shift+Left')
-        .replace('Ctrl+Shift+ArrowRight', 'Ctrl+Shift+Right')
-        .replace('Ctrl+ArrowUp', 'Ctrl+Up')
-        .replace('Ctrl+ArrowDown', 'Ctrl+Down')
-        .replace('Ctrl+ArrowLeft', 'Ctrl+Left')
-        .replace('Ctrl+ArrowRight', 'Ctrl+Right')
-        .replace('Alt+ArrowUp', 'Alt+Up')
-        .replace('Alt+ArrowDown', 'Alt+Down')
-        .replace('Alt+ArrowLeft', 'Alt+Left')
-        .replace('Alt+ArrowRight', 'Alt+Right')
-        .replace('Shift+ArrowUp', 'Shift+Up')
-        .replace('Shift+ArrowDown', 'Shift+Down')
-        .replace('Shift+ArrowLeft', 'Shift+Left')
-        .replace('Shift+ArrowRight', 'Shift+Right');
+/**
+ * Check if a key should use raw detection
+ */
+function shouldUseRawDetection(rawKey: string): boolean {
+  if (RAW_PRIORITY_KEYS.has(rawKey)) return true;
+  if (rawKey.startsWith('Ctrl+')) return true;
+  if (rawKey.startsWith('Alt+')) return true;
+  if (rawKey.startsWith('Shift+')) return true;
+  if (rawKey.startsWith('F')) return true;
+  return false;
+}
+
+/**
+ * Normalize arrow key names from raw detection format to Ink's format
+ */
+function normalizeRawArrowKey(rawKey: string): string {
+  const arrowReplacements: [RegExp, string][] = [
+    [/Ctrl\+Shift\+ArrowUp/, 'Ctrl+Shift+Up'],
+    [/Ctrl\+Shift\+ArrowDown/, 'Ctrl+Shift+Down'],
+    [/Ctrl\+Shift\+ArrowLeft/, 'Ctrl+Shift+Left'],
+    [/Ctrl\+Shift\+ArrowRight/, 'Ctrl+Shift+Right'],
+    [/Ctrl\+ArrowUp/, 'Ctrl+Up'],
+    [/Ctrl\+ArrowDown/, 'Ctrl+Down'],
+    [/Ctrl\+ArrowLeft/, 'Ctrl+Left'],
+    [/Ctrl\+ArrowRight/, 'Ctrl+Right'],
+    [/Alt\+ArrowUp/, 'Alt+Up'],
+    [/Alt\+ArrowDown/, 'Alt+Down'],
+    [/Alt\+ArrowLeft/, 'Alt+Left'],
+    [/Alt\+ArrowRight/, 'Alt+Right'],
+    [/Shift\+ArrowUp/, 'Shift+Up'],
+    [/Shift\+ArrowDown/, 'Shift+Down'],
+    [/Shift\+ArrowLeft/, 'Shift+Left'],
+    [/Shift\+ArrowRight/, 'Shift+Right'],
+  ];
+
+  for (const [pattern, replacement] of arrowReplacements) {
+    if (pattern.test(rawKey)) {
+      return rawKey.replace(pattern, replacement);
     }
   }
+  return rawKey;
+}
 
-  // Fall back to Ink's key detection for everything else
-  // Ctrl+Shift combinations (for attachment navigation)
-  if (key.ctrl && key.shift) {
-    if (key.upArrow) return 'Ctrl+Shift+Up';
-    if (key.downArrow) return 'Ctrl+Shift+Down';
-    if (key.leftArrow) return 'Ctrl+Shift+Left';
-    if (key.rightArrow) return 'Ctrl+Shift+Right';
-    if (key.backspace) return 'Ctrl+Shift+Backspace';
-    if (key.delete) return 'Ctrl+Shift+Delete';
-  }
+/**
+ * Convert Ctrl+Shift combinations to key string
+ */
+function handleCtrlShiftKey(key: InkKey): string | null {
+  if (key.upArrow) return 'Ctrl+Shift+Up';
+  if (key.downArrow) return 'Ctrl+Shift+Down';
+  if (key.leftArrow) return 'Ctrl+Shift+Left';
+  if (key.rightArrow) return 'Ctrl+Shift+Right';
+  if (key.backspace) return 'Ctrl+Shift+Backspace';
+  if (key.delete) return 'Ctrl+Shift+Delete';
+  return null;
+}
 
-  // Special keys with Ctrl modifier (OS text editing)
-  if (key.ctrl) {
-    if (key.leftArrow) return 'Ctrl+Left';
-    if (key.rightArrow) return 'Ctrl+Right';
-    if (key.upArrow) return 'Ctrl+Up';
-    if (key.downArrow) return 'Ctrl+Down';
-    if (key.backspace) return 'Ctrl+Backspace';
-    if (key.delete) return 'Ctrl+Delete';
-    if (key.home) return 'Ctrl+Home';
-    if (key.end) return 'Ctrl+End';
-  }
+/**
+ * Convert Ctrl combinations to key string
+ */
+function handleCtrlKey(key: InkKey): string | null {
+  if (key.leftArrow) return 'Ctrl+Left';
+  if (key.rightArrow) return 'Ctrl+Right';
+  if (key.upArrow) return 'Ctrl+Up';
+  if (key.downArrow) return 'Ctrl+Down';
+  if (key.backspace) return 'Ctrl+Backspace';
+  if (key.delete) return 'Ctrl+Delete';
+  if (key.home) return 'Ctrl+Home';
+  if (key.end) return 'Ctrl+End';
+  return null;
+}
 
-  // Special keys with Meta/Alt modifier (macOS word navigation)
-  if (key.meta) {
-    if (key.leftArrow) return 'Alt+Left';
-    if (key.rightArrow) return 'Alt+Right';
-    if (key.upArrow) return 'Alt+Up';
-    if (key.downArrow) return 'Alt+Down';
-    if (key.backspace) return 'Alt+Backspace';
-    if (key.delete) return 'Alt+Delete';
-  }
+/**
+ * Convert Meta/Alt combinations to key string
+ */
+function handleMetaKey(key: InkKey): string | null {
+  if (key.leftArrow) return 'Alt+Left';
+  if (key.rightArrow) return 'Alt+Right';
+  if (key.upArrow) return 'Alt+Up';
+  if (key.downArrow) return 'Alt+Down';
+  if (key.backspace) return 'Alt+Backspace';
+  if (key.delete) return 'Alt+Delete';
+  return null;
+}
 
-  // Basic special keys (no modifiers)
+/**
+ * Convert basic special keys to key string
+ */
+function handleSpecialKey(key: InkKey): string | null {
   if (key.return) return 'Enter';
   if (key.escape) return 'Escape';
   if (key.tab) return key.shift ? 'Shift+Tab' : 'Tab';
@@ -171,41 +187,67 @@ function inkKeyToString(input: string, key: InkKey, rawResult: RawKeyResult | nu
   if (key.pageDown) return 'PageDown';
   if (key.home) return 'Home';
   if (key.end) return 'End';
+  return null;
+}
 
+/**
+ * Convert Ink key event to normalized key string
+ * Uses RawKeyMapper result when available for accurate detection
+ */
+function inkKeyToString(input: string, key: InkKey, rawResult: RawKeyResult | null): string {
+  // If raw detection succeeded with high/medium confidence, prefer that
+  if (rawResult?.detectedRaw && rawResult.key && rawResult.confidence !== 'low') {
+    const rawKey = rawResult.key;
+    if (shouldUseRawDetection(rawKey)) {
+      return normalizeRawArrowKey(rawKey);
+    }
+  }
+
+  // Fall back to Ink's key detection
+  // Check modifier combinations in order of specificity
+  if (key.ctrl && key.shift) {
+    const result = handleCtrlShiftKey(key);
+    if (result) return result;
+  }
+
+  if (key.ctrl) {
+    const result = handleCtrlKey(key);
+    if (result) return result;
+  }
+
+  if (key.meta) {
+    const result = handleMetaKey(key);
+    if (result) return result;
+  }
+
+  // Basic special keys
+  const specialResult = handleSpecialKey(key);
+  if (specialResult) return specialResult;
+
+  // Handle control characters and modifier combinations with input
+  return handleInputWithModifiers(input, key);
+}
+
+/**
+ * Handle input characters with modifiers
+ */
+function handleInputWithModifiers(input: string, key: InkKey): string {
   const charCode = input.length > 0 ? input.charCodeAt(0) : -1;
 
-  // Ctrl combinations with regular characters
   if (key.ctrl) {
     // Control characters (0x00-0x1F)
     if (charCode >= 0x00 && charCode <= 0x1f) {
       const letter = CONTROL_CHAR_MAP[charCode];
-      if (letter) {
-        return `Ctrl+${letter}`;
-      }
+      if (letter) return `Ctrl+${letter}`;
     }
-
-    // Printable characters
-    if (input.length === 1) {
-      return `Ctrl+${input.toUpperCase()}`;
-    }
-
+    if (input.length === 1) return `Ctrl+${input.toUpperCase()}`;
     return `Ctrl`;
   }
 
-  // Meta/Cmd combinations (macOS)
   if (key.meta) {
-    if (key.shift && input.length === 1) {
-      return `Cmd+Shift+${input.toUpperCase()}`;
-    }
-    if (input.length === 1) {
-      return `Cmd+${input.toUpperCase()}`;
-    }
+    if (key.shift && input.length === 1) return `Cmd+Shift+${input.toUpperCase()}`;
+    if (input.length === 1) return `Cmd+${input.toUpperCase()}`;
     return `Cmd`;
-  }
-
-  // Shift combinations
-  if (key.shift && input.length === 1) {
-    return input;
   }
 
   return input;

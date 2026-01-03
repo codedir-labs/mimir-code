@@ -11,6 +11,12 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 
+interface CreateTeamOptions {
+  name?: string;
+  description?: string;
+  repository?: string;
+}
+
 export function createTeamsCommand(): Command {
   const teams = new Command('teams').description('Team management');
 
@@ -30,7 +36,7 @@ export function createTeamsCommand(): Command {
     .option('-n, --name <name>', 'Team display name')
     .option('-d, --description <description>', 'Team description')
     .option('-r, --repository <url>', 'Git repository URL')
-    .action(async (slug: string, options) => {
+    .action(async (slug: string, options: CreateTeamOptions) => {
       console.log(chalk.yellow('\n⚠ Team management not yet implemented'));
       console.log(chalk.dim('This feature is part of Phase 3 of the Teams integration roadmap.\n'));
       console.log(`Target team slug: ${chalk.cyan(slug)}`);

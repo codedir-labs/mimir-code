@@ -464,7 +464,7 @@ describe('Paste Edge Cases', () => {
         originalLength: originalContent.length,
       };
 
-      const attachment = attachmentManager.addTextAttachment(originalContent, metadata);
+      const _attachment = attachmentManager.addTextAttachment(originalContent, metadata);
       const parts = attachmentManager.expandForAPI('Message');
 
       const textPart = parts.find((p) => p.type === 'text' && p.text.includes(originalContent));
@@ -515,7 +515,7 @@ describe('Paste Edge Cases', () => {
         originalLength: 100,
       };
 
-      const attachment = attachmentManager.addTextAttachment('Normal text', metadata);
+      attachmentManager.addTextAttachment('Normal text', metadata);
 
       // Simulate corrupted state (shouldn't happen, but test robustness)
       const parts = attachmentManager.expandForAPI('Message');
@@ -530,11 +530,11 @@ describe('Paste Edge Cases', () => {
         originalLength: 0,
       };
 
-      const attachment = attachmentManager.addTextAttachment('Text', metadata);
+      const resultAttachment = attachmentManager.addTextAttachment('Text', metadata);
 
-      expect(attachment.metadata.lines).toBeGreaterThan(0);
-      expect(attachment.metadata.chars).toBeGreaterThan(0);
-      expect(attachment.metadata.size).toBeGreaterThan(0);
+      expect(resultAttachment.metadata.lines).toBeGreaterThan(0);
+      expect(resultAttachment.metadata.chars).toBeGreaterThan(0);
+      expect(resultAttachment.metadata.size).toBeGreaterThan(0);
     });
   });
 });

@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CredentialsManager } from '@/shared/utils/CredentialsManager.js';
-import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
 import { ProviderFactory } from '@codedir/mimir-agents-node/providers';
 import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
@@ -128,7 +127,6 @@ describe('Provider Setup Flow Integration', () => {
       };
 
       // Use default credentials path (CredentialsManager.getKey doesn't support custom paths)
-      const defaultCredsPath = join(testDir, '.mimir', 'credentials.enc');
       process.env.HOME = testDir; // Override home dir for this test
 
       // Store DeepSeek in keychain

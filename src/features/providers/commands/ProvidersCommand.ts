@@ -273,8 +273,7 @@ export function createProvidersCommand(): Command {
         } catch (error) {
           logger.error('Providers command failed', { error });
           console.error(
-            chalk.red('\nError:'),
-            error instanceof Error ? error.message : String(error)
+            chalk.red('\nError:') + ' ' + (error instanceof Error ? error.message : String(error))
           );
           process.exit(1);
         }

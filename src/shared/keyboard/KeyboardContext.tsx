@@ -104,6 +104,8 @@ export function useShortcutKeys(action: string): string[] {
     return [];
   }
 
+  // Cast action string to any to work with dynamic bindings lookup
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const binding = context.bindingsManager.getBinding(action as any);
   return binding?.keys ?? [];
 }

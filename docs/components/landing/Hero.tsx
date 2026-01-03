@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
-import { PROJECT_NAME, INSTALL_COMMANDS } from '@/lib/constants';
+import { INSTALL_COMMANDS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { LinuxIcon, AppleIcon, NpmIcon as NpmIconComponent, WindowsIcon as WindowsIconComponent } from '@/components/InstallTabs';
 import { GameOfLifeBackground } from './GameOfLifeBackground';
+import { Logo } from '@/components/Logo';
 
 interface TerminalLineProps {
   command: string;
@@ -94,8 +95,8 @@ export function Hero() {
       <div className="relative w-full max-w-5xl mx-auto px-4 py-20 sm:px-6 lg:px-8 pointer-events-none">
         {/* Title */}
         <div className="text-center mb-16 pointer-events-none">
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tighter mb-6 text-foreground pointer-events-none">
-            {PROJECT_NAME}
+          <h1 className="mb-6 pointer-events-none flex justify-center">
+            <Logo size="hero" />
           </h1>
           <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed pointer-events-none">
             Iterate faster. Security by design.

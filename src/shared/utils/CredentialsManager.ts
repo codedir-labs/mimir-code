@@ -252,7 +252,7 @@ export class CredentialsManager {
     let data: EncryptedCredentialsFile;
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      data = JSON.parse(content);
+      data = JSON.parse(content) as EncryptedCredentialsFile;
     } catch {
       data = {
         version: '1.0',
@@ -287,7 +287,7 @@ export class CredentialsManager {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data: EncryptedCredentialsFile = JSON.parse(content);
+      const data = JSON.parse(content) as EncryptedCredentialsFile;
 
       const credential = data.credentials[provider];
       if (!credential) {
@@ -313,7 +313,7 @@ export class CredentialsManager {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data: EncryptedCredentialsFile = JSON.parse(content);
+      const data = JSON.parse(content) as EncryptedCredentialsFile;
 
       delete data.credentials[provider];
 
@@ -335,7 +335,7 @@ export class CredentialsManager {
 
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data: EncryptedCredentialsFile = JSON.parse(content);
+      const data = JSON.parse(content) as EncryptedCredentialsFile;
 
       return Object.entries(data.credentials).map(([provider, cred]) => ({
         provider,

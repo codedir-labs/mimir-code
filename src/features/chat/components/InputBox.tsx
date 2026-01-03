@@ -26,7 +26,7 @@ import { TextInput } from '@/shared/ui/TextInput.js';
 import { Theme, KeyBindingsConfig } from '@/shared/config/schemas.js';
 import { getTheme } from '@/shared/config/themes/index.js';
 import { SlashCommandRegistry, SlashCommandContext } from '@/features/chat/slash-commands/SlashCommand.js';
-import { SlashCommandParser } from '@/features/custom-commands/parser/SlashCommandParser.js';
+import { SlashCommandParser, type ParseResult } from '@/features/custom-commands/parser/SlashCommandParser.js';
 import { CommandAutocomplete } from '@/shared/ui/CommandAutocomplete.js';
 import { ISlashCommand } from '@/features/chat/slash-commands/SlashCommand.js';
 import {
@@ -37,6 +37,326 @@ import {
 } from '@/shared/utils/bracketedPaste.js';
 import { pasteLog, pasteLogContent, pasteLogSeparator } from '@/shared/utils/pasteLogger.js';
 import type { PasteMetadata } from '@/features/chat/types/attachment.js';
+
+/** Empty suggestion result for early returns */
+const EMPTY_SUGGESTION = { show: false, isParam: false, commands: [] as ISlashCommand[], params: [] as string[], paramName: '' };
+
+/** Regex constant for trailing whitespace */
+const TRAILING_WHITESPACE_REGEX = /\s$/;
+
+/** Build suggestion result for parameters */
+function buildParamSuggestion(suggestions: string[], paramName: string): typeof EMPTY_SUGGESTION {
+  if (suggestions.length === 0) return EMPTY_SUGGESTION;
+  return { show: true, isParam: true, commands: [], params: suggestions, paramName };
+}
+
+/** Calculate parameter suggestions for a parsed command */
+function calculateParameterSuggestions(
+  parsed: ParseResult,
+  commandRegistry: SlashCommandRegistry,
+  context: SlashCommandContext | undefined,
+  value: string
+): typeof EMPTY_SUGGESTION {
+  if (!parsed.commandName) return EMPTY_SUGGESTION;
+  const command = commandRegistry.get(parsed.commandName);
+  if (!command?.getParameterSuggestions || !context) return EMPTY_SUGGESTION;
+
+  const currentInput = parsed.rawArgs || '';
+  const parts = currentInput.split(/\s+/).filter((a) => a.length > 0);
+  const endsWithSpace = TRAILING_WHITESPACE_REGEX.test(value);
+
+  // Handle trailing space case - looking for next parameter
+  if (endsWithSpace) {
+    const paramIndex = parts.length;
+    const suggestions = command.getParameterSuggestions(paramIndex, context, parts);
+    return buildParamSuggestion(suggestions, command.parameters?.[paramIndex]?.name || 'parameter');
+  }
+
+  // Calculate parameter index and partial value
+  const paramIndex = parts.length === 0 ? 0 : parts.length - 1;
+  const partialValue = parts.length === 0 ? '' : (parts[parts.length - 1]?.toLowerCase() || '');
+
+  // Get and filter suggestions
+  const completedArgs = paramIndex > 0 ? parts.slice(0, paramIndex) : [];
+  const allSuggestions = command.getParameterSuggestions(paramIndex, context, completedArgs);
+  const filteredSuggestions = partialValue
+    ? allSuggestions.filter((s) => s.toLowerCase().startsWith(partialValue))
+    : allSuggestions;
+
+  return buildParamSuggestion(filteredSuggestions, command.parameters?.[paramIndex]?.name || 'parameter');
+}
+
+/** Result of accepting a parameter selection */
+interface AcceptParameterResult {
+  newValue: string;
+  shouldExecute: boolean;
+}
+
+/** Build completed args for parameter selection */
+function buildCompletedArgs(parsed: ParseResult, selected: string): string[] | null {
+  const currentInput = parsed.rawArgs || '';
+  const parts = currentInput.split(/\s+/).filter((a) => a.length > 0);
+  const endsWithSpace = currentInput.length > 0 && TRAILING_WHITESPACE_REGEX.test(currentInput);
+
+  if (endsWithSpace || parts.length === 0) {
+    return [...parts, selected]; // Adding new argument
+  }
+  return [...parts.slice(0, -1), selected]; // Replacing last partial argument
+}
+
+/** Accept a parameter suggestion and determine next action */
+function acceptParameterSelection(
+  selected: string,
+  value: string,
+  commandRegistry: SlashCommandRegistry | undefined,
+  context: SlashCommandContext | undefined,
+  autocompleteExecuteOnSelect: boolean
+): AcceptParameterResult | null {
+  const parsed = SlashCommandParser.parse(value);
+  const commandName = parsed.commandName;
+  if (!commandName) return null;
+
+  const completedArgs = buildCompletedArgs(parsed, selected);
+  if (!completedArgs) return null;
+
+  const newValue = `/${commandName} ${completedArgs.join(' ')} `;
+
+  // Check if there are more parameters expected
+  const command = commandRegistry?.get(commandName);
+  const hasMoreParams = command?.getParameterSuggestions && context
+    ? command.getParameterSuggestions(completedArgs.length, context, completedArgs).length > 0
+    : false;
+
+  return {
+    newValue,
+    shouldExecute: !hasMoreParams && autocompleteExecuteOnSelect,
+  };
+}
+
+/** Accept a command suggestion and determine next action */
+function acceptCommandSelection(
+  selectedCommand: ISlashCommand,
+  context: SlashCommandContext | undefined,
+  autocompleteExecuteOnSelect: boolean
+): AcceptParameterResult {
+  const newValue = `/${selectedCommand.name} `;
+
+  // Check if command has parameters
+  const hasParams = selectedCommand.getParameterSuggestions && context
+    ? selectedCommand.getParameterSuggestions(0, context, []).length > 0
+    : false;
+
+  return {
+    newValue,
+    shouldExecute: !hasParams && autocompleteExecuteOnSelect,
+  };
+}
+
+/** Creates regex for control characters in paste preview (ASCII 0-31) */
+function createControlCharRegex(): RegExp {
+  // Build pattern using char codes to avoid sonarjs/no-control-regex
+  const pattern = `[${String.fromCharCode(0)}-${String.fromCharCode(31)}]`;
+  return new RegExp(pattern, 'g');
+}
+const CONTROL_CHAR_REGEX = createControlCharRegex();
+
+/** Hook result for autocomplete state */
+interface AutocompleteState {
+  filteredCommands: ISlashCommand[];
+  parameterSuggestions: string[];
+  parameterName: string;
+  isParameterMode: boolean;
+  autocompleteHeight: number;
+  handleHeightCalculated: (height: number) => void;
+}
+
+/** Custom hook for autocomplete logic */
+function useAutocompleteState(
+  value: string,
+  commandRegistry: SlashCommandRegistry | undefined,
+  context: SlashCommandContext | undefined,
+  showAutocomplete: boolean,
+  onAutocompleteStateChange: InputBoxProps['onAutocompleteStateChange']
+): AutocompleteState {
+  const [filteredCommands, setFilteredCommands] = useState<ISlashCommand[]>([]);
+  const [parameterSuggestions, setParameterSuggestions] = useState<string[]>([]);
+  const [parameterName, setParameterName] = useState<string>('');
+  const [isParameterMode, setIsParameterMode] = useState(false);
+  const [autocompleteHeight, setAutocompleteHeight] = useState(0);
+
+  // Calculate suggestions
+  const calculateSuggestions = useCallback(() => {
+    if (!commandRegistry) return EMPTY_SUGGESTION;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('/')) return EMPTY_SUGGESTION;
+
+    const parsed = SlashCommandParser.parse(value);
+    const hasSpace = value.includes(' ');
+
+    if (parsed.isCommand && parsed.commandName && hasSpace) {
+      return calculateParameterSuggestions(parsed, commandRegistry, context, value);
+    }
+
+    if (hasSpace) return EMPTY_SUGGESTION;
+    const partialName = SlashCommandParser.getPartialCommandName(value);
+    if (partialName === null) return EMPTY_SUGGESTION;
+
+    const matches = commandRegistry.search(partialName);
+    return { show: matches.length > 0, isParam: false, commands: matches, params: [] as string[], paramName: '' };
+  }, [value, commandRegistry, context]);
+
+  // Update state when suggestions change
+  useEffect(() => {
+    const suggestions = calculateSuggestions();
+    setIsParameterMode(suggestions.isParam);
+    setFilteredCommands(suggestions.commands);
+    setParameterSuggestions(suggestions.params);
+    setParameterName(suggestions.paramName);
+
+    const itemCount = suggestions.isParam ? suggestions.params.length : suggestions.commands.length;
+    onAutocompleteStateChange?.({
+      itemCount,
+      isParameterMode: suggestions.isParam,
+      shouldShow: suggestions.show && itemCount > 0,
+    });
+  }, [calculateSuggestions, onAutocompleteStateChange]);
+
+  // Reset height when hidden
+  useEffect(() => {
+    if (!showAutocomplete) setAutocompleteHeight(0);
+  }, [showAutocomplete]);
+
+  // Report height changes
+  useEffect(() => {
+    const itemCount = isParameterMode ? parameterSuggestions.length : filteredCommands.length;
+    onAutocompleteStateChange?.({
+      itemCount,
+      isParameterMode,
+      shouldShow: showAutocomplete && itemCount > 0,
+      actualHeight: showAutocomplete ? autocompleteHeight : 0,
+    });
+  }, [autocompleteHeight, isParameterMode, parameterSuggestions.length, filteredCommands.length, showAutocomplete, onAutocompleteStateChange]);
+
+  const handleHeightCalculated = useCallback((height: number) => setAutocompleteHeight(height), []);
+
+  return { filteredCommands, parameterSuggestions, parameterName, isParameterMode, autocompleteHeight, handleHeightCalculated };
+}
+
+/** Paste handling refs and state */
+interface PasteHandlingRefs {
+  previousValueRef: React.MutableRefObject<string>;
+  pasteHandledTimeRef: React.MutableRefObject<number>;
+  skipNextHeuristicRef: React.MutableRefObject<boolean>;
+}
+
+/** Custom hook for paste handling logic */
+function usePasteHandling(
+  value: string,
+  onChange: (value: string) => void,
+  onPaste: ((content: string, metadata: PasteMetadata) => void) | undefined,
+  bracketedPasteEnabled: boolean,
+  setInputKey: React.Dispatch<React.SetStateAction<number>>
+): PasteHandlingRefs {
+  const previousValueRef = useRef(value);
+  const pasteHandledTimeRef = useRef(0);
+  const skipNextHeuristicRef = useRef(false);
+  const hasCheckedInitialValueRef = useRef(false);
+
+  // Detect pre-buffered paste (value has content at mount time)
+  useEffect(() => {
+    if (hasCheckedInitialValueRef.current) return;
+    hasCheckedInitialValueRef.current = true;
+    if (value.length <= PRE_MOUNT_PASTE_THRESHOLD || !onPaste) return;
+
+    pasteLog('InputBox', 'DETECTED PRE-MOUNT PASTE', { valueLen: value.length });
+    previousValueRef.current = '';
+    onChange('');
+    setInputKey((prev) => prev + 1);
+    onPaste(value, { isBracketedPaste: false, detectMethod: 'pre-mount', originalLength: value.length });
+  }, [value, onChange, onPaste, setInputKey]);
+
+  // Enable/disable bracketed paste mode
+  useEffect(() => {
+    if (bracketedPasteEnabled) {
+      enableBracketedPaste();
+      return () => { disableBracketedPaste(); };
+    }
+    return undefined;
+  }, [bracketedPasteEnabled]);
+
+  return { previousValueRef, pasteHandledTimeRef, skipNextHeuristicRef };
+}
+
+/** Paste cooldown in milliseconds */
+const PASTE_COOLDOWN_MS = 500;
+
+/** Log tag for handleChange */
+const LOG_TAG_HANDLE_CHANGE = 'InputBox.handleChange';
+
+/** Apply autocomplete selection result */
+function applySelectionResult(
+  result: AcceptParameterResult | null,
+  setInputKey: React.Dispatch<React.SetStateAction<number>>,
+  onChange: (value: string) => void,
+  onSubmit: (value: string) => void
+): void {
+  if (!result) return;
+  setInputKey((prev) => prev + 1);
+  if (result.shouldExecute) {
+    const finalValue = result.newValue.trim();
+    onChange(finalValue);
+    setTimeout(() => onSubmit(finalValue), 0);
+  } else {
+    onChange(result.newValue);
+  }
+}
+
+/** Minimum value length to detect pre-mount paste */
+const PRE_MOUNT_PASTE_THRESHOLD = 10;
+
+/** Format control character for debug output */
+function formatControlChar(c: string): string {
+  return `<${c.charCodeAt(0).toString(16)}>`;
+}
+
+/** Check if we should block input during paste cooldown */
+function isInPasteCooldown(pasteHandledTime: number): boolean {
+  return Date.now() - pasteHandledTime < PASTE_COOLDOWN_MS;
+}
+
+/** Process input change and detect paste events */
+function processInputChange(
+  newValue: string,
+  previousValue: string,
+  skipHeuristic: boolean,
+  onPaste: ((content: string, metadata: PasteMetadata) => void) | undefined
+): { handled: boolean; cleanedValue: string; wasPaste: boolean } {
+  const cleanedValue = stripBracketedPasteMarkers(newValue);
+  const hadMarkers = cleanedValue !== newValue;
+
+  // Skip heuristic detection if flagged (after paste handling)
+  if (skipHeuristic) {
+    pasteLog(LOG_TAG_HANDLE_CHANGE, 'Skipping heuristic (post-paste sync)');
+    return { handled: true, cleanedValue, wasPaste: false };
+  }
+
+  // Heuristic paste detection (fallback for terminals without bracketed paste)
+  if (hadMarkers || detectPasteHeuristic(cleanedValue, previousValue)) {
+    const delta = cleanedValue.length - previousValue.length;
+    pasteLog(LOG_TAG_HANDLE_CHANGE, 'Detected as paste', { hadMarkers, delta });
+    if (onPaste) {
+      const metadata: PasteMetadata = {
+        isBracketedPaste: hadMarkers,
+        detectMethod: hadMarkers ? 'bracketed-partial' : 'heuristic',
+        originalLength: cleanedValue.length,
+      };
+      onPaste(cleanedValue, metadata);
+      return { handled: true, cleanedValue, wasPaste: true };
+    }
+  }
+
+  return { handled: false, cleanedValue, wasPaste: false };
+}
 
 export interface InputBoxProps {
   value: string;
@@ -105,471 +425,100 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
     requestCursorAt,
   }) => {
     const themeDefinition = getTheme(theme);
-    const [filteredCommands, setFilteredCommands] = useState<ISlashCommand[]>([]);
-    const [parameterSuggestions, setParameterSuggestions] = useState<string[]>([]);
-    const [parameterName, setParameterName] = useState<string>('');
-    const [isParameterMode, setIsParameterMode] = useState(false);
     const [inputKey, setInputKey] = useState(0);
-    const [autocompleteHeight, setAutocompleteHeight] = useState(0);
 
     // Local state for autocomplete (with external override)
-    const [localShowAutocomplete] = useState(false);
-    const [localSelectedIndex] = useState(0);
+    const showAutocomplete = forceShowAutocomplete ?? false;
+    const selectedIndex = autocompleteIndex ?? 0;
 
-    // Use external control if provided, otherwise use local state
-    const showAutocomplete = forceShowAutocomplete ?? localShowAutocomplete;
-    const selectedIndex = autocompleteIndex ?? localSelectedIndex;
+    // Use custom hook for autocomplete logic
+    const { filteredCommands, parameterSuggestions, parameterName, isParameterMode, handleHeightCalculated } =
+      useAutocompleteState(value, commandRegistry, context, showAutocomplete, onAutocompleteStateChange);
 
-    // Track previous value for heuristic paste detection
-    const previousValueRef = useRef(value);
-
-    // Track when paste was last handled to block handleChange during cooldown
-    const pasteHandledTimeRef = useRef(0);
-
-    // Track that we need to sync previousValueRef after paste (skip heuristic on next change)
-    const skipNextHeuristicRef = useRef(false);
-
-    // CRITICAL: Detect if value has content at mount time (pre-buffered paste)
-    // This runs synchronously during first render
-    const hasCheckedInitialValueRef = useRef(false);
-    useEffect(() => {
-      if (!hasCheckedInitialValueRef.current && value.length > 10) {
-        hasCheckedInitialValueRef.current = true;
-        pasteLog('InputBox', 'DETECTED PRE-MOUNT PASTE in value', { valueLen: value.length });
-        // The value already has garbage - we need to emit it as paste and clear
-        if (onPaste) {
-          const content = value;
-          pasteLog('InputBox', 'Emitting pre-mount paste and clearing');
-          // Clear immediately
-          previousValueRef.current = '';
-          onChange('');
-          setInputKey((prev) => prev + 1);
-          // Emit as paste
-          onPaste(content, {
-            isBracketedPaste: false,
-            detectMethod: 'pre-mount',
-            originalLength: content.length,
-          });
-        }
-      }
-      hasCheckedInitialValueRef.current = true;
-    }, [value, onChange, onPaste]);
-
-    // Enable/disable bracketed paste mode
-    useEffect(() => {
-      if (bracketedPasteEnabled) {
-        enableBracketedPaste();
-        return () => {
-          disableBracketedPaste();
-        };
-      }
-      return undefined;
-    }, [bracketedPasteEnabled]);
+    // Use custom hook for paste handling
+    const { previousValueRef, pasteHandledTimeRef, skipNextHeuristicRef } =
+      usePasteHandling(value, onChange, onPaste, bracketedPasteEnabled, setInputKey);
 
     // Notify parent when autocomplete visibility changes
     useEffect(() => {
-      if (onAutocompleteChange) {
-        onAutocompleteChange(showAutocomplete);
-      }
+      onAutocompleteChange?.(showAutocomplete);
     }, [showAutocomplete, onAutocompleteChange]);
-
-    // Calculate autocomplete suggestions based on current input
-    // Based on bash COMP_WORDS pattern - detect parameter boundaries with space
-    const calculateSuggestions = useCallback(() => {
-      if (!commandRegistry) {
-        return { show: false, isParam: false, commands: [], params: [], paramName: '' };
-      }
-
-      const trimmed = value.trim();
-
-      // Not a slash command at all
-      if (!trimmed.startsWith('/')) {
-        return { show: false, isParam: false, commands: [], params: [], paramName: '' };
-      }
-
-      const parsed = SlashCommandParser.parse(value);
-
-      // Check for parameter mode - when there's a space after command
-      if (parsed.isCommand && parsed.commandName && value.includes(' ')) {
-        const command = commandRegistry.get(parsed.commandName);
-
-        // Only show parameter autocomplete if command has parameter suggestions
-        if (command?.getParameterSuggestions && context) {
-          const currentInput = parsed.rawArgs || '';
-
-          // Split into word boundaries (like bash COMP_WORDS)
-          // Filter out empty strings
-          const parts = currentInput.split(/\s+/).filter((a) => a.length > 0);
-
-          // Detect if we're at a parameter boundary (trailing space after last param)
-          // Pattern: "/command param " vs "/command param"
-          // Check original value for trailing space (handles "/theme " where rawArgs is empty)
-          const endsWithSpace = /\s$/.test(value);
-
-          let paramIndex: number;
-          let partialValue: string;
-
-          if (endsWithSpace) {
-            // Trailing space = finished with current param, ready for NEXT parameter
-            // e.g., "/model deepseek " -> parts=['deepseek'], paramIndex=1
-            // Only show autocomplete if the NEXT parameter exists
-            paramIndex = parts.length;
-            partialValue = '';
-
-            // Check if next parameter exists
-            // Pass already-typed args so commands can provide context-aware suggestions
-            const nextParamSuggestions = command.getParameterSuggestions(
-              paramIndex,
-              context,
-              parts
-            );
-            if (nextParamSuggestions.length === 0) {
-              // No next parameter - don't show autocomplete
-              return { show: false, isParam: false, commands: [], params: [], paramName: '' };
-            }
-
-            return {
-              show: true,
-              isParam: true,
-              commands: [],
-              params: nextParamSuggestions,
-              paramName: command.parameters?.[paramIndex]?.name || 'parameter',
-            };
-          } else if (parts.length === 0) {
-            // No arguments yet " " after command - first parameter
-            paramIndex = 0;
-            partialValue = '';
-          } else {
-            // No trailing space = still typing current parameter
-            // e.g., "/model dee" -> parts=['dee'], paramIndex=0
-            paramIndex = parts.length - 1;
-            partialValue = parts[parts.length - 1]?.toLowerCase() || '';
-          }
-
-          // Pass completed args (all but the last partial one) for context-aware suggestions
-          const completedArgs = paramIndex > 0 ? parts.slice(0, paramIndex) : [];
-          const allSuggestions = command.getParameterSuggestions(
-            paramIndex,
-            context,
-            completedArgs
-          );
-
-          // Filter suggestions based on partial value
-          const filteredSuggestions = partialValue
-            ? allSuggestions.filter((s) => s.toLowerCase().startsWith(partialValue))
-            : allSuggestions;
-
-          if (filteredSuggestions.length > 0) {
-            return {
-              show: true,
-              isParam: true,
-              commands: [],
-              params: filteredSuggestions,
-              paramName: command.parameters?.[paramIndex]?.name || 'parameter',
-            };
-          }
-        }
-
-        // No parameter suggestions available
-        return { show: false, isParam: false, commands: [], params: [], paramName: '' };
-      }
-
-      // Command autocomplete mode - only if no space yet (still typing command name)
-      const partialName = SlashCommandParser.getPartialCommandName(value);
-
-      if (partialName === null) {
-        return { show: false, isParam: false, commands: [], params: [], paramName: '' };
-      }
-
-      // Only show command autocomplete if there's no space (still typing command name)
-      const hasSpace = value.includes(' ');
-      if (hasSpace) {
-        return { show: false, isParam: false, commands: [], params: [], paramName: '' };
-      }
-
-      const matches = commandRegistry.search(partialName);
-
-      return {
-        show: matches.length > 0,
-        isParam: false,
-        commands: matches,
-        params: [],
-        paramName: '',
-      };
-    }, [value, commandRegistry, context]);
-
-    // Update autocomplete suggestions when input changes
-    useEffect(() => {
-      const suggestions = calculateSuggestions();
-
-      setIsParameterMode(suggestions.isParam);
-      setFilteredCommands(suggestions.commands);
-      setParameterSuggestions(suggestions.params);
-      setParameterName(suggestions.paramName);
-
-      // Notify parent about autocomplete state (item count for navigation)
-      const itemCount = suggestions.isParam
-        ? suggestions.params.length
-        : suggestions.commands.length;
-
-      if (onAutocompleteStateChange) {
-        onAutocompleteStateChange({
-          itemCount,
-          isParameterMode: suggestions.isParam,
-          shouldShow: suggestions.show && itemCount > 0,
-        });
-      }
-    }, [calculateSuggestions, onAutocompleteStateChange]);
-
-    // Callback to receive actual rendered height from CommandAutocomplete
-    const handleHeightCalculated = useCallback((height: number) => {
-      setAutocompleteHeight(height);
-    }, []);
-
-    // Reset height when autocomplete is hidden
-    useEffect(() => {
-      if (!showAutocomplete) {
-        setAutocompleteHeight(0);
-      }
-    }, [showAutocomplete]);
-
-    // Report autocomplete state changes to parent
-    useEffect(() => {
-      const itemCount = isParameterMode ? parameterSuggestions.length : filteredCommands.length;
-
-      if (onAutocompleteStateChange) {
-        onAutocompleteStateChange({
-          itemCount,
-          isParameterMode,
-          shouldShow: showAutocomplete && itemCount > 0,
-          actualHeight: showAutocomplete ? autocompleteHeight : 0,
-        });
-      }
-    }, [
-      autocompleteHeight,
-      isParameterMode,
-      parameterSuggestions.length,
-      filteredCommands.length,
-      showAutocomplete,
-      onAutocompleteStateChange,
-    ]);
 
     // Accept autocomplete selection (called by parent when Tab/Enter pressed)
     const acceptSelection = useCallback(() => {
       const itemCount = isParameterMode ? parameterSuggestions.length : filteredCommands.length;
       if (itemCount === 0) return;
 
+      const apply = (r: AcceptParameterResult | null) => applySelectionResult(r, setInputKey, onChange, onSubmit);
+
       if (isParameterMode) {
-        // Select parameter suggestion
         const selected = parameterSuggestions[selectedIndex];
-        if (selected) {
-          const parsed = SlashCommandParser.parse(value);
-          const currentInput = parsed.rawArgs || '';
-
-          // Split into word boundaries
-          const parts = currentInput.split(/\s+/).filter((a) => a.length > 0);
-          const endsWithSpace = currentInput.length > 0 && /\s$/.test(currentInput);
-
-          let completedArgs: string[];
-          if (endsWithSpace || parts.length === 0) {
-            // Adding new argument
-            completedArgs = [...parts, selected];
-          } else {
-            // Replacing last partial argument
-            completedArgs = [...parts.slice(0, -1), selected];
-          }
-
-          const commandName = parsed.commandName;
-          if (!commandName) return;
-
-          const baseCommand = `/${commandName}`;
-          const newValue = `${baseCommand} ${completedArgs.join(' ')} `;
-
-          // Check if there are more parameters expected
-          const command = commandRegistry?.get(commandName);
-          const hasMoreParams =
-            command?.getParameterSuggestions && context
-              ? command.getParameterSuggestions(completedArgs.length, context, completedArgs)
-                  .length > 0
-              : false;
-
-          if (!hasMoreParams && autocompleteExecuteOnSelect) {
-            // No more parameters - auto-execute (if enabled)
-            setInputKey((prev) => prev + 1);
-            const finalValue = newValue.trim();
-            onChange(finalValue);
-            // Pass value directly to onSubmit to avoid stale state issues
-            setTimeout(() => {
-              onSubmit(finalValue);
-            }, 0);
-          } else {
-            // More parameters expected or auto-execute disabled - add trailing space and continue
-            setInputKey((prev) => prev + 1);
-            onChange(newValue);
-          }
-        }
+        if (selected) apply(acceptParameterSelection(selected, value, commandRegistry, context, autocompleteExecuteOnSelect));
       } else {
-        // Select command
-        const selectedCommand = filteredCommands[selectedIndex];
-        if (selectedCommand) {
-          const newValue = `/${selectedCommand.name} `;
-
-          // Check if command has parameters
-          const hasParams =
-            selectedCommand.getParameterSuggestions && context
-              ? selectedCommand.getParameterSuggestions(0, context, []).length > 0
-              : false;
-
-          if (!hasParams && autocompleteExecuteOnSelect) {
-            // No parameters - auto-execute (if enabled)
-            setInputKey((prev) => prev + 1);
-            const finalValue = newValue.trim();
-            onChange(finalValue);
-            // Pass value directly to onSubmit to avoid stale state issues
-            setTimeout(() => {
-              onSubmit(finalValue);
-            }, 0);
-          } else {
-            // Has parameters or auto-execute disabled - add trailing space and continue
-            setInputKey((prev) => prev + 1);
-            onChange(newValue);
-          }
-        }
+        const cmd = filteredCommands[selectedIndex];
+        if (cmd) apply(acceptCommandSelection(cmd, context, autocompleteExecuteOnSelect));
       }
-    }, [
-      isParameterMode,
-      parameterSuggestions,
-      filteredCommands,
-      selectedIndex,
-      value,
-      onChange,
-      onSubmit,
-      commandRegistry,
-      context,
-      autocompleteExecuteOnSelect,
-    ]);
+    }, [isParameterMode, parameterSuggestions, filteredCommands, selectedIndex, value, onChange, onSubmit, commandRegistry, context, autocompleteExecuteOnSelect]);
 
     // Expose accept selection function to parent via ref
     useEffect(() => {
-      if (onAcceptSelectionRef) {
-        onAcceptSelectionRef.current = acceptSelection;
-      }
+      if (onAcceptSelectionRef) onAcceptSelectionRef.current = acceptSelection;
     }, [onAcceptSelectionRef, acceptSelection]);
 
-    // Handle complete paste from TextInput (via onPaste callback)
-    // TextInput now buffers bracketed paste content and emits the complete content
+    // Handle complete paste from TextInput (buffered bracketed paste content)
     const handleTextInputPaste = useCallback(
       (content: string) => {
-        // FIRST LINE - log immediately to catch any early failures
-        try {
-          pasteLog('InputBox', '>>> handleTextInputPaste ENTRY <<<', { contentLen: content.length });
-          // eslint-disable-next-line sonarjs/no-ignored-exceptions
-        } catch {
-          // Ignore logging errors - don't want to break paste functionality
-        }
-
-        // Capture stack trace to see who's calling this
-        const stack = new Error().stack || 'no stack';
-        pasteLogSeparator('InputBox.handleTextInputPaste CALLED');
-        pasteLog('InputBox', 'handleTextInputPaste called', {
-          contentLen: content.length,
-          hasOnPaste: !!onPaste,
-          currentValue: value,
-          stack: stack.substring(0, 500),
-        });
+        pasteLogSeparator('InputBox.handleTextInputPaste');
+        pasteLog('InputBox', 'paste', { len: content.length, hasHandler: !!onPaste });
         pasteLogContent('InputBox-CONTENT', content);
-
-        // Set cooldown timestamp to block any straggler handleChange calls
         pasteHandledTimeRef.current = Date.now();
-
-        // DON'T clear the input - preserve existing content
-        // Parent (ChatInterface) will append the reference or content
-        pasteLog('InputBox', 'Preserving existing value', { currentValue: value });
-
-        const metadata: PasteMetadata = {
-          isBracketedPaste: true,
-          detectMethod: 'bracketed',
-          originalLength: content.length,
-        };
-
+        const metadata: PasteMetadata = { isBracketedPaste: true, detectMethod: 'bracketed', originalLength: content.length };
         if (onPaste) {
-          // Let parent (ChatInterface) handle paste
-          pasteLog('InputBox', 'Calling parent onPaste handler');
           onPaste(content, metadata);
-          // CRITICAL: Skip heuristic detection on next handleChange
-          // Otherwise delta from old previousValueRef triggers paste detection again
           skipNextHeuristicRef.current = true;
-          pasteLog('InputBox', 'Set skipNextHeuristic flag');
         } else {
-          // No handler - just insert the content
-          pasteLog('InputBox', 'No onPaste handler, inserting content directly');
           previousValueRef.current = content;
           onChange(content);
         }
-        pasteLog('InputBox', 'handleTextInputPaste complete');
       },
-      [onChange, onPaste, value]
+      [onChange, onPaste]
     );
 
     // Handle input changes (normal typing, not pastes)
     const handleChange = useCallback(
       (newValue: string) => {
-        // LOG ALL CHANGES - this is where we'll see what's actually happening
-        const delta = newValue.length - previousValueRef.current.length;
-        pasteLog('InputBox.handleChange', 'CALLED', {
+        // Log all changes for debugging
+        pasteLog(LOG_TAG_HANDLE_CHANGE, 'CALLED', {
           newValueLen: newValue.length,
           prevValueLen: previousValueRef.current.length,
-          delta,
+          delta: newValue.length - previousValueRef.current.length,
           hasNewlines: newValue.includes('\n'),
-          // eslint-disable-next-line sonarjs/no-control-regex
-          preview: newValue.substring(0, 50).replace(/[\x00-\x1f]/g, (c) => `<${c.charCodeAt(0).toString(16)}>`),
+          preview: newValue.substring(0, 50).replace(CONTROL_CHAR_REGEX, formatControlChar),
         });
 
-        // Block changes during paste cooldown (500ms after paste was handled)
-        // This prevents straggler events from corrupting the clean state
-        const timeSincePaste = Date.now() - pasteHandledTimeRef.current;
-        if (timeSincePaste < 500) {
-          pasteLog('InputBox.handleChange', 'BLOCKED (cooldown)', { timeSincePaste });
+        // Block changes during paste cooldown
+        if (isInPasteCooldown(pasteHandledTimeRef.current)) {
+          pasteLog(LOG_TAG_HANDLE_CHANGE, 'BLOCKED (cooldown)');
           return;
         }
 
-        // Safety: Strip any leftover paste markers that slipped through
-        const cleanedValue = stripBracketedPasteMarkers(newValue);
-        const hadMarkers = cleanedValue !== newValue;
+        // Process input and detect paste events
+        const result = processInputChange(
+          newValue, previousValueRef.current, skipNextHeuristicRef.current, onPaste
+        );
 
-        // Check if we should skip heuristic detection (after paste handling)
-        if (skipNextHeuristicRef.current) {
-          pasteLog('InputBox.handleChange', 'Skipping heuristic (post-paste sync)');
-          skipNextHeuristicRef.current = false;
-          previousValueRef.current = cleanedValue; // Sync to new value
-          onChange(cleanedValue);
+        if (result.wasPaste) {
+          skipNextHeuristicRef.current = true;
           return;
         }
 
-        // Heuristic paste detection (fallback for terminals without bracketed paste)
-        const previousValue = previousValueRef.current;
-        if (hadMarkers || detectPasteHeuristic(cleanedValue, previousValue)) {
-          pasteLog('InputBox.handleChange', 'Detected as paste', { hadMarkers, delta });
-          const metadata: PasteMetadata = {
-            isBracketedPaste: hadMarkers,
-            detectMethod: hadMarkers ? 'bracketed-partial' : 'heuristic',
-            originalLength: cleanedValue.length,
-          };
+        skipNextHeuristicRef.current = false;
+        previousValueRef.current = result.cleanedValue;
 
-          if (onPaste) {
-            // Let parent handle paste
-            onPaste(cleanedValue, metadata);
-            skipNextHeuristicRef.current = true; // Skip next heuristic after this paste too
-            return;
-          }
+        if (!result.handled) {
+          pasteLog(LOG_TAG_HANDLE_CHANGE, 'Calling onChange normally');
+          onChange(result.cleanedValue);
         }
-
-        // Update previousValueRef
-        previousValueRef.current = cleanedValue;
-
-        // Call onChange normally
-        pasteLog('InputBox.handleChange', 'Calling onChange normally');
-        onChange(cleanedValue);
       },
       [onChange, onPaste]
     );

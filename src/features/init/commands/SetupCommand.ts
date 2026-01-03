@@ -50,7 +50,7 @@ export class SetupCommand {
               // Show Windows Terminal setup notification if needed
               const terminalInfo = detectTerminal();
               if (terminalInfo.needsShiftEnterSetup) {
-                console.log('\n' + getWindowsTerminalSetupMessage() + '\n');
+                logger.info(getWindowsTerminalSetupMessage());
               }
 
               setTimeout(() => resolve(), 500); // Brief delay to show completion message

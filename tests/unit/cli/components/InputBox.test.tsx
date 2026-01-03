@@ -3,7 +3,7 @@
  * Tests autocomplete trigger logic, filtering, and keyboard navigation
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { SlashCommandRegistry } from '@/features/chat/slash-commands/SlashCommand.js';
 import { ModeCommand } from '@/features/chat/slash-commands/ModeCommand.js';
 import { ThemeCommand } from '@/features/chat/slash-commands/ThemeCommand.js';
@@ -15,11 +15,17 @@ import { SlashCommandParser } from '@/features/custom-commands/parser/SlashComma
 /**
  * Simulates the InputBox autocomplete logic to verify correct behavior
  */
+interface SlashCommand {
+  name: string;
+  description?: string;
+  getParameterSuggestions?: (paramIndex: number, context: Record<string, unknown>) => string[];
+}
+
 class InputBoxAutocompleteSimulator {
   private registry: SlashCommandRegistry;
   private value: string;
   private showAutocomplete: boolean = false;
-  private filteredCommands: any[] = [];
+  private filteredCommands: SlashCommand[] = [];
   private parameterSuggestions: string[] = [];
   private isParameterMode: boolean = false;
 
@@ -31,7 +37,7 @@ class InputBoxAutocompleteSimulator {
   /**
    * Simulate user typing (this is the logic from InputBox.tsx useEffect)
    */
-  updateInput(value: string, context: any = {}) {
+  updateInput(value: string, context: Record<string, unknown> = {}) {
     this.value = value;
     const trimmed = value.trim();
 
@@ -158,7 +164,7 @@ describe('InputBox Autocomplete Logic', () => {
       expect(state.showAutocomplete).toBe(true);
       expect(state.isParameterMode).toBe(false);
       expect(state.filteredCommands).toHaveLength(2);
-      expect(state.filteredCommands.map((cmd: any) => cmd.name).sort()).toEqual(['mode', 'model']);
+      expect(state.filteredCommands.map((cmd: SlashCommand) => cmd.name).sort()).toEqual(['mode', 'model']);
     });
 
     it('should filter to single command when user types /mo', () => {
@@ -167,7 +173,7 @@ describe('InputBox Autocomplete Logic', () => {
 
       expect(state.showAutocomplete).toBe(true);
       expect(state.filteredCommands).toHaveLength(2);
-      expect(state.filteredCommands.map((cmd: any) => cmd.name).sort()).toEqual(['mode', 'model']);
+      expect(state.filteredCommands.map((cmd: SlashCommand) => cmd.name).sort()).toEqual(['mode', 'model']);
     });
 
     it('should filter to mode when user types /mod', () => {

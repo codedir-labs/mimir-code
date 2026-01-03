@@ -5,7 +5,7 @@
 
 import type { IFileSystem } from '@codedir/mimir-agents';
 import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
-import { MimirInitializer } from '@/features/init/MimirInitializer.js';
+import { MimirInitializer, type InitializationResult } from '@/features/init/MimirInitializer.js';
 import { logger } from '@/shared/utils/logger.js';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -74,18 +74,19 @@ export class InitCommand {
     }
   }
 
-  private printGlobalSummary(result: any, homeDir: string): void {
-    /* eslint-disable no-console */
+  private printGlobalSummary(result: InitializationResult, homeDir: string): void {
     if (result.created.length > 0) {
       console.log('\n🌍 Global Mimir Directory:');
       result.created.forEach((item: string) => console.log(`  ✓ ${item}`));
       console.log(`\n📁 Location: ${join(homeDir, '.mimir')}`);
     }
-    /* eslint-enable no-console */
   }
 
-  private printCombinedSummary(result: any, homeDir: string, projectRoot: string): void {
-    /* eslint-disable no-console */
+  private printCombinedSummary(
+    result: InitializationResult,
+    homeDir: string,
+    projectRoot: string
+  ): void {
     console.log('\n🚀 Mimir Initialized!\n');
 
     if (result.globalCreated) {
@@ -121,6 +122,5 @@ export class InitCommand {
     console.log('  4. CLI flags               (runtime overrides)');
 
     console.log('\n✨ Ready to use! Run "mimir" to start an interactive chat session.\n');
-    /* eslint-enable no-console */
   }
 }

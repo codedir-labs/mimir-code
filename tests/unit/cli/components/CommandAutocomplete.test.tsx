@@ -282,7 +282,7 @@ describe('CommandAutocomplete', () => {
 
       it('should indicate more items below when not at end', () => {
         const selectedIndex = 2;
-        const { startIndex, endIndex } = calculatePaginationWindow(
+        const { endIndex } = calculatePaginationWindow(
           totalItems,
           selectedIndex,
           maxVisible
@@ -297,7 +297,7 @@ describe('CommandAutocomplete', () => {
 
       it('should indicate more items above when not at start', () => {
         const selectedIndex = 18;
-        const { startIndex, endIndex } = calculatePaginationWindow(
+        const { startIndex } = calculatePaginationWindow(
           totalItems,
           selectedIndex,
           maxVisible
@@ -312,16 +312,16 @@ describe('CommandAutocomplete', () => {
 
       it('should not indicate more above when at start', () => {
         const selectedIndex = 0;
-        const { startIndex } = calculatePaginationWindow(totalItems, selectedIndex, maxVisible);
+        const { startIndex: startIdx } = calculatePaginationWindow(totalItems, selectedIndex, maxVisible);
 
-        expect(startIndex > 0).toBe(false);
+        expect(startIdx > 0).toBe(false);
       });
 
       it('should not indicate more below when at end', () => {
         const selectedIndex = totalItems - 1;
-        const { endIndex } = calculatePaginationWindow(totalItems, selectedIndex, maxVisible);
+        const { endIndex: endIdx } = calculatePaginationWindow(totalItems, selectedIndex, maxVisible);
 
-        expect(endIndex < totalItems).toBe(false);
+        expect(endIdx < totalItems).toBe(false);
       });
     });
   });

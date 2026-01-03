@@ -275,7 +275,7 @@ export class UninstallCommand {
         if (await this.fs.exists(packageJsonPath)) {
           try {
             const content = await this.fs.readFile(packageJsonPath, 'utf-8');
-            const packageJson = JSON.parse(content.toString());
+            const packageJson = JSON.parse(content.toString()) as { name?: string };
             if (packageJson.name === '@codedir/mimir-code') {
               logger.debug('Detected npm installation (found package.json)');
               return 'npm';
@@ -520,7 +520,6 @@ del /f /q "%~f0" >nul 2>&1
     }
   }
 
-  /* eslint-disable no-console */
   printSummary(result: UninstallResult): void {
     console.log('');
     console.log('═══════════════════════════════════════════════════════');
@@ -575,5 +574,4 @@ del /f /q "%~f0" >nul 2>&1
     console.log('Thank you for using Mimir! 👋');
     console.log('');
   }
-  /* eslint-enable no-console */
 }

@@ -5,10 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CredentialsManager } from '@/shared/utils/CredentialsManager.js';
-import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
 import { ProviderFactory } from '@codedir/mimir-agents-node/providers';
-import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
-import type { ILLMProvider } from '@codedir/mimir-agents';
 import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -27,8 +24,6 @@ describe('Provider Setup to Usage E2E', () => {
   let testDir: string;
   let homeDir: string;
   let credentialsManager: CredentialsManager;
-  let fileSystem: FileSystemAdapter;
-  let configLoader: ConfigLoader;
   let savedEnvVars: Record<string, string | undefined> = {};
 
   beforeEach(async () => {
@@ -46,8 +41,6 @@ describe('Provider Setup to Usage E2E', () => {
     }
 
     credentialsManager = new CredentialsManager();
-    fileSystem = new FileSystemAdapter();
-    configLoader = new ConfigLoader(fileSystem);
 
     vi.clearAllMocks();
   });
@@ -504,10 +497,11 @@ describe('Provider Setup to Usage E2E', () => {
           expect(response.content).toBeTruthy();
           expect(response.role).toBe('assistant');
           expect(response.content.toLowerCase()).toContain('successful');
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Skip test if API key is invalid (common in CI/dev environments)
-          if (error.message?.includes('invalid') || error.message?.includes('Authentication')) {
-            console.warn('Skipping real API test - invalid API key:', error.message);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('invalid') || errorMessage.includes('Authentication')) {
+            console.warn('Skipping real API test - invalid API key:', errorMessage);
             return; // Skip test gracefully
           }
           throw error; // Re-throw other errors
@@ -548,10 +542,11 @@ describe('Provider Setup to Usage E2E', () => {
           expect(response.content).toBeTruthy();
           expect(response.role).toBe('assistant');
           expect(response.content.toLowerCase()).toContain('successful');
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Skip test if API key is invalid (common in CI/dev environments)
-          if (error.message?.includes('invalid') || error.message?.includes('Authentication')) {
-            console.warn('Skipping real API test - invalid API key:', error.message);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('invalid') || errorMessage.includes('Authentication')) {
+            console.warn('Skipping real API test - invalid API key:', errorMessage);
             return; // Skip test gracefully
           }
           throw error; // Re-throw other errors

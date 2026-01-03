@@ -47,12 +47,12 @@
       "Bash(npx shadcn@latest init --yes --defaults)",
       "Bash(findstr:*)",
       "WebFetch(domain:api.github.com)",
-      "Bash(timeout 5 yarn dev:*)",
-      "Bash(timeout 3 yarn dev:*)",
       "Bash(npx vitest:*)",
       "Bash(npx eslint:*)",
       "WebFetch(domain:deepwiki.com)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(npx playwright test:*)"
     ]
   }
 }

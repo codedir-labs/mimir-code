@@ -448,67 +448,11 @@ export class RawKeyMapper {
     const bytes: number[] =
       typeof data === 'string' ? data.split('').map((c) => c.charCodeAt(0)) : Array.from(data);
 
-    const now = Date.now();
-    let result: RawKeyResult;
-
-    // Empty input
-    if (bytes.length === 0) {
-      result = { key: null, detectedRaw: false, confidence: 'low' };
-    }
-    // Single byte - check single byte map
-    else if (bytes.length === 1) {
-      const firstByte = bytes[0];
-      if (firstByte === undefined) {
-        result = { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
-      } else {
-        const singleKey = SINGLE_BYTE_MAP.get(firstByte);
-        if (singleKey) {
-          result = {
-            key: singleKey.key,
-            detectedRaw: true,
-            confidence: singleKey.confidence,
-            matchedBytes: bytes,
-          };
-        } else if (firstByte >= 0x20 && firstByte < 0x7f) {
-          // Printable ASCII character
-          result = {
-            key: String.fromCharCode(firstByte),
-            detectedRaw: true,
-            confidence: 'high',
-            matchedBytes: bytes,
-          };
-        } else {
-          result = { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
-        }
-      }
-    }
-    // Escape sequence (starts with ESC)
-    else if (bytes[0] === 0x1b) {
-      result = this.matchEscapeSequence(bytes);
-    }
-    // Multi-byte non-escape (likely pasted text or UTF-8)
-    else {
-      // Try to decode as UTF-8 string
-      try {
-        const text = typeof data === 'string' ? data : Buffer.from(bytes).toString('utf-8');
-        result = {
-          key: text,
-          detectedRaw: true,
-          confidence: 'medium',
-          matchedBytes: bytes,
-        };
-      } catch (error) {
-        logger.debug('[RawKeyMapper] Failed to decode UTF-8', {
-          error: error instanceof Error ? error.message : String(error),
-          bytes: bytes.map((b) => b.toString(16).padStart(2, '0')).join(' '),
-        });
-        result = { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
-      }
-    }
+    const result = this.classifyInput(bytes, data);
 
     // Store result with timestamp
     this.lastResult = result;
-    this.lastTimestamp = now;
+    this.lastTimestamp = Date.now();
 
     logger.debug('[RawKeyMapper] Processed input', {
       bytes: bytes.map((b) => b.toString(16).padStart(2, '0')).join(' '),
@@ -517,6 +461,78 @@ export class RawKeyMapper {
     });
 
     return result;
+  }
+
+  /**
+   * Classify input bytes and return appropriate key result
+   */
+  private classifyInput(bytes: number[], data: Buffer | string): RawKeyResult {
+    if (bytes.length === 0) {
+      return { key: null, detectedRaw: false, confidence: 'low' };
+    }
+
+    if (bytes.length === 1) {
+      return this.processSingleByte(bytes);
+    }
+
+    if (bytes[0] === 0x1b) {
+      return this.matchEscapeSequence(bytes);
+    }
+
+    return this.processMultiByteNonEscape(bytes, data);
+  }
+
+  /**
+   * Process single byte input
+   */
+  private processSingleByte(bytes: number[]): RawKeyResult {
+    const firstByte = bytes[0];
+    if (firstByte === undefined) {
+      return { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
+    }
+
+    const singleKey = SINGLE_BYTE_MAP.get(firstByte);
+    if (singleKey) {
+      return {
+        key: singleKey.key,
+        detectedRaw: true,
+        confidence: singleKey.confidence,
+        matchedBytes: bytes,
+      };
+    }
+
+    // Printable ASCII character
+    if (firstByte >= 0x20 && firstByte < 0x7f) {
+      return {
+        key: String.fromCharCode(firstByte),
+        detectedRaw: true,
+        confidence: 'high',
+        matchedBytes: bytes,
+      };
+    }
+
+    return { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
+  }
+
+  /**
+   * Process multi-byte non-escape input (likely pasted text or UTF-8)
+   */
+  private processMultiByteNonEscape(bytes: number[], data: Buffer | string): RawKeyResult {
+    try {
+      const text = typeof data === 'string' ? data : Buffer.from(bytes).toString('utf-8');
+      return {
+        key: text,
+        detectedRaw: true,
+        confidence: 'medium',
+        matchedBytes: bytes,
+      };
+    } catch (error) {
+      logger.debug('[RawKeyMapper] Failed to decode UTF-8', {
+        error: error instanceof Error ? error.message : String(error),
+        bytes: bytes.map((b) => b.toString(16).padStart(2, '0')).join(' '),
+      });
+      return { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
+    }
   }
 
   /**

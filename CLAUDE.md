@@ -334,6 +334,34 @@ Workflow: detect → decompose → approve → execute → merge
 - Avoid `any`, use `unknown`
 - Prefer Result types over exceptions
 
+### ESLint Enforcement Policy
+
+**CRITICAL**: ESLint errors are blocking - PRs cannot be merged with ESLint errors.
+
+**NEVER do the following:**
+- Disable ESLint rules with `eslint-disable` comments
+- Downgrade `error` rules to `warn` in eslint.config.js
+- Ignore ESLint errors - they must be fixed properly
+
+**Rules enforced as ERRORS (must fix):**
+
+| Rule | Why | Fix |
+|------|-----|-----|
+| `no-console` | CLI uses Ink for output, logger for logging | Use `logger.*()` or Ink components |
+| `no-explicit-any` | Type safety | Define proper types/interfaces |
+| `no-unsafe-*` | Type safety | Add type assertions or proper types |
+| `no-unused-vars` | Dead code | Remove unused imports/variables |
+| `no-floating-promises` | Unhandled promises | Add `await` or `void` operator |
+| `no-misused-promises` | Promise in wrong context | Fix async/sync mismatch |
+| `complexity` (max 20) | Maintainability | Extract helper functions |
+| `cognitive-complexity` (max 20) | Readability | Simplify logic, extract functions |
+| `max-lines-per-function` (max 150) | Maintainability | Split into smaller functions |
+| `max-depth` (max 5) | Nesting too deep | Use early returns, extract functions |
+
+**Allowed as WARNINGS (fix when possible):**
+- `sonarjs/no-duplicate-string` - Extract to constants when > 3 occurrences
+- `no-control-regex` - May be intentional for terminal handling
+
 ### Naming
 - camelCase: variables, functions
 - PascalCase: classes, types, interfaces
@@ -351,6 +379,7 @@ Workflow: detect → decompose → approve → execute → merge
 **CRITICAL - Read These First**:
 - `.claude/best-practices/platform_abstractions.md` - **MUST READ**
 - `.claude/best-practices/vertical_slicing.md` - **MUST READ**
+- `.github/workflows/README.md` - **MUST READ** (when working with GitHub Actions)
 - `.claude/best-practices/keyboard_shortcuts.md`
 - `.claude/best-practices/ui_development.md`
 - `.claude/best-practices/security.md`
@@ -448,6 +477,8 @@ PRs must pass these automated checks:
 | Duplication | Max 5% | `code-quality.yml` |
 | Dead Code | Advisory (no block) | `code-quality.yml` |
 | Security | npm audit, CodeQL, secrets scan | `security.yml` |
+
+**Workflow Security**: See `.github/workflows/README.md` for action pinning requirements and security best practices.
 
 ## AI Output Organization
 

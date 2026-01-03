@@ -233,7 +233,7 @@ describe('CommandAutocomplete Real-World Pagination', () => {
       const upHistory = simulateNavigation(items, maxVisible, Array(items.length).fill('up'));
 
       // Every step must have selected item visible
-      [...downHistory, ...upHistory].forEach((step, i) => {
+      [...downHistory, ...upHistory].forEach((step) => {
         expect(step.isSelectedVisible).toBe(true);
         expect(step.visibleItems).toContain(step.selectedItem);
       });

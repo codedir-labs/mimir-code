@@ -3,10 +3,10 @@
  * Tests if multiple useInput hooks can coexist and how events propagate
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import React, { useState } from 'react';
 import { render, useInput } from 'ink-testing-library';
-import { Text, Box } from 'ink';
+import { Text } from 'ink';
 
 describe('Keyboard Passthrough Debug', () => {
   describe('Multiple useInput hooks behavior', () => {
@@ -18,7 +18,7 @@ describe('Keyboard Passthrough Debug', () => {
 
       function TestComponent() {
         // First hook (like our useKeyboardInput)
-        useInput((input, key) => {
+        useInput((input, _key) => {
           hook1Calls.push(`hook1: ${input}`);
           // Early return (passthrough attempt)
           if (input !== 'x') {
@@ -27,7 +27,7 @@ describe('Keyboard Passthrough Debug', () => {
         }, { isActive: true });
 
         // Second hook (like TextInput's useInput)
-        useInput((input, key) => {
+        useInput((input, _key) => {
           hook2Calls.push(`hook2: ${input}`);
         }, { isActive: true });
 
@@ -59,7 +59,7 @@ describe('Keyboard Passthrough Debug', () => {
         const [interceptMode, setInterceptMode] = useState(false);
 
         // First hook - only active when intercepting
-        useInput((input, key) => {
+        useInput((input, _key) => {
           hook1Calls.push(`hook1: ${input}`);
           if (input === 'm') {
             setInterceptMode(!interceptMode);
@@ -67,7 +67,7 @@ describe('Keyboard Passthrough Debug', () => {
         }, { isActive: interceptMode });
 
         // Second hook - only active when NOT intercepting
-        useInput((input, key) => {
+        useInput((input, _key) => {
           hook2Calls.push(`hook2: ${input}`);
           if (input === 'm') {
             setInterceptMode(!interceptMode);
@@ -97,12 +97,12 @@ describe('Keyboard Passthrough Debug', () => {
       let secondHandlerCalled = false;
 
       function TestComponent() {
-        useInput((input) => {
+        useInput((_input) => {
           firstHandlerCalled = true;
           return; // Early return
         }, { isActive: true });
 
-        useInput((input) => {
+        useInput((_input) => {
           secondHandlerCalled = true;
         }, { isActive: true });
 
@@ -122,7 +122,7 @@ describe('Keyboard Passthrough Debug', () => {
 
   describe('Home/End key detection', () => {
     it('should detect what Ink provides for Home/End keys', () => {
-      const receivedKeys: Array<{ input: string; key: any }> = [];
+      const receivedKeys: Array<{ input: string; key: Record<string, unknown> }> = [];
 
       function TestComponent() {
         useInput((input, key) => {

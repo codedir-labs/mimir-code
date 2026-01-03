@@ -232,13 +232,19 @@ export class TeamsAPIClient implements ITeamsAPIClient {
       );
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
-        // Re-throw with error code from RFC 8628
-        const apiError = new Error(
-          error.response.data.error_description || error.response.data.error
-        ) as Error & { code?: string };
-        apiError.code = error.response.data.error;
-        throw apiError;
+      if (axios.isAxiosError(error) && error.response?.data) {
+        const data = error.response.data as {
+          error?: string;
+          error_description?: string;
+        };
+        if (data.error) {
+          // Re-throw with error code from RFC 8628
+          const apiError = new Error(data.error_description || data.error) as Error & {
+            code?: string;
+          };
+          apiError.code = data.error;
+          throw apiError;
+        }
       }
       throw error;
     }
@@ -276,9 +282,9 @@ export class TeamsAPIClient implements ITeamsAPIClient {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 403) {
         // Check if SSO is required
-        const data = error.response.data;
-        if (data.requiresSSO) {
-          return data as SSORequiredResponse;
+        const data = error.response.data as { requiresSSO?: boolean } | undefined;
+        if (data?.requiresSSO) {
+          return error.response.data as SSORequiredResponse;
         }
       }
       throw error;

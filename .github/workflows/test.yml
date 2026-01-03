@@ -3,19 +3,97 @@ name: Test Suite
 on:
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '!CLAUDE.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
+      - '.vscode/**'
   workflow_call:
 
+permissions:
+  contents: read
+
 # Cancel in-progress runs when a new workflow with the same group name is triggered
-# Use a static prefix unique to this workflow to prevent conflicts when called via workflow_call
-# This ensures each workflow has its own concurrency group independent of the caller
 concurrency:
   group: test-suite-workflow-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      mimir-agents: ${{ steps.filter.outputs.mimir-agents }}
+      mimir-agents-node: ${{ steps.filter.outputs.mimir-agents-node }}
+      cli: ${{ steps.filter.outputs.cli }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            mimir-agents:
+              - 'packages/mimir-agents/**'
+            mimir-agents-node:
+              - 'packages/mimir-agents-node/**'
+            cli:
+              - 'src/**'
+              - 'package.json'
+              - 'tsconfig.json'
+
+  commit-lint:
+    name: Commit Message Lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: ${{ vars.NODE_VERSION || '22' }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Validate commits
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+
+  pr-title:
+    name: PR Title Lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check PR title
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          PATTERN="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,72}$"
+
+          if [[ ! "$TITLE" =~ $PATTERN ]]; then
+            echo "::error::PR title must follow conventional commits format"
+            echo ""
+            echo "Expected: type(scope): description"
+            echo "Example: feat(auth): add OAuth2 support"
+            echo ""
+            echo "Got: $TITLE"
+            exit 1
+          fi
+          echo "✅ PR title follows conventional commits format"
+
   test:
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    needs: changes
+    if: needs.changes.outputs.mimir-agents == 'true' || needs.changes.outputs.mimir-agents-node == 'true' || needs.changes.outputs.cli == 'true' || github.event_name == 'workflow_call'
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -24,15 +102,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Configure Git line endings
         run: git config --global core.autocrlf false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
-          node-version: '22'
+          node-version: ${{ vars.NODE_VERSION || '22' }}
           cache: 'yarn'
 
       - name: Install dependencies
@@ -60,10 +138,52 @@ jobs:
           yarn test:coverage --run
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@0f8570b1a125f4937846a11fcfa3bcd548bd8c97 # v4.6.0
         if: matrix.os == 'ubuntu-latest'
         with:
           files: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  ci-gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    needs: [changes, commit-lint, pr-title, test]
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          echo "## CI Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          FAILED=0
+
+          check_job() {
+            local name=$1
+            local result=$2
+            if [ "$result" == "success" ]; then
+              echo "| $name | ✅ Pass |" >> $GITHUB_STEP_SUMMARY
+            elif [ "$result" == "skipped" ]; then
+              echo "| $name | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $name | ❌ Fail |" >> $GITHUB_STEP_SUMMARY
+              FAILED=$((FAILED + 1))
+            fi
+          }
+
+          check_job "Change Detection" "${{ needs.changes.result }}"
+          check_job "Commit Lint" "${{ needs.commit-lint.result }}"
+          check_job "PR Title Lint" "${{ needs.pr-title.result }}"
+          check_job "Tests" "${{ needs.test.result }}"
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **$FAILED check(s) failed**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **All checks passed**" >> $GITHUB_STEP_SUMMARY

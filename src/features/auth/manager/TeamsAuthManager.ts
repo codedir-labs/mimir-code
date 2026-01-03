@@ -11,9 +11,41 @@
  */
 
 import type { IAuthManager, AuthContext } from './IAuthManager.js';
-import { TeamsAPIClient } from '@/features/teams/api/TeamsAPIClient.js';
+import {
+  TeamsAPIClient,
+  type DeviceCodeResponse,
+  type DeviceTokenResponse,
+  type OrgAuthorizeResponse,
+} from '@/features/teams/api/TeamsAPIClient.js';
 import { AuthStorage, type UserAuthData, type OrgAuthData } from '../storage/AuthStorage.js';
 import { logger } from '@/shared/utils/logger.js';
+
+/**
+ * Valid organization role types
+ */
+type OrgRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+/**
+ * Type guard for errors with a 'code' property (RFC 8628 error codes)
+ */
+function isErrorWithCode(error: unknown): error is Error & { code: string } {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof (error as { code: unknown }).code === 'string'
+  );
+}
+
+/**
+ * Safely cast a role string to OrgRole type
+ */
+function toOrgRole(role: string): OrgRole {
+  const validRoles: OrgRole[] = ['owner', 'admin', 'member', 'viewer'];
+  if (validRoles.includes(role as OrgRole)) {
+    return role as OrgRole;
+  }
+  return 'member'; // Default to member if unknown role
+}
 
 /**
  * Device flow authentication options
@@ -102,163 +134,243 @@ export class TeamsAuthManager implements IAuthManager {
     logger.info('[Auth] Starting device flow authentication');
 
     try {
-      // Step 1: Request device code
-      const deviceCodeResponse = await this.apiClient.requestDeviceCode({
-        clientId: 'mimir-cli',
-        clientName: 'Mimir CLI',
-        scope: 'user:orgs teams:read teams:write',
-        orgSlug: options.orgSlug,
-      });
-
-      logger.debug('[Auth] Device code received', {
-        userCode: deviceCodeResponse.userCode,
-      });
-
-      // Step 2: Display user code to user
-      await options.onDeviceCode(
-        deviceCodeResponse.userCode,
-        deviceCodeResponse.verificationUri,
-        deviceCodeResponse.verificationUriComplete
-      );
-
-      // Step 3: Poll for authorization
-      const pollInterval = (options.pollInterval || deviceCodeResponse.interval) * 1000; // Convert to ms
-      const timeout = (options.timeout || deviceCodeResponse.expiresIn) * 1000;
-      const startTime = Date.now();
-
-      let lastError: Error | null = null;
-
-      while (Date.now() - startTime < timeout) {
-        try {
-          const tokenResponse = await this.apiClient.pollDeviceToken({
-            deviceCode: deviceCodeResponse.deviceCode,
-          });
-
-          // Success! User has authorized
-          logger.info('[Auth] Device flow authentication successful');
-
-          // Store user auth data
-          const userAuth: UserAuthData = {
-            id: tokenResponse.user.id,
-            email: tokenResponse.user.email,
-            userAccessToken: tokenResponse.accessToken,
-            userRefreshToken: tokenResponse.refreshToken,
-            expiresAt: new Date(Date.now() + tokenResponse.expiresIn * 1000).toISOString(),
-          };
-
-          await this.storage.setUserAuth(userAuth);
-
-          // If orgSlug provided, automatically authorize organization
-          if (options.orgSlug) {
-            const org = tokenResponse.organizations.find((o) => o.slug === options.orgSlug);
-
-            if (!org) {
-              throw new Error(`You are not a member of organization "${options.orgSlug}"`);
-            }
-
-            // Get org access token
-            const orgAuthResponse = await this.apiClient.authorizeOrganization(
-              options.orgSlug,
-              tokenResponse.accessToken
-            );
-
-            if ('requiresSSO' in orgAuthResponse) {
-              throw new Error(
-                `Organization "${options.orgSlug}" requires SSO authentication. ` +
-                  `Please visit: ${orgAuthResponse.initiateUrl}`
-              );
-            }
-
-            // Store org auth data
-            const orgAuth: OrgAuthData = {
-              orgAccessToken: orgAuthResponse.orgAccessToken,
-              orgId: orgAuthResponse.organization.id,
-              orgSlug: orgAuthResponse.organization.slug,
-              orgName: orgAuthResponse.organization.name,
-              userId: userAuth.id,
-              userEmail: userAuth.email,
-              role: orgAuthResponse.organization.role as any,
-              orgSecret: '', // Will be retrieved from backend config endpoint
-              expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour
-              ssoProvider: orgAuthResponse.organization.ssoProvider || null,
-              authenticatedAt: new Date().toISOString(),
-            };
-
-            await this.storage.setOrgAuth(options.orgSlug, orgAuth);
-            await this.storage.setActiveOrg(options.orgSlug);
-
-            logger.info('[Auth] Authorized organization', {
-              orgSlug: options.orgSlug,
-              role: orgAuth.role,
-            });
-          } else if (tokenResponse.organizations.length === 1) {
-            // Only one org, automatically authorize it
-            const org = tokenResponse.organizations[0]!;
-            const orgAuthResponse = await this.apiClient.authorizeOrganization(
-              org.slug,
-              tokenResponse.accessToken
-            );
-
-            if (!('requiresSSO' in orgAuthResponse)) {
-              const orgAuth: OrgAuthData = {
-                orgAccessToken: orgAuthResponse.orgAccessToken,
-                orgId: orgAuthResponse.organization.id,
-                orgSlug: orgAuthResponse.organization.slug,
-                orgName: orgAuthResponse.organization.name,
-                userId: userAuth.id,
-                userEmail: userAuth.email,
-                role: orgAuthResponse.organization.role as any,
-                orgSecret: '',
-                expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
-                ssoProvider: orgAuthResponse.organization.ssoProvider || null,
-                authenticatedAt: new Date().toISOString(),
-              };
-
-              await this.storage.setOrgAuth(org.slug, orgAuth);
-              await this.storage.setActiveOrg(org.slug);
-            }
-          }
-
-          return; // Success!
-        } catch (error) {
-          lastError = error as Error;
-
-          // Check error code
-          if (lastError && 'code' in lastError) {
-            const code = (lastError as any).code;
-
-            if (code === 'authorization_pending') {
-              // User hasn't authorized yet, continue polling
-              await new Promise((resolve) => setTimeout(resolve, pollInterval));
-              continue;
-            }
-
-            if (code === 'slow_down') {
-              // Polling too fast, increase interval
-              await new Promise((resolve) => setTimeout(resolve, pollInterval + 1000));
-              continue;
-            }
-
-            if (code === 'expired_token') {
-              throw new Error('Device code expired. Please try again.');
-            }
-
-            if (code === 'access_denied') {
-              throw new Error('Authorization denied by user.');
-            }
-          }
-
-          // Unknown error, rethrow
-          throw lastError;
-        }
-      }
-
-      // Timeout reached
-      throw new Error('Authentication timeout. Please try again.');
+      const deviceCodeResponse = await this.requestDeviceCode(options);
+      await this.displayDeviceCode(options, deviceCodeResponse);
+      await this.pollForToken(options, deviceCodeResponse);
     } catch (error) {
       logger.error('[Auth] Device flow authentication failed', { error });
       throw error;
     }
+  }
+
+  /**
+   * Request device code from backend
+   */
+  private async requestDeviceCode(options: DeviceFlowOptions): Promise<DeviceCodeResponse> {
+    const deviceCodeResponse = await this.apiClient.requestDeviceCode({
+      clientId: 'mimir-cli',
+      clientName: 'Mimir CLI',
+      scope: 'user:orgs teams:read teams:write',
+      orgSlug: options.orgSlug,
+    });
+
+    logger.debug('[Auth] Device code received', {
+      userCode: deviceCodeResponse.userCode,
+    });
+
+    return deviceCodeResponse;
+  }
+
+  /**
+   * Display user code to user via callback
+   */
+  private async displayDeviceCode(
+    options: DeviceFlowOptions,
+    deviceCodeResponse: DeviceCodeResponse
+  ): Promise<void> {
+    await options.onDeviceCode(
+      deviceCodeResponse.userCode,
+      deviceCodeResponse.verificationUri,
+      deviceCodeResponse.verificationUriComplete
+    );
+  }
+
+  /**
+   * Poll for token until user authorizes or timeout
+   */
+  private async pollForToken(
+    options: DeviceFlowOptions,
+    deviceCodeResponse: DeviceCodeResponse
+  ): Promise<void> {
+    const pollInterval = (options.pollInterval || deviceCodeResponse.interval) * 1000;
+    const timeout = (options.timeout || deviceCodeResponse.expiresIn) * 1000;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      const result = await this.attemptTokenPoll(options, deviceCodeResponse, pollInterval);
+      if (result === 'success') {
+        return;
+      }
+      // result === 'continue' means keep polling
+    }
+
+    throw new Error('Authentication timeout. Please try again.');
+  }
+
+  /**
+   * Single attempt to poll for token
+   * @returns 'success' if authenticated, 'continue' if should keep polling
+   */
+  private async attemptTokenPoll(
+    options: DeviceFlowOptions,
+    deviceCodeResponse: DeviceCodeResponse,
+    pollInterval: number
+  ): Promise<'success' | 'continue'> {
+    try {
+      const tokenResponse = await this.apiClient.pollDeviceToken({
+        deviceCode: deviceCodeResponse.deviceCode,
+      });
+
+      await this.processAuthResponse(tokenResponse, options);
+      return 'success';
+    } catch (error) {
+      return this.handlePollingError(error, pollInterval);
+    }
+  }
+
+  /**
+   * Handle polling errors (RFC 8628 error codes)
+   * @returns 'continue' if should keep polling
+   * @throws Error for fatal errors
+   */
+  private async handlePollingError(error: unknown, pollInterval: number): Promise<'continue'> {
+    if (!isErrorWithCode(error)) {
+      throw error;
+    }
+
+    const { code } = error;
+
+    if (code === 'authorization_pending') {
+      await this.sleep(pollInterval);
+      return 'continue';
+    }
+
+    if (code === 'slow_down') {
+      await this.sleep(pollInterval + 1000);
+      return 'continue';
+    }
+
+    if (code === 'expired_token') {
+      throw new Error('Device code expired. Please try again.');
+    }
+
+    if (code === 'access_denied') {
+      throw new Error('Authorization denied by user.');
+    }
+
+    throw error;
+  }
+
+  /**
+   * Process successful auth response
+   */
+  private async processAuthResponse(
+    tokenResponse: DeviceTokenResponse,
+    options: DeviceFlowOptions
+  ): Promise<void> {
+    logger.info('[Auth] Device flow authentication successful');
+
+    const userAuth = this.createUserAuthData(tokenResponse);
+    await this.storage.setUserAuth(userAuth);
+
+    if (options.orgSlug) {
+      await this.authorizeSpecificOrg(options.orgSlug, tokenResponse, userAuth);
+      return;
+    }
+
+    if (tokenResponse.organizations.length === 1) {
+      await this.authorizeSingleOrg(tokenResponse, userAuth);
+    }
+  }
+
+  /**
+   * Create user auth data from token response
+   */
+  private createUserAuthData(tokenResponse: DeviceTokenResponse): UserAuthData {
+    return {
+      id: tokenResponse.user.id,
+      email: tokenResponse.user.email,
+      userAccessToken: tokenResponse.accessToken,
+      userRefreshToken: tokenResponse.refreshToken,
+      expiresAt: new Date(Date.now() + tokenResponse.expiresIn * 1000).toISOString(),
+    };
+  }
+
+  /**
+   * Authorize a specific organization
+   */
+  private async authorizeSpecificOrg(
+    orgSlug: string,
+    tokenResponse: DeviceTokenResponse,
+    userAuth: UserAuthData
+  ): Promise<void> {
+    const org = tokenResponse.organizations.find((o) => o.slug === orgSlug);
+    if (!org) {
+      throw new Error(`You are not a member of organization "${orgSlug}"`);
+    }
+
+    const orgAuthResponse = await this.apiClient.authorizeOrganization(
+      orgSlug,
+      tokenResponse.accessToken
+    );
+
+    if ('requiresSSO' in orgAuthResponse) {
+      throw new Error(
+        `Organization "${orgSlug}" requires SSO authentication. ` +
+          `Please visit: ${orgAuthResponse.initiateUrl}`
+      );
+    }
+
+    await this.storeOrgAuth(orgSlug, orgAuthResponse, userAuth);
+    logger.info('[Auth] Authorized organization', { orgSlug });
+  }
+
+  /**
+   * Authorize when there's only one organization
+   */
+  private async authorizeSingleOrg(
+    tokenResponse: DeviceTokenResponse,
+    userAuth: UserAuthData
+  ): Promise<void> {
+    const org = tokenResponse.organizations[0];
+    if (!org) {
+      return;
+    }
+
+    const orgAuthResponse = await this.apiClient.authorizeOrganization(
+      org.slug,
+      tokenResponse.accessToken
+    );
+
+    if ('requiresSSO' in orgAuthResponse) {
+      return;
+    }
+
+    await this.storeOrgAuth(org.slug, orgAuthResponse, userAuth);
+  }
+
+  /**
+   * Store organization auth data
+   */
+  private async storeOrgAuth(
+    orgSlug: string,
+    orgAuthResponse: OrgAuthorizeResponse,
+    userAuth: UserAuthData,
+    existingOrgSecret?: string
+  ): Promise<void> {
+    const orgAuth: OrgAuthData = {
+      orgAccessToken: orgAuthResponse.orgAccessToken,
+      orgId: orgAuthResponse.organization.id,
+      orgSlug: orgAuthResponse.organization.slug,
+      orgName: orgAuthResponse.organization.name,
+      userId: userAuth.id,
+      userEmail: userAuth.email,
+      role: toOrgRole(orgAuthResponse.organization.role),
+      orgSecret: existingOrgSecret ?? '',
+      expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
+      ssoProvider: orgAuthResponse.organization.ssoProvider || null,
+      authenticatedAt: new Date().toISOString(),
+    };
+
+    await this.storage.setOrgAuth(orgSlug, orgAuth);
+    await this.storage.setActiveOrg(orgSlug);
+  }
+
+  /**
+   * Sleep helper
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -291,25 +403,8 @@ export class TeamsAuthManager implements IAuthManager {
       );
     }
 
-    // Store org auth data
-    const orgAuth: OrgAuthData = {
-      orgAccessToken: orgAuthResponse.orgAccessToken,
-      orgId: orgAuthResponse.organization.id,
-      orgSlug: orgAuthResponse.organization.slug,
-      orgName: orgAuthResponse.organization.name,
-      userId: userAuth.id,
-      userEmail: userAuth.email,
-      role: orgAuthResponse.organization.role as any,
-      orgSecret: '',
-      expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
-      ssoProvider: orgAuthResponse.organization.ssoProvider || null,
-      authenticatedAt: new Date().toISOString(),
-    };
-
-    await this.storage.setOrgAuth(orgSlug, orgAuth);
-    await this.storage.setActiveOrg(orgSlug);
-
-    logger.info('[Auth] Organization authorized', { orgSlug, role: orgAuth.role });
+    await this.storeOrgAuth(orgSlug, orgAuthResponse, userAuth);
+    logger.info('[Auth] Organization authorized', { orgSlug });
   }
 
   /**
@@ -481,25 +576,11 @@ export class TeamsAuthManager implements IAuthManager {
         return false;
       }
 
-      // Get existing org data to preserve fields
+      // Get existing org data to preserve orgSecret
       const existingOrgData = await this.storage.getOrgAuth(orgSlug);
 
-      // Update org auth
-      const orgAuth: OrgAuthData = {
-        orgAccessToken: orgAuthResponse.orgAccessToken,
-        orgId: orgAuthResponse.organization.id,
-        orgSlug: orgAuthResponse.organization.slug,
-        orgName: orgAuthResponse.organization.name,
-        userId: userAuth.id,
-        userEmail: userAuth.email,
-        role: orgAuthResponse.organization.role as any,
-        orgSecret: existingOrgData?.orgSecret || '',
-        expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
-        ssoProvider: orgAuthResponse.organization.ssoProvider || null,
-        authenticatedAt: new Date().toISOString(),
-      };
-
-      await this.storage.setOrgAuth(orgSlug, orgAuth);
+      // Update org auth (preserving existing org secret)
+      await this.storeOrgAuth(orgSlug, orgAuthResponse, userAuth, existingOrgData?.orgSecret);
 
       logger.info('[Auth] Token refreshed successfully', { orgSlug });
       return true;

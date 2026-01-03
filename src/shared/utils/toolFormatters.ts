@@ -58,7 +58,7 @@ export function parseOpenAIToolCalls(response: {
   return toolCalls.map((tc) => {
     let parsedArgs: Record<string, unknown>;
     try {
-      parsedArgs = JSON.parse(tc.function.arguments);
+      parsedArgs = JSON.parse(tc.function.arguments) as Record<string, unknown>;
     } catch {
       parsedArgs = {};
     }

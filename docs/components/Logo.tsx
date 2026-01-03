@@ -1,10 +1,16 @@
 import React from 'react';
-import { MIMIR_LOGO_TEXT } from '@/lib/constants';
 
-export function Logo() {
+interface LogoProps {
+  size?: 'default' | 'hero';
+}
+
+export function Logo({ size = 'default' }: LogoProps) {
+  const sizeClass = size === 'hero' ? 'logo-hero' : '';
+
   return (
-    <div className="logo-container">
-      <span className="logo-text">{MIMIR_LOGO_TEXT}</span>
+    <div className={`logo-container ${sizeClass}`}>
+      <span className="logo-text-mimir">Mimir</span>
+      <span className="logo-text-code">Code</span>
     </div>
   );
 }

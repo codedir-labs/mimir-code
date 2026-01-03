@@ -96,31 +96,24 @@ export class KeyBindingsManager {
   }
 
   /**
-   * Initialize default platform-specific bindings
+   * Convert keys to platform-specific format
    */
-  private initializeDefaults(): void {
-    const isMac = this.platform === 'darwin';
-    const modKey = isMac ? 'Cmd' : 'Ctrl';
-    const leaderKey = this.getLeaderKey(); // Get platform-specific leader key
+  private toPlatformKeys(keys: string[], modKey: string, leaderKey: string | null): string[] {
+    return keys.map((key) => {
+      if (key.includes('<leader>') && leaderKey) {
+        return key.replace(/<leader>/gi, leaderKey);
+      }
+      return key.replace(/ctrl/gi, modKey.toLowerCase());
+    });
+  }
 
-    // Helper to convert config keys to platform-specific and replace <leader> placeholder
-    const toPlatform = (keys: string[]): string[] => {
-      return keys.map((key) => {
-        // Replace <leader> placeholder with actual leader key
-        if (key.includes('<leader>') && leaderKey) {
-          return key.replace(/<leader>/gi, leaderKey);
-        }
-        // Convert ctrl to platform-specific modifier (cmd on macOS)
-        return key.replace(/ctrl/gi, modKey.toLowerCase());
-      });
-    };
+  /**
+   * Initialize core action bindings
+   */
+  private initializeCoreBindings(modKey: string, leaderKey: string | null): void {
+    const toPlatform = (keys: string[]) => this.toPlatformKeys(keys, modKey, leaderKey);
+    const getDisplayName = (keys: string[] | undefined, fallback: string) => keys?.[0] ?? fallback;
 
-    // Helper to safely get first key or fallback
-    const getDisplayName = (keys: string[] | undefined, fallback: string): string => {
-      return keys?.[0] ?? fallback;
-    };
-
-    // Core bindings from config
     const interruptKeys = toPlatform(this.config.interrupt ?? []);
     this.addBinding('interrupt', {
       keys: interruptKeys,
@@ -159,6 +152,29 @@ export class KeyBindingsManager {
       description: 'Show autocomplete/tooltip',
     });
 
+    this.addBinding('help', {
+      keys: this.config.help ?? [],
+      displayName: getDisplayName(this.config.help, '?'),
+      action: 'help',
+      description: 'Show help overlay',
+    });
+
+    const clearScreenKeys = toPlatform(this.config.clearScreen ?? []);
+    this.addBinding('clearScreen', {
+      keys: clearScreenKeys,
+      displayName: getDisplayName(clearScreenKeys, `${modKey}+L`),
+      action: 'clearScreen',
+      description: 'Clear screen',
+    });
+  }
+
+  /**
+   * Initialize navigation bindings
+   */
+  private initializeNavigationBindings(modKey: string, leaderKey: string | null): void {
+    const toPlatform = (keys: string[]) => this.toPlatformKeys(keys, modKey, leaderKey);
+    const getDisplayName = (keys: string[] | undefined, fallback: string) => keys?.[0] ?? fallback;
+
     this.addBinding('navigateUp', {
       keys: this.config.navigateUp ?? [],
       displayName: getDisplayName(this.config.navigateUp, 'ArrowUp'),
@@ -188,6 +204,14 @@ export class KeyBindingsManager {
       action: 'navigateRight',
       description: 'Navigate attachments right (next)',
     });
+  }
+
+  /**
+   * Initialize attachment bindings
+   */
+  private initializeAttachmentBindings(modKey: string, leaderKey: string | null): void {
+    const toPlatform = (keys: string[]) => this.toPlatformKeys(keys, modKey, leaderKey);
+    const getDisplayName = (keys: string[] | undefined, fallback: string) => keys?.[0] ?? fallback;
 
     const removeAttachmentKeys = toPlatform(this.config.removeAttachment ?? []);
     this.addBinding('removeAttachment', {
@@ -220,21 +244,18 @@ export class KeyBindingsManager {
       action: 'pasteFromClipboard',
       description: 'Paste from clipboard',
     });
+  }
 
-    this.addBinding('help', {
-      keys: this.config.help ?? [],
-      displayName: getDisplayName(this.config.help, '?'),
-      action: 'help',
-      description: 'Show help overlay',
-    });
-
-    const clearScreenKeys = toPlatform(this.config.clearScreen ?? []);
-    this.addBinding('clearScreen', {
-      keys: clearScreenKeys,
-      displayName: getDisplayName(clearScreenKeys, `${modKey}+L`),
-      action: 'clearScreen',
-      description: 'Clear screen',
-    });
+  /**
+   * Initialize undo/redo and session bindings
+   */
+  private initializeUndoAndSessionBindings(
+    modKey: string,
+    leaderKey: string | null,
+    isMac: boolean
+  ): void {
+    const toPlatform = (keys: string[]) => this.toPlatformKeys(keys, modKey, leaderKey);
+    const getDisplayName = (keys: string[] | undefined, fallback: string) => keys?.[0] ?? fallback;
 
     const undoKeys = toPlatform(this.config.undo ?? []);
     this.addBinding('undo', {
@@ -244,9 +265,7 @@ export class KeyBindingsManager {
       description: 'Undo last action',
     });
 
-    // Redo has platform-specific default
     const redoKeys = isMac ? [`${modKey}+Shift+Z`] : toPlatform(this.config.redo ?? []);
-
     this.addBinding('redo', {
       keys: redoKeys,
       displayName: getDisplayName(redoKeys, `${modKey}+Y`),
@@ -254,7 +273,6 @@ export class KeyBindingsManager {
       description: 'Redo last undone action',
     });
 
-    // Session management (typically used with leader key)
     this.addBinding('newSession', {
       keys: this.config.newSession ?? [],
       displayName: getDisplayName(this.config.newSession, 'n'),
@@ -275,10 +293,14 @@ export class KeyBindingsManager {
       action: 'resumeSession',
       description: 'Resume session',
     });
+  }
 
-    // Text editing actions (configurable for vim-like or custom bindings)
-    // By default these are 'none' (handled natively by TextInput)
-    // Users can configure custom keybindings to override native behavior
+  /**
+   * Initialize text editing bindings
+   */
+  private initializeTextEditingBindings(): void {
+    const getDisplayName = (keys: string[] | undefined, fallback: string) => keys?.[0] ?? fallback;
+
     this.addBinding('cursorToLineStart', {
       keys: this.config.cursorToLineStart ?? [],
       displayName: getDisplayName(this.config.cursorToLineStart, 'Home'),
@@ -341,6 +363,21 @@ export class KeyBindingsManager {
       action: 'deleteEntireLine',
       description: 'Delete entire line',
     });
+  }
+
+  /**
+   * Initialize default platform-specific bindings
+   */
+  private initializeDefaults(): void {
+    const isMac = this.platform === 'darwin';
+    const modKey = isMac ? 'Cmd' : 'Ctrl';
+    const leaderKey = this.getLeaderKey();
+
+    this.initializeCoreBindings(modKey, leaderKey);
+    this.initializeNavigationBindings(modKey, leaderKey);
+    this.initializeAttachmentBindings(modKey, leaderKey);
+    this.initializeUndoAndSessionBindings(modKey, leaderKey, isMac);
+    this.initializeTextEditingBindings();
   }
 
   /**
