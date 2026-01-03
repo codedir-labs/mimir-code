@@ -9,6 +9,9 @@ on:
     paths:
       - 'packages/mimir-agents/**'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

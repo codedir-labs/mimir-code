@@ -32,6 +32,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clamav clamav-daemon
+          sudo systemctl stop clamav-freshclam
           sudo freshclam
 
       - name: Scan repository
@@ -65,8 +66,10 @@ jobs:
             ISSUES=$((ISSUES + 1))
           fi
 
-          # Check for dangerous expression injections
-          if grep -rE '\$\{\{.*github\.(event\.issue\.title|event\.pull_request\.title|event\.comment\.body)' .github/workflows/*.yml; then
+          # Check for dangerous expression injections (direct use in run scripts, not env blocks)
+          # Safe: env: VAR: ${{ github.event.pull_request.title }}
+          # Unsafe: run: echo "${{ github.event.pull_request.title }}"
+          if grep -rE '\$\{\{.*github\.(event\.issue\.title|event\.pull_request\.title|event\.comment\.body)' .github/workflows/*.yml | grep -vE '[A-Z_]+:\s*\$\{\{' | grep -vE '#.*\$\{\{'; then
             echo "::error::Potential expression injection vulnerability"
             ISSUES=$((ISSUES + 1))
           fi
@@ -137,7 +140,8 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # Run on PRs (direct trigger or via workflow_call from PR-triggered workflow)
+    if: github.event_name == 'pull_request' || github.event.pull_request != null
 
     steps:
       - name: Checkout repository
@@ -176,7 +180,8 @@ jobs:
     name: Secret Scanning
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    # Run on PRs, manual triggers, scheduled runs, and when called as reusable workflow
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.event_name == 'schedule'
 
     steps:
       - name: Checkout repository
@@ -219,7 +224,8 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Generate SBOM (CycloneDX)
-        run: npx @cyclonedx/cyclonedx-npm --output-file sbom.json --output-format json
+        # --ignore-npm-errors: Yarn resolves peer deps differently than npm, causing npm ls validation errors
+        run: npx @cyclonedx/cyclonedx-npm --ignore-npm-errors --output-file sbom.json --output-format json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0

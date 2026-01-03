@@ -52,7 +52,8 @@
       "WebFetch(domain:deepwiki.com)",
       "Bash(echo:*)",
       "Bash(git check-ignore:*)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }

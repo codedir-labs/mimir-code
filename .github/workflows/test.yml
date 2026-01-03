@@ -74,17 +74,18 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Check PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          TITLE="${{ github.event.pull_request.title }}"
           PATTERN="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,72}$"
 
-          if [[ ! "$TITLE" =~ $PATTERN ]]; then
+          if [[ ! "$PR_TITLE" =~ $PATTERN ]]; then
             echo "::error::PR title must follow conventional commits format"
             echo ""
             echo "Expected: type(scope): description"
             echo "Example: feat(auth): add OAuth2 support"
             echo ""
-            echo "Got: $TITLE"
+            echo "Got: $PR_TITLE"
             exit 1
           fi
           echo "✅ PR title follows conventional commits format"
