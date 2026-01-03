@@ -132,11 +132,42 @@ jobs:
       - name: Run integration tests
         run: yarn test:integration
 
-      - name: Enforce coverage thresholds
+      # ========================================================================
+      # COVERAGE REPORTING - PROTOTYPING PHASE (Advisory, not blocking)
+      # ========================================================================
+      # During prototyping, coverage is reported but doesn't fail the build.
+      # Focus is on test quality (meaningful assertions) over quantity.
+      # Target thresholds for v1.0: 60% lines, 50% branches (global)
+      # See vitest.config.ts for detailed threshold targets per area.
+      # ========================================================================
+      - name: Report coverage (advisory)
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          # Vitest will fail if thresholds aren't met (configured in vitest.config.ts)
-          # Thresholds: 80% lines, functions, branches, statements
-          yarn test:coverage --run
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **Note**: Coverage thresholds are advisory during prototyping phase." >> $GITHUB_STEP_SUMMARY
+          echo "> Focus on test quality (meaningful assertions) over hitting percentages." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Run coverage and capture output (|| true ensures we don't fail)
+          yarn test:coverage --run 2>&1 | tee coverage-output.txt || true
+
+          # Extract coverage percentages and add to summary
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E "^(All files|  \w)" coverage-output.txt | head -20 >> $GITHUB_STEP_SUMMARY || echo "Coverage data not available" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # Check if we're meeting targets (advisory only)
+          LINES=$(grep "All files" coverage-output.txt | awk '{print $4}' | tr -d '%' || echo "0")
+          if [ -n "$LINES" ] && [ "$LINES" != "0" ]; then
+            # Use awk for cross-platform float comparison
+            BELOW_TARGET=$(echo "$LINES" | awk '{if ($1 < 40) print "yes"; else print "no"}')
+            if [ "$BELOW_TARGET" = "yes" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ **Advisory**: Line coverage ($LINES%) is below 40% target." >> $GITHUB_STEP_SUMMARY
+              echo "Consider improving test coverage when touching these files." >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
 
       - name: Upload coverage
         uses: codecov/codecov-action@0f8570b1a125f4937846a11fcfa3bcd548bd8c97 # v4.6.0

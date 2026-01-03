@@ -12,6 +12,8 @@ pasteLog('CLI', 'CLI entry point starting', { args: process.argv.slice(2) });
 enableGlobalStdinListener();
 
 import { Command } from 'commander';
+import { homedir } from 'os';
+import { join } from 'path';
 import { FileSystemAdapter } from '@codedir/mimir-agents-node/platform';
 import { ProcessExecutorAdapter } from '@codedir/mimir-agents-node/platform';
 import { ConfigLoader } from '@/shared/config/ConfigLoader.js';
@@ -25,6 +27,7 @@ import { createOrgsCommand } from '@/features/teams/commands/orgs.js';
 import { createTeamsCommand } from '@/features/teams/commands/teams.js';
 import { createConnectCommand, createProvidersCommand } from '@/features/providers/index.js';
 import { logger } from '@/shared/utils/logger.js';
+import { loadUserThemes } from '@/shared/config/themes/index.js';
 
 // Initialize dependencies
 const fs = new FileSystemAdapter();
@@ -192,4 +195,8 @@ program.addCommand(createAuthCommand());
 program.addCommand(createOrgsCommand());
 program.addCommand(createTeamsCommand());
 
-program.parse();
+// Load user themes from ~/.mimir/themes/ before parsing commands
+const userThemesDir = join(homedir(), '.mimir', 'themes');
+void loadUserThemes(userThemesDir).then(() => {
+  program.parse();
+});

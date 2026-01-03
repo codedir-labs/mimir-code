@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(yarn install)",
-      "Bash(yarn dev)"
+      "Bash(yarn dev)",
+      "WebSearch",
+      "Bash(yarn lint:*)",
+      "Bash(yarn eslint:*)",
+      "Bash(node -e:*)",
+      "Bash(yarn build:*)",
+      "Bash(yarn build:binary:*)",
+      "Bash(yarn test:unit:*)",
+      "Bash(yarn test:*)",
+      "Bash(yarn typecheck:*)"
     ]
   }
 }

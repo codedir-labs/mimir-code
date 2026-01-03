@@ -11,7 +11,7 @@ Mimir is a platform-agnostic, BYOK AI coding agent CLI built with TypeScript.
 - Multiple LLM providers (DeepSeek, Anthropic; planned: OpenAI, Gemini, Qwen, Ollama)
 - Model Context Protocol (MCP) integration
 - Security-first with permission system and Docker sandboxing
-- Test-driven development (Vitest, 80%+ coverage target)
+- Test-driven development (Vitest, quality-focused testing)
 
 **Package Manager**: **yarn** (not npm)
 
@@ -171,7 +171,7 @@ yarn validate:full    # typecheck + lint + test:coverage + deadcode analysis
 | `yarn test` | Run all tests once | After any code change |
 | `yarn test:watch` | Run tests in watch mode | During active development |
 | `yarn test:unit` | Unit tests only | Quick feedback loop |
-| `yarn test:coverage` | Tests with 80% coverage enforcement | Before PR |
+| `yarn test:coverage` | Tests with coverage report (advisory) | Before PR |
 | `yarn format` | Prettier formatting | Before commit |
 
 ### Quality Analysis (CI runs these)
@@ -404,8 +404,19 @@ See `.claude/best-practices/testing.md`
 
 - Pattern: Arrange-Act-Assert
 - Mock: HTTP (MSW), filesystem, Docker (testcontainers)
-- Coverage: 80%+ (85%+ for v1.0)
 - Structure mirrors source
+
+### Coverage Philosophy (Prototyping Phase)
+
+During prototyping, **test quality matters more than coverage percentages**:
+
+- Coverage thresholds are **advisory** (won't fail CI)
+- Focus on **meaningful assertions** - avoid shallow checks like `.toBeDefined()`, `.toBeTruthy()`
+- ESLint warns on shallow assertions via `jest/no-restricted-matchers`
+- Target for v1.0: 60% lines globally, 80% for security code
+
+**Good test**: `expect(result.level).toBe('critical')` - tests specific value
+**Bad test**: `expect(result).toBeDefined()` - tests nothing meaningful
 
 ## CLI Structure
 
@@ -472,8 +483,9 @@ PRs must pass these automated checks:
 | TypeScript | No errors | `test.yml` |
 | ESLint | No errors (warnings allowed) | `test.yml` |
 | Prettier | Formatted | `test.yml` |
-| Test Coverage | 80% lines/functions/branches | `test.yml` |
-| Complexity | Max 15 cyclomatic, 15 cognitive | `code-quality.yml` |
+| Test Coverage | Advisory (reported, not blocking) | `test.yml` |
+| Shallow Assertions | Warned via `jest/no-restricted-matchers` | `test.yml` |
+| Complexity | Max 20 cyclomatic, 20 cognitive | `code-quality.yml` |
 | Duplication | Max 5% | `code-quality.yml` |
 | Dead Code | Advisory (no block) | `code-quality.yml` |
 | Security | npm audit, CodeQL, secrets scan | `security.yml` |

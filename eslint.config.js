@@ -2,6 +2,7 @@ import eslint from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import sonarjs from 'eslint-plugin-sonarjs';
+import jest from 'eslint-plugin-jest';
 import prettier from 'eslint-config-prettier';
 
 export default [
@@ -105,7 +106,7 @@ export default [
     },
   },
   {
-    files: ['tests/**/*.ts', 'tests/**/*.tsx'],
+    files: ['tests/**/*.ts', 'tests/**/*.tsx', 'packages/**/tests/**/*.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -126,10 +127,21 @@ export default [
         clearTimeout: 'readonly',
         clearInterval: 'readonly',
         JSX: 'readonly',
+        // Vitest globals
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        vi: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        test: 'readonly',
       },
     },
     plugins: {
       '@typescript-eslint': tseslint,
+      jest: jest,
     },
     rules: {
       ...tseslint.configs['recommended'].rules,
@@ -148,6 +160,47 @@ export default [
       '@typescript-eslint/require-await': 'off',
       'no-undef': 'off',
       'no-console': 'off', // Allow console in tests for debugging
+
+      // ========================================================================
+      // TEST QUALITY RULES - Discourage shallow assertions
+      // These are WARNINGS during prototyping phase - will be promoted to errors
+      // when test quality improves.
+      //
+      // Uses no-restricted-syntax (works with vitest) + jest plugin as backup.
+      // Shallow assertions like .toBeDefined(), .toBeTruthy() provide false
+      // confidence - prefer specific value checks like .toBe(value).
+      // ========================================================================
+
+      // Primary: AST-based detection (works with any test framework)
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: "CallExpression[callee.property.name='toBeDefined']",
+          message:
+            'Avoid .toBeDefined() - use specific assertions like .toBe(value) or .toEqual(expected)',
+        },
+        {
+          selector: "CallExpression[callee.property.name='toBeTruthy']",
+          message: 'Avoid .toBeTruthy() - use .toBe(true) or check specific values',
+        },
+        {
+          selector: "CallExpression[callee.property.name='toBeFalsy']",
+          message: 'Avoid .toBeFalsy() - use .toBe(false) or check specific falsy values',
+        },
+      ],
+
+      // Backup: Jest plugin (may not trigger with vitest, but included for compatibility)
+      'jest/no-restricted-matchers': [
+        'warn',
+        {
+          toBeDefined:
+            'Avoid .toBeDefined() - use specific assertions like .toBe(value) or .toEqual(expected)',
+          toBeTruthy: 'Avoid .toBeTruthy() - use .toBe(true) or check specific values',
+          toBeFalsy: 'Avoid .toBeFalsy() - use .toBe(false) or check specific falsy values',
+          'not.toBeUndefined': 'Avoid .not.toBeUndefined() - use specific value assertions',
+          'not.toBeNull': 'Avoid .not.toBeNull() - use specific value assertions',
+        },
+      ],
     },
   },
   {

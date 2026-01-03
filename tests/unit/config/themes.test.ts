@@ -2,8 +2,16 @@
  * Tests for theme system
  */
 
-import { describe, it, expect } from 'vitest';
-import { getTheme, getAllThemes, getThemeMetadata } from '@/shared/config/themes/index.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdir, writeFile, rm } from 'fs/promises';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import {
+  getTheme,
+  getAllThemes,
+  getThemeMetadata,
+  loadUserThemes,
+} from '@/shared/config/themes/index.js';
 import type { Theme } from '@/shared/config/schemas.js';
 
 describe('Theme System', () => {
@@ -250,6 +258,223 @@ describe('Theme System', () => {
         const colorCount = Object.keys(theme.colors).length;
         expect(colorCount).toBe(expectedColorCount);
       });
+    });
+  });
+
+  describe('loadUserThemes', () => {
+    let testDir: string;
+
+    beforeEach(async () => {
+      // Create a unique temp directory for each test
+      testDir = join(
+        tmpdir(),
+        `mimir-theme-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      );
+      await mkdir(testDir, { recursive: true });
+    });
+
+    afterEach(async () => {
+      // Clean up temp directory
+      try {
+        await rm(testDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    });
+
+    it('should load valid theme files from directory', async () => {
+      const validTheme = `
+name: Custom Test Theme
+supportsFullColor: true
+colors:
+  headerBg:
+    bg: '#1a1a1a'
+    fg: '#ffffff'
+  headerText:
+    fg: '#e0e0e0'
+  footerBg:
+    bg: '#2d2d2d'
+  footerText:
+    fg: '#888888'
+  inputPrompt:
+    fg: '#00d4ff'
+  inputText:
+    fg: '#ffffff'
+  autocompleteBg:
+    bg: '#2d2d2d'
+  autocompleteText:
+    fg: '#ffffff'
+  autocompleteSelectedBg:
+    bg: '#00d4ff'
+    fg: '#000000'
+  autocompleteSelectedText:
+    fg: '#000000'
+  autocompleteHeaderText:
+    fg: '#00d4ff'
+    bold: true
+  autocompleteFooterText:
+    fg: '#666666'
+  autocompleteMoreIndicator:
+    fg: '#666666'
+  modePlan:
+    fg: '#2196F3'
+  modeAct:
+    fg: '#4CAF50'
+  modeDiscuss:
+    fg: '#C792EA'
+  userMessage:
+    fg: '#4CAF50'
+  assistantMessage:
+    fg: '#2196F3'
+  systemMessage:
+    fg: '#FF9800'
+  keyword:
+    fg: '#C792EA'
+  string:
+    fg: '#C3E88D'
+  number:
+    fg: '#F78C6C'
+  comment:
+    fg: '#546E7A'
+  function:
+    fg: '#82AAFF'
+  variable:
+    fg: '#EEFFFF'
+  success:
+    fg: '#4CAF50'
+  warning:
+    fg: '#FFC107'
+  error:
+    fg: '#F44336'
+  info:
+    fg: '#2196F3'
+  statusIdle:
+    fg: '#666666'
+  statusReasoning:
+    fg: '#00d4ff'
+  statusActing:
+    fg: '#4CAF50'
+  statusObserving:
+    fg: '#2196F3'
+  statusInterrupted:
+    fg: '#FFC107'
+  borderColor:
+    fg: '#444444'
+  wizardTitle:
+    fg: '#00d4ff'
+  wizardAccent:
+    fg: '#2196F3'
+  paramDescription:
+    fg: '#888888'
+  diffAddLine:
+    bg: '#22863a'
+    fg: '#ffffff'
+  diffRemoveLine:
+    bg: '#cb2431'
+    fg: '#ffffff'
+`;
+
+      await writeFile(join(testDir, 'custom-test.yml'), validTheme);
+
+      const loadedThemes = await loadUserThemes(testDir);
+
+      expect(loadedThemes).toContain('custom-test');
+      expect(loadedThemes).toHaveLength(1);
+
+      // Verify the theme was registered and can be retrieved
+      const theme = getTheme('custom-test' as Theme);
+      expect(theme.name).toBe('Custom Test Theme');
+      expect(theme.supportsFullColor).toBe(true);
+    });
+
+    it('should handle non-existent directory gracefully', async () => {
+      const nonExistentDir = join(testDir, 'does-not-exist');
+
+      const loadedThemes = await loadUserThemes(nonExistentDir);
+
+      expect(loadedThemes).toEqual([]);
+    });
+
+    it('should skip invalid theme files', async () => {
+      // Write an invalid YAML file
+      await writeFile(join(testDir, 'invalid.yml'), 'this is not valid yaml: [');
+
+      // Write a valid but incomplete theme
+      await writeFile(join(testDir, 'incomplete.yml'), 'name: Incomplete\n');
+
+      const loadedThemes = await loadUserThemes(testDir);
+
+      // Should not load any themes due to invalid/incomplete files
+      expect(loadedThemes).toEqual([]);
+    });
+
+    it('should load both .yml and .yaml extensions', async () => {
+      const validTheme = `
+name: YAML Extension Test
+supportsFullColor: true
+colors:
+  headerBg: { bg: '#1a1a1a', fg: '#ffffff' }
+  headerText: { fg: '#e0e0e0' }
+  footerBg: { bg: '#2d2d2d' }
+  footerText: { fg: '#888888' }
+  inputPrompt: { fg: '#00d4ff' }
+  inputText: { fg: '#ffffff' }
+  autocompleteBg: { bg: '#2d2d2d' }
+  autocompleteText: { fg: '#ffffff' }
+  autocompleteSelectedBg: { bg: '#00d4ff', fg: '#000000' }
+  autocompleteSelectedText: { fg: '#000000' }
+  autocompleteHeaderText: { fg: '#00d4ff', bold: true }
+  autocompleteFooterText: { fg: '#666666' }
+  autocompleteMoreIndicator: { fg: '#666666' }
+  modePlan: { fg: '#2196F3' }
+  modeAct: { fg: '#4CAF50' }
+  modeDiscuss: { fg: '#C792EA' }
+  userMessage: { fg: '#4CAF50' }
+  assistantMessage: { fg: '#2196F3' }
+  systemMessage: { fg: '#FF9800' }
+  keyword: { fg: '#C792EA' }
+  string: { fg: '#C3E88D' }
+  number: { fg: '#F78C6C' }
+  comment: { fg: '#546E7A' }
+  function: { fg: '#82AAFF' }
+  variable: { fg: '#EEFFFF' }
+  success: { fg: '#4CAF50' }
+  warning: { fg: '#FFC107' }
+  error: { fg: '#F44336' }
+  info: { fg: '#2196F3' }
+  statusIdle: { fg: '#666666' }
+  statusReasoning: { fg: '#00d4ff' }
+  statusActing: { fg: '#4CAF50' }
+  statusObserving: { fg: '#2196F3' }
+  statusInterrupted: { fg: '#FFC107' }
+  borderColor: { fg: '#444444' }
+  wizardTitle: { fg: '#00d4ff' }
+  wizardAccent: { fg: '#2196F3' }
+  paramDescription: { fg: '#888888' }
+  diffAddLine: { bg: '#22863a', fg: '#ffffff' }
+  diffRemoveLine: { bg: '#cb2431', fg: '#ffffff' }
+`;
+
+      await writeFile(join(testDir, 'yaml-ext.yaml'), validTheme);
+
+      const loadedThemes = await loadUserThemes(testDir);
+
+      expect(loadedThemes).toContain('yaml-ext');
+    });
+
+    it('should ignore non-yaml files', async () => {
+      await writeFile(join(testDir, 'readme.txt'), 'This is a readme file');
+      await writeFile(join(testDir, 'config.json'), '{"key": "value"}');
+
+      const loadedThemes = await loadUserThemes(testDir);
+
+      expect(loadedThemes).toEqual([]);
+    });
+
+    it('should return empty array for empty directory', async () => {
+      const loadedThemes = await loadUserThemes(testDir);
+
+      expect(loadedThemes).toEqual([]);
     });
   });
 });

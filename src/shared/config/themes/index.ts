@@ -105,44 +105,50 @@ export function getThemeMetadata(theme: Theme): { name: string } {
   };
 }
 
-// Initialize all themes from YAML dynamically
-import { readFileSync } from 'fs';
-import { parse as parseYAML } from 'yaml';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+// Import embedded built-in themes (works in bundled binaries)
 import { parseThemeJSON, ThemeJSON } from './theme-schema.js';
+import { builtinThemes } from './builtin-themes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Load YAML theme files
-const themeFiles = [
-  'mimir.yml',
-  'tokyo-night.yml',
-  'dracula.yml',
-  'catppuccin-mocha.yml',
-  'catppuccin-latte.yml',
-  'gruvbox-dark.yml',
-  'gruvbox-light.yml',
-  'dark.yml',
-  'light.yml',
-  'dark-colorblind.yml',
-  'light-colorblind.yml',
-  'dark-ansi.yml',
-  'light-ansi.yml',
-];
-
-const themeDefinitions: Record<string, ThemeJSON> = {};
-
-themeFiles.forEach((file) => {
-  const filePath = join(__dirname, 'definitions', file);
-  const yamlContent = readFileSync(filePath, 'utf-8');
-  const themeData = parseYAML(yamlContent) as ThemeJSON;
-  const themeName = file.replace('.yml', '');
-  themeDefinitions[themeName] = themeData;
-});
-
-// Register all themes
-Object.entries(themeDefinitions).forEach(([key, json]) => {
+// Register all built-in themes
+Object.entries(builtinThemes).forEach(([key, json]) => {
   registerTheme(key as Theme, parseThemeJSON(json));
 });
+
+/**
+ * Load user themes from a directory (e.g., ~/.mimir/themes/)
+ * Call this at runtime after the application starts.
+ *
+ * @param themesDir - Path to the directory containing user theme YAML files
+ * @returns Array of loaded theme names
+ */
+export async function loadUserThemes(themesDir: string): Promise<string[]> {
+  const loadedThemes: string[] = [];
+
+  try {
+    // Dynamic imports to avoid bundling issues
+    const { readdir, readFile } = await import('fs/promises');
+    const { parse: parseYAML } = await import('yaml');
+    const { join, basename } = await import('path');
+
+    const files = await readdir(themesDir);
+    const yamlFiles = files.filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
+
+    for (const file of yamlFiles) {
+      try {
+        const filePath = join(themesDir, file);
+        const yamlContent = await readFile(filePath, 'utf-8');
+        const themeData = parseYAML(yamlContent) as ThemeJSON;
+        const themeName = basename(file).replace(/\.(yml|yaml)$/, '');
+
+        registerTheme(themeName as Theme, parseThemeJSON(themeData));
+        loadedThemes.push(themeName);
+      } catch {
+        // Skip invalid theme files silently
+      }
+    }
+  } catch {
+    // Directory doesn't exist or can't be read - that's fine
+  }
+
+  return loadedThemes;
+}
