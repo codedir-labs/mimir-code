@@ -44,8 +44,7 @@ export const AttachmentsArea: React.FC<AttachmentsAreaProps> = ({
   onRemove,
   currentInput = '',
 }) => {
-  // Theme available for future styling
-  void theme;
+  // Theme is passed to AttachmentItem children for styling
 
   // Find which attachment numbers are referenced in the input
   const referencedNums = useMemo(() => {

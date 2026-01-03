@@ -47,12 +47,12 @@ type WizardStep =
  * Props
  */
 export interface ProviderSetupWizardProps {
-  theme: Theme;
-  availableProviders: ProviderOption[];
-  onComplete: (results: ProviderConfigResult[]) => void;
-  onCancel: () => void;
-  testConnection?: (provider: string, apiKey: string) => Promise<boolean>;
-  preselectedProvider?: string; // Skip provider selection if specified
+  readonly theme: Theme;
+  readonly availableProviders: ProviderOption[];
+  readonly onComplete: (results: ProviderConfigResult[]) => void;
+  readonly onCancel: () => void;
+  readonly testConnection?: (provider: string, apiKey: string) => Promise<boolean>;
+  readonly preselectedProvider?: string; // Skip provider selection if specified
 }
 
 /**
@@ -416,6 +416,37 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
     const provider = selectedProviders[currentProviderIndex];
     const providerLabel = availableProviders.find((p) => p.value === provider)?.label || provider;
 
+    const renderTestContent = () => {
+      if (testingConnection) {
+        return (
+          <Box>
+            <Text>
+              <Spinner type="dots" /> {infoColorFn('Connecting...')}
+            </Text>
+          </Box>
+        );
+      }
+
+      if (testError) {
+        return (
+          <Box flexDirection="column">
+            <Box marginBottom={1}>
+              <Text>{errorColorFn(`✗ Connection failed: ${testError}`)}</Text>
+            </Box>
+            <Box>
+              <Text dimColor>Press Enter to retry, Esc to skip</Text>
+            </Box>
+          </Box>
+        );
+      }
+
+      return (
+        <Box marginBottom={1}>
+          <Text>{successColorFn('✓ Connection successful!')}</Text>
+        </Box>
+      );
+    };
+
     return (
       <Box flexDirection="column" padding={1}>
         <Box marginBottom={1}>
@@ -426,26 +457,7 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
           <Text>Testing {providerLabel} API key...</Text>
         </Box>
 
-        {testingConnection ? (
-          <Box>
-            <Text>
-              <Spinner type="dots" /> {infoColorFn('Connecting...')}
-            </Text>
-          </Box>
-        ) : testError ? (
-          <Box flexDirection="column">
-            <Box marginBottom={1}>
-              <Text>{errorColorFn(`✗ Connection failed: ${testError}`)}</Text>
-            </Box>
-            <Box>
-              <Text dimColor>Press Enter to retry, Esc to skip</Text>
-            </Box>
-          </Box>
-        ) : (
-          <Box marginBottom={1}>
-            <Text>{successColorFn('✓ Connection successful!')}</Text>
-          </Box>
-        )}
+        {renderTestContent()}
       </Box>
     );
   };
@@ -484,7 +496,9 @@ export const ProviderSetupWizard: React.FC<ProviderSetupWizardProps> = ({
       })}
 
       <Box marginTop={1} marginBottom={1}>
-        <Text>Active provider: <Text bold>{configuredProviders[0]?.provider}</Text></Text>
+        <Text>
+          Active provider: <Text bold>{configuredProviders[0]?.provider || 'None'}</Text>
+        </Text>
       </Box>
 
       <Box marginBottom={1}>

@@ -3,7 +3,7 @@
  * Tests end-to-end flow from complex task detection to workflow approval
  */
 
-import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TaskComplexityAnalyzer } from '@/features/chat/agent/TaskComplexityAnalyzer.js';
 import { TaskDecomposer } from '@codedir/mimir-agents/orchestration';
 import type { WorkflowPlan } from '@codedir/mimir-agents/core';
@@ -327,7 +327,7 @@ describe('Workflow Approval Flow Integration', () => {
       let caughtError = false;
       try {
         await decomposer.planWorkflow('Complex task');
-      } catch (error) {
+      } catch (_error) {
         caughtError = true;
       }
 

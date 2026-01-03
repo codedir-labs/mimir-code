@@ -68,12 +68,12 @@ describe('ChatCommand', () => {
     // Mock FirstRunDetector to skip first-run wizard
     firstRunDetector = {
       isFirstRun: vi.fn().mockResolvedValue(false),
-    } as any;
+    } as unknown as FirstRunDetector;
 
     // Mock SetupCommand
     setupCommand = {
       execute: vi.fn().mockResolvedValue(undefined),
-    } as any;
+    } as unknown as SetupCommand;
 
     chatCommand = new ChatCommand(configLoader, firstRunDetector, setupCommand, fs);
   });

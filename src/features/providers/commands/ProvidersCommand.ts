@@ -57,13 +57,13 @@ async function testProviderHealth(
     }
 
     return { healthy: false, error: 'Empty response from provider' };
-  } catch (error: any) {
+  } catch (error) {
     const latency = Date.now() - startTime;
     logger.error('Provider health check failed', { provider, error });
     return {
       healthy: false,
       latency,
-      error: error.message || 'Unknown error',
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -270,9 +270,12 @@ export function createProvidersCommand(): Command {
             // Default: list providers
             await listProviders(false);
           }
-        } catch (error: any) {
+        } catch (error) {
           logger.error('Providers command failed', { error });
-          console.error(chalk.red('\nError:'), error.message);
+          console.error(
+            chalk.red('\nError:'),
+            error instanceof Error ? error.message : String(error)
+          );
           process.exit(1);
         }
       }

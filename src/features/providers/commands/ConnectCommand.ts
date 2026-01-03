@@ -91,7 +91,7 @@ async function updateProvidersConfig(results: ProviderConfigResult[]): Promise<v
     config = YAML.parse(content) || {};
   } catch (error) {
     // File doesn't exist, will create new
-    logger.debug('Config file not found, creating new', { configPath });
+    logger.debug('Config file not found, creating new', { configPath, error });
   }
 
   // Ensure llm section exists

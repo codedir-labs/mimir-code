@@ -79,7 +79,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
           {item.type === 'normal' &&
             bg(
               fg(
-                `  ${themeColors.colors.keyword(item.line.match(/return/)?.[0] || '')}${item.line.replace(/return/, '')}`
+                `  ${themeColors.colors.keyword(/return/.exec(item.line)?.[0] || '')}${item.line.replace(/return/, '')}`
               )
             )}
         </Text>

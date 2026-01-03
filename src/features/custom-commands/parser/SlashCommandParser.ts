@@ -17,6 +17,7 @@ export interface ParseResult {
  * Parser for slash commands
  */
 export class SlashCommandParser {
+  // eslint-disable-next-line sonarjs/slow-regex
   private static readonly COMMAND_REGEX = /^\/(\w+)(?:\s+(.*))?$/;
 
   /**
@@ -42,7 +43,7 @@ export class SlashCommandParser {
 
     const match = this.COMMAND_REGEX.exec(trimmed);
 
-    if (!match) {
+    if (!match || !match[1]) {
       return { isCommand: false };
     }
 

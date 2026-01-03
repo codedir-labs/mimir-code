@@ -19,12 +19,12 @@ interface KeyboardContextValue {
 
 const KeyboardContext = createContext<KeyboardContextValue | null>(null);
 
-export interface KeyboardProviderProps {
+export type KeyboardProviderProps = Readonly<{
   children: ReactNode;
   bindingsConfig: KeyBindingsConfig;
   fs: IFileSystem;
   projectRoot?: string;
-}
+}>;
 
 /**
  * Provider for keyboard system

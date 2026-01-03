@@ -1,13 +1,11 @@
 /**
  * Cost feature - Cost tracking and analytics
  * Public API exports
+ *
+ * TODO: Implement cost tracking functionality
+ * - CostTracker: Track LLM API costs per session/conversation
+ * - createCostCommand: CLI command for viewing cost analytics
  */
 
-// Commands (placeholder - will be added when implemented)
-// export { createCostCommand } from './commands/cost.js';
-
-// Tracker (placeholder)
-// export { CostTracker } from './tracker/CostTracker.js';
-
-// Types (placeholder)
-// export type { ... } from './types.js';
+// Feature not yet implemented - exports will be added here
+export {};

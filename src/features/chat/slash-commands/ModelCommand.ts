@@ -111,7 +111,7 @@ export class ModelCommand implements ISlashCommand {
 
     // Request model switch
     if (context.requestModelSwitch) {
-      void context.requestModelSwitch(providerId, modelId);
+      await context.requestModelSwitch(providerId, modelId);
       return {
         success: true,
         action: 'switch_model',

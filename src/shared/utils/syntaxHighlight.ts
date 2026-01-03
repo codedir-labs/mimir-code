@@ -22,6 +22,7 @@ export function highlightCode(code: string, themeColors: ThemeColors): string {
   result = result.replace(keywords, (match) => themeColors.keyword(match));
 
   // Strings (both single and double quotes)
+
   const strings = /(['"`])(?:(?=(\\?))\2.)*?\1/g;
   result = result.replace(strings, (match) => themeColors.string(match));
 
@@ -30,6 +31,7 @@ export function highlightCode(code: string, themeColors: ThemeColors): string {
   result = result.replace(numbers, (match) => themeColors.number(match));
 
   // Comments
+  // eslint-disable-next-line sonarjs/slow-regex
   const comments = /\/\/.*$/gm;
   result = result.replace(comments, (match) => themeColors.comment(match));
 

@@ -113,8 +113,8 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
     const [autocompleteHeight, setAutocompleteHeight] = useState(0);
 
     // Local state for autocomplete (with external override)
-    const [localShowAutocomplete, _setLocalShowAutocomplete] = useState(false);
-    const [localSelectedIndex, _setLocalSelectedIndex] = useState(0);
+    const [localShowAutocomplete] = useState(false);
+    const [localSelectedIndex] = useState(0);
 
     // Use external control if provided, otherwise use local state
     const showAutocomplete = forceShowAutocomplete ?? localShowAutocomplete;
@@ -463,7 +463,10 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
         // FIRST LINE - log immediately to catch any early failures
         try {
           pasteLog('InputBox', '>>> handleTextInputPaste ENTRY <<<', { contentLen: content.length });
-        } catch (e) { /* ignore */ }
+          // eslint-disable-next-line sonarjs/no-ignored-exceptions
+        } catch {
+          // Ignore logging errors - don't want to break paste functionality
+        }
 
         // Capture stack trace to see who's calling this
         const stack = new Error().stack || 'no stack';
@@ -518,6 +521,7 @@ export const InputBox: React.FC<InputBoxProps> = React.memo(
           prevValueLen: previousValueRef.current.length,
           delta,
           hasNewlines: newValue.includes('\n'),
+          // eslint-disable-next-line sonarjs/no-control-regex
           preview: newValue.substring(0, 50).replace(/[\x00-\x1f]/g, (c) => `<${c.charCodeAt(0).toString(16)}>`),
         });
 

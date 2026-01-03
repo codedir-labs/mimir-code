@@ -13,10 +13,10 @@ export interface CacheEntry<T> {
 export interface CacheOptions {
   maxSize: number; // Maximum cache size in bytes
   maxAge?: number; // Maximum age in milliseconds
-  onEvict?: (key: string, value: any) => void;
+  onEvict?: (key: string, value: unknown) => void;
 }
 
-export class LRUCache<T = any> {
+export class LRUCache<T = unknown> {
   private cache: Map<string, CacheEntry<T>> = new Map();
   private accessOrder: string[] = [];
   private currentSize = 0;
@@ -193,7 +193,7 @@ export class LRUCache<T = any> {
       return 4;
     }
 
-    if (value === null || value === undefined) {
+    if (value == null) {
       return 0;
     }
 

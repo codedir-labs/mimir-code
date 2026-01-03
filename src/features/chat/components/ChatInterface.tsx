@@ -24,6 +24,9 @@ import { AttachmentManager } from '@/features/chat/utils/AttachmentManager.js';
 import type { Attachment, PasteMetadata } from '@/features/chat/types/attachment.js';
 import { shouldCreateAttachment } from '@/shared/utils/bracketedPaste.js';
 import { pasteLog, pasteLogContent, pasteLogSeparator } from '@/shared/utils/pasteLogger.js';
+import { logger } from '@/shared/utils/logger.js';
+
+type ChatMode = 'plan' | 'act' | 'discuss';
 
 /**
  * Insert text at cursor position, handling #[n] patterns
@@ -79,8 +82,8 @@ export interface ChatInterfaceProps {
   messages: Message[];
   onUserInput: (input: MessageContent) => void;
   onExit: () => void;
-  currentMode: 'plan' | 'act' | 'discuss';
-  onModeSwitch?: (mode: 'plan' | 'act' | 'discuss') => void;
+  currentMode: ChatMode;
+  onModeSwitch?: (mode: ChatMode) => void;
   totalCost: number;
   version?: string;
   workspace?: string;
@@ -106,7 +109,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Token increments each time we request cursor move, so TextInput knows to update
   const [cursorRequest, setCursorRequest] = useState<{ position: number; token: number } | undefined>(undefined);
   const cursorTokenRef = useRef(0);
-  const [mode, setMode] = useState<'plan' | 'act' | 'discuss'>(currentMode);
+  const [mode, setMode] = useState<ChatMode>(currentMode);
   const [interruptPressCount, setInterruptPressCount] = useState(0);
   const [isAutocompleteShowing, setIsAutocompleteShowing] = useState(false);
   const [autocompleteSelectedIndex, setAutocompleteSelectedIndex] = useState(0);
@@ -269,12 +272,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           acceptSelectionRef.current();
         }
         setAutocompleteSelectedIndex(0);
-        return true;
+      } else {
+        // Not showing - show autocomplete
+        setIsAutocompleteShowing(true);
+        setManuallyClosedAutocomplete(false);
+        setAutocompleteSelectedIndex(0);
       }
-      // Not showing - show autocomplete
-      setIsAutocompleteShowing(true);
-      setManuallyClosedAutocomplete(false);
-      setAutocompleteSelectedIndex(0);
       return true;
     },
     { priority: 0 }
@@ -291,34 +294,32 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setManuallyClosedAutocomplete(true);
         setAutocompleteSelectedIndex(0);
         setInterruptPressCount(0); // Reset counter
-        return true;
-      }
+      } else {
+        // Priority 2: Clear text input and/or attachments if present
+        const hasText = input.trim().length > 0;
+        const hasAttachments = attachments.size > 0;
 
-      // Priority 2: Clear text input and/or attachments if present
-      const hasText = input.trim().length > 0;
-      const hasAttachments = attachments.size > 0;
+        if (hasText || hasAttachments) {
+          // Clear text input
+          if (hasText) {
+            setInput('');
+          }
+          // Clear attachments and reset counters (so next paste starts at #1)
+          if (hasAttachments) {
+            attachmentManager.current.clearAll();
+            setAttachments(new Map());
+            setSelectedAttachmentId(null);
+          }
+          setInterruptPressCount(0); // Reset counter
+        } else {
+          // Priority 3: Handle exit logic (2-press to exit)
+          const newCount = interruptPressCount + 1;
+          setInterruptPressCount(newCount);
 
-      if (hasText || hasAttachments) {
-        // Clear text input
-        if (hasText) {
-          setInput('');
+          if (newCount >= 2) {
+            onExit();
+          }
         }
-        // Clear attachments and reset counters (so next paste starts at #1)
-        if (hasAttachments) {
-          attachmentManager.current.clearAll();
-          setAttachments(new Map());
-          setSelectedAttachmentId(null);
-        }
-        setInterruptPressCount(0); // Reset counter
-        return true;
-      }
-
-      // Priority 3: Handle exit logic (2-press to exit)
-      const newCount = interruptPressCount + 1;
-      setInterruptPressCount(newCount);
-
-      if (newCount >= 2) {
-        onExit();
       }
       return true;
     },
@@ -332,7 +333,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (event.context.isAutocompleteVisible) {
         return false; // Don't switch modes while autocomplete showing
       }
-      const modes: Array<'plan' | 'act' | 'discuss'> = ['plan', 'act', 'discuss'];
+      const modes: ChatMode[] = ['plan', 'act', 'discuss'];
       const currentIndex = modes.indexOf(mode);
       const nextIndex = (currentIndex + 1) % modes.length;
       const nextMode = modes[nextIndex];
@@ -432,7 +433,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const attachment = attachments.get(selectedAttachmentId);
       if (!attachment) return false;
 
-      const match = attachment.label.match(/#(\d+)/);
+      const labelPattern = /#(\d+)/;
+      const match = labelPattern.exec(attachment.label);
       const attachNum = match ? match[1] : '1';
       const ref = `#[${attachNum}]`;
 
@@ -468,6 +470,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           try {
             fs.writeFileSync(tempFile, attachment.content, 'utf8');
             // Spawn editor
+            // eslint-disable-next-line sonarjs/os-command
             const child = spawn(editor, [tempFile], {
               stdio: 'inherit',
               shell: true,
@@ -475,7 +478,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             });
             child.on('error', (err) => {
               // Silently handle errors - editor may not be available
-              void err;
+              logger.debug('Failed to open editor', { error: err.message });
             });
           } catch {
             // Failed to write or spawn - silently fail
@@ -527,7 +530,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // FIRST LINE - log immediately to catch any early failures
       try {
         pasteLog('ChatInterface', '>>> handlePaste ENTRY <<<', { contentLen: content.length });
-      } catch (e) { /* ignore */ }
+        // eslint-disable-next-line sonarjs/no-ignored-exceptions
+      } catch {
+        // Ignore logging errors - don't want to break paste functionality
+      }
 
       pasteLogSeparator('ChatInterface.handlePaste');
       const lines = content.split('\n').length;
@@ -554,7 +560,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setAttachments(new Map(allAttachments.map((a) => [a.id, a])));
 
         // Extract attachment number from label (e.g., "[#1 - Pasted text]" -> 1)
-        const match = attachment.label.match(/#(\d+)/);
+        const labelPattern = /#(\d+)/;
+        const match = labelPattern.exec(attachment.label);
         const attachNum = match ? match[1] : '1';
 
         // Insert reference at cursor position and move cursor to end of ref

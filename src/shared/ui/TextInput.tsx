@@ -27,31 +27,31 @@ import type { Theme } from '@/shared/config/schemas.js';
 
 export interface TextInputProps {
   /** Current value of the input */
-  value: string;
+  readonly value: string;
   /** Callback when value changes */
-  onChange: (value: string) => void;
+  readonly onChange: (value: string) => void;
   /** Callback when Enter is pressed */
-  onSubmit?: (value: string) => void;
+  readonly onSubmit?: (value: string) => void;
   /** Callback when a complete paste is received (with full accumulated content) */
-  onPaste?: (content: string) => void;
+  readonly onPaste?: (content: string) => void;
   /** Placeholder text when empty */
-  placeholder?: string;
+  readonly placeholder?: string;
   /** Whether this input is focused and receiving input */
-  focus?: boolean;
+  readonly focus?: boolean;
   /** Whether to show cursor and enable navigation */
-  showCursor?: boolean;
+  readonly showCursor?: boolean;
   /** Highlight pasted text temporarily */
-  highlightPastedText?: boolean;
+  readonly highlightPastedText?: boolean;
   /** Mask character for password input */
-  mask?: string;
+  readonly mask?: string;
   /** Callback exposing cursor position for external use */
-  onCursorChange?: (offset: number) => void;
+  readonly onCursorChange?: (offset: number) => void;
   /** Theme for styling (used for error colors on invalid refs) */
-  theme?: Theme;
+  readonly theme?: Theme;
   /** Set of valid attachment numbers (for highlighting invalid #[n] refs) */
-  validAttachmentNums?: Set<string>;
+  readonly validAttachmentNums?: Set<string>;
   /** Request cursor to move to this position (increment to trigger move to same position) */
-  requestCursorAt?: { position: number; token: number };
+  readonly requestCursorAt?: { position: number; token: number };
 }
 
 /**
@@ -259,6 +259,7 @@ export function TextInput({
 
         // Log raw bytes for debugging - ALWAYS log to ensure handler is called
         const hexBytes = Buffer.from(dataStr).toString('hex').substring(0, 100);
+        // eslint-disable-next-line sonarjs/no-control-regex
         const firstChars = dataStr.substring(0, 50).replace(/[\x00-\x1f]/g, (c) => `<${c.charCodeAt(0).toString(16)}>`);
         pasteLog('STDIN', 'Raw data received', {
           length: dataStr.length,
@@ -290,6 +291,7 @@ export function TextInput({
           pasteBufferRef.current = content;
           pasteLog('STDIN', 'Single-chunk paste (has both markers)', { contentLen: content.length });
         } else {
+          // eslint-disable-next-line sonarjs/no-control-regex
           pasteBufferRef.current = afterStart.replace(/\x1b\[201~/g, '');
           pasteLog('STDIN', 'Multi-chunk paste started', { initialBufferLen: pasteBufferRef.current.length });
         }
@@ -351,6 +353,10 @@ export function TextInput({
           pasteLog('STDIN', 'Will emit paste content', { contentLen: content.length });
           if (content.length > 0 && onPasteRef.current) {
             // Defer to next tick to ensure we run after all useInput calls complete
+            const hidePlaceholder = () => {
+              pasteLog('STDIN', 'setTimeout: hiding isPasting');
+              setIsPasting(false);
+            };
             setImmediate(() => {
               pasteLog('STDIN', 'setImmediate: calling onPaste');
               if (onPasteRef.current) {
@@ -358,10 +364,7 @@ export function TextInput({
               }
               // Give parent time to process paste and update value before hiding placeholder
               // This ensures the clean value has propagated back down
-              setTimeout(() => {
-                pasteLog('STDIN', 'setTimeout: hiding isPasting');
-                setIsPasting(false);
-              }, 150);
+              setTimeout(hidePlaceholder, 150);
             });
           } else {
             pasteLog('STDIN', 'No content or no handler, hiding placeholder', {
@@ -382,9 +385,8 @@ export function TextInput({
       // Accumulate content while paste is in progress (middle chunks)
       if (pasteInProgressRef.current && !hasStartMarker && !hasEndMarker) {
         // Strip any markers that might be in this chunk (shouldn't happen but be safe)
-        const cleaned = dataStr
-          .replace(/\x1b\[200~/g, '')
-          .replace(/\x1b\[201~/g, '');
+        // eslint-disable-next-line sonarjs/no-control-regex
+        const cleaned = dataStr.replace(/\x1b\[200~/g, '').replace(/\x1b\[201~/g, '');
         pasteBufferRef.current += cleaned;
         pasteLog('STDIN', 'Accumulated middle chunk', {
           chunkLen: cleaned.length,
@@ -428,14 +430,13 @@ export function TextInput({
                 setIsPasting(true);
                 const content = rapidInputBuffer;
                 rapidInputBuffer = '';
-
+                // Need nested callbacks for async paste handling - setImmediate and setTimeout are unavoidable
+                // eslint-disable-next-line sonarjs/no-nested-functions
                 setImmediate(() => {
                   if (onPasteRef.current) {
                     onPasteRef.current(content);
                   }
-                  setTimeout(() => {
-                    setIsPasting(false);
-                  }, 150);
+                  setTimeout(() => setIsPasting(false), 150);
                 });
               } else {
                 // No paste handler, clear buffer
@@ -661,16 +662,19 @@ export function TextInput({
       // FIRST LINE - log immediately to ensure we see ANY calls
       try {
         pasteLog('useInput', '>>> ENTRY <<<', { inputLen: input.length });
-      } catch (e) {
-        // Ignore logging errors
+      } catch {
+        // Logging failures are non-critical - we continue execution
+        // Error is intentionally ignored as it would only affect debugging output
       }
 
       // Log ALL useInput calls for debugging
       const inputHex = Buffer.from(input).toString('hex').substring(0, 60);
+      // eslint-disable-next-line sonarjs/no-control-regex
+      const inputPreview = input.substring(0, 30).replace(/[\x00-\x1f]/g, (c) => `<${c.charCodeAt(0).toString(16)}>`);
       pasteLog('useInput', 'Called', {
         inputLen: input.length,
         inputHex,
-        inputPreview: input.substring(0, 30).replace(/[\x00-\x1f]/g, (c) => `<${c.charCodeAt(0).toString(16)}>`),
+        inputPreview,
         hasReturn: key.return,
         hasEscape: key.escape,
         hasCtrl: key.ctrl,
@@ -766,11 +770,12 @@ export function TextInput({
             if (onPasteRef.current) {
               setIsPasting(true);
               pasteEmittedRef.current = true;
+              const hidePlaceholder = () => setIsPasting(false);
               setImmediate(() => {
                 if (onPasteRef.current) {
                   onPasteRef.current(buffer);
                 }
-                setTimeout(() => setIsPasting(false), 150);
+                setTimeout(hidePlaceholder, 150);
               });
             }
           } else {
@@ -949,30 +954,16 @@ export function TextInput({
         // Cursor stays at current position
       }
       // Backspace - delete character before cursor
-      // Use raw detection (Windows sends 0x00 for backspace)
-      else if (isRawBackspace && cursorOffset > 0) {
+      // Use raw detection (Windows sends 0x00 for backspace) or fallback to key.backspace
+      else if ((isRawBackspace || (key.backspace && !isRawDelete)) && cursorOffset > 0) {
         nextValue =
           value.slice(0, cursorOffset - 1) +
           value.slice(cursorOffset);
         nextCursorOffset = cursorOffset - 1;
       }
       // Delete - delete character after cursor (forward delete)
-      // Use raw detection (Windows sends \x1b[3~ for delete)
-      else if (isRawDelete && cursorOffset < value.length) {
-        nextValue =
-          value.slice(0, cursorOffset) +
-          value.slice(cursorOffset + 1);
-        // Cursor stays in place
-      }
-      // Fallback: key.backspace for proper terminals
-      else if (key.backspace && !isRawBackspace && !isRawDelete && cursorOffset > 0) {
-        nextValue =
-          value.slice(0, cursorOffset - 1) +
-          value.slice(cursorOffset);
-        nextCursorOffset = cursorOffset - 1;
-      }
-      // Fallback: key.delete for proper terminals (but not if Windows already handled it)
-      else if (key.delete && !isRawBackspace && !isRawDelete && cursorOffset < value.length) {
+      // Use raw detection (Windows sends \x1b[3~ for delete) or fallback to key.delete
+      else if ((isRawDelete || (key.delete && !isRawBackspace)) && cursorOffset < value.length) {
         nextValue =
           value.slice(0, cursorOffset) +
           value.slice(cursorOffset + 1);
@@ -1040,9 +1031,9 @@ export function TextInput({
 export interface UncontrolledTextInputProps
   extends Omit<TextInputProps, 'value' | 'onChange'> {
   /** Initial value */
-  initialValue?: string;
+  readonly initialValue?: string;
   /** Optional onChange callback */
-  onChange?: (value: string) => void;
+  readonly onChange?: (value: string) => void;
 }
 
 export function UncontrolledTextInput({

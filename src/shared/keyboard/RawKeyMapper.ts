@@ -17,6 +17,11 @@
 import { logger } from '@/shared/utils/logger.js';
 
 /**
+ * Confidence level for key detection
+ */
+type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+/**
  * Normalized key result from raw input detection
  */
 export interface RawKeyResult {
@@ -25,7 +30,7 @@ export interface RawKeyResult {
   /** Whether this was detected via raw bytes (vs Ink's useInput) */
   detectedRaw: boolean;
   /** Confidence level: 'high' = exact match, 'medium' = likely match, 'low' = ambiguous */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: ConfidenceLevel;
   /** Raw bytes that were matched */
   matchedBytes?: number[];
 }
@@ -43,7 +48,7 @@ interface EscapeSequence {
   /** Normalized key name */
   key: string;
   /** Confidence level */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: ConfidenceLevel;
   /** Optional description */
   description?: string;
 }
@@ -57,7 +62,7 @@ interface SingleByteKey {
   /** Normalized key name */
   key: string;
   /** Confidence level */
-  confidence: 'high' | 'medium' | 'low';
+  confidence: ConfidenceLevel;
   /** Description */
   description?: string;
 }
@@ -452,24 +457,29 @@ export class RawKeyMapper {
     }
     // Single byte - check single byte map
     else if (bytes.length === 1) {
-      const singleKey = SINGLE_BYTE_MAP.get(bytes[0]!);
-      if (singleKey) {
-        result = {
-          key: singleKey.key,
-          detectedRaw: true,
-          confidence: singleKey.confidence,
-          matchedBytes: bytes,
-        };
-      } else if (bytes[0]! >= 0x20 && bytes[0]! < 0x7f) {
-        // Printable ASCII character
-        result = {
-          key: String.fromCharCode(bytes[0]!),
-          detectedRaw: true,
-          confidence: 'high',
-          matchedBytes: bytes,
-        };
-      } else {
+      const firstByte = bytes[0];
+      if (firstByte === undefined) {
         result = { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
+      } else {
+        const singleKey = SINGLE_BYTE_MAP.get(firstByte);
+        if (singleKey) {
+          result = {
+            key: singleKey.key,
+            detectedRaw: true,
+            confidence: singleKey.confidence,
+            matchedBytes: bytes,
+          };
+        } else if (firstByte >= 0x20 && firstByte < 0x7f) {
+          // Printable ASCII character
+          result = {
+            key: String.fromCharCode(firstByte),
+            detectedRaw: true,
+            confidence: 'high',
+            matchedBytes: bytes,
+          };
+        } else {
+          result = { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
+        }
       }
     }
     // Escape sequence (starts with ESC)
@@ -487,7 +497,11 @@ export class RawKeyMapper {
           confidence: 'medium',
           matchedBytes: bytes,
         };
-      } catch {
+      } catch (error) {
+        logger.debug('[RawKeyMapper] Failed to decode UTF-8', {
+          error: error instanceof Error ? error.message : String(error),
+          bytes: bytes.map((b) => b.toString(16).padStart(2, '0')).join(' '),
+        });
         result = { key: null, detectedRaw: false, confidence: 'low', matchedBytes: bytes };
       }
     }
@@ -548,8 +562,9 @@ export class RawKeyMapper {
     }
 
     // Check for Alt+letter (ESC followed by letter)
-    if (bytes.length === 2 && bytes[1]! >= 0x20 && bytes[1]! < 0x7f) {
-      const char = String.fromCharCode(bytes[1]!);
+    const secondByte = bytes[1];
+    if (bytes.length === 2 && secondByte !== undefined && secondByte >= 0x20 && secondByte < 0x7f) {
+      const char = String.fromCharCode(secondByte);
       return {
         key: `Alt+${char.toUpperCase()}`,
         detectedRaw: true,
@@ -559,7 +574,11 @@ export class RawKeyMapper {
     }
 
     // Check for Alt+Backspace (ESC followed by DEL 0x7F or BS 0x08)
-    if (bytes.length === 2 && (bytes[1] === 0x7f || bytes[1] === 0x08)) {
+    if (
+      bytes.length === 2 &&
+      secondByte !== undefined &&
+      (secondByte === 0x7f || secondByte === 0x08)
+    ) {
       return {
         key: 'Alt+Backspace',
         detectedRaw: true,

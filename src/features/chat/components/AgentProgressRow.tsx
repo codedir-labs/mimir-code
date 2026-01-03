@@ -161,11 +161,14 @@ export const AgentProgressRow: React.FC<AgentProgressRowProps> = ({ agent, theme
 
     // Current task (truncated if too long)
     const maxTaskLength = 30;
-    const task = agent.currentTask
-      ? agent.currentTask.length > maxTaskLength
-        ? `${agent.currentTask.substring(0, maxTaskLength - 3)}...`
-        : agent.currentTask.padEnd(maxTaskLength)
-      : ''.padEnd(maxTaskLength);
+    let task: string;
+    if (!agent.currentTask) {
+      task = ''.padEnd(maxTaskLength);
+    } else if (agent.currentTask.length > maxTaskLength) {
+      task = `${agent.currentTask.substring(0, maxTaskLength - 3)}...`;
+    } else {
+      task = agent.currentTask.padEnd(maxTaskLength);
+    }
 
     const todoInfo =
       agent.todoCount && agent.todoCount > 0 ? ` (${agent.todoCount} todos)` : '';

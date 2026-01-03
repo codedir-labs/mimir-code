@@ -174,6 +174,7 @@ export class KeyboardEventBus extends EventEmitter {
       action,
       handler,
       priority: options.priority ?? 0,
+      // eslint-disable-next-line sonarjs/pseudo-random -- unique ID generation, not security-sensitive
       id: options.id ?? `${action}-${Date.now()}-${Math.random()}`,
     };
 
@@ -306,7 +307,7 @@ export class KeyboardEventBus extends EventEmitter {
         }
       } catch (error) {
         logger.error(`Error in keyboard handler for ${action}`, {
-          error,
+          error: error instanceof Error ? error.message : String(error),
           handlerId: id,
           priority,
         });

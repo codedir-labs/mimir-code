@@ -22,9 +22,10 @@ export class SecurityValidator {
 
     if (sizeBytes > maxBytes) {
       const sizeMB = Math.round((sizeBytes / 1024 / 1024) * 100) / 100;
+      const filePathSuffix = filePath ? ` for ${filePath}` : '';
       return {
         valid: false,
-        reason: `File size (${sizeMB}MB) exceeds limit (${this.config.maxFileSizeMB}MB)${filePath ? ` for ${filePath}` : ''}`,
+        reason: `File size (${sizeMB}MB) exceeds limit (${this.config.maxFileSizeMB}MB)${filePathSuffix}`,
       };
     }
 
@@ -39,13 +40,21 @@ export class SecurityValidator {
     patterns: string[];
   } {
     const injectionPatterns = [
+      // eslint-disable-next-line sonarjs/slow-regex
       { pattern: /;.*\$\(/, name: 'Command substitution with semicolon' },
+      // eslint-disable-next-line sonarjs/slow-regex
       { pattern: /\|.*\$\(/, name: 'Command substitution with pipe' },
+
       { pattern: /`.*`/, name: 'Backtick command execution' },
+
       { pattern: /\$\{.*\}/, name: 'Variable expansion in command' },
+      // eslint-disable-next-line sonarjs/slow-regex
       { pattern: /&&.*rm/, name: 'Chained destructive command' },
+      // eslint-disable-next-line sonarjs/slow-regex
       { pattern: /\|\|.*rm/, name: 'Conditional destructive command' },
+      // eslint-disable-next-line sonarjs/slow-regex
       { pattern: />.*\/etc/, name: 'Redirect to system files' },
+      // eslint-disable-next-line sonarjs/slow-regex
       { pattern: /<.*\/dev/, name: 'Read from device files' },
       { pattern: /\$IFS/, name: 'IFS manipulation (common in injection)' },
       { pattern: /\\x[0-9a-fA-F]{2}/, name: 'Hex-encoded characters (obfuscation)' },
@@ -206,6 +215,7 @@ export class SecurityValidator {
     let sanitized = input.length > maxLength ? input.substring(0, maxLength) + '...' : input;
 
     // Remove control characters except newlines and tabs
+    // eslint-disable-next-line sonarjs/no-control-regex
     sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
     // Replace potential injection characters with visible equivalents
@@ -240,7 +250,7 @@ export class SecurityValidator {
         hostname === '::1' ||
         /^192\.168\./.test(hostname) ||
         /^10\./.test(hostname) ||
-        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+        /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
       ) {
         return {
           valid: false,
@@ -249,7 +259,7 @@ export class SecurityValidator {
       }
 
       return { valid: true };
-    } catch (error) {
+    } catch {
       return {
         valid: false,
         reason: 'Invalid URL format',

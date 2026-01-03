@@ -282,7 +282,12 @@ themes/
             copied = true;
             break;
           } catch (error) {
-            // Try next location
+            // Try next location - theme file not found in this directory
+            logger.debug('Theme file not found in source directory', {
+              theme: themeFile,
+              sourceDir,
+              error,
+            });
             continue;
           }
         }
@@ -353,7 +358,12 @@ themes/
             copied = true;
             break;
           } catch (error) {
-            // Try next location
+            // Try next location - command file not found in this directory
+            logger.debug('Command file not found in source directory', {
+              command: commandFile,
+              sourceDir,
+              error,
+            });
             continue;
           }
         }

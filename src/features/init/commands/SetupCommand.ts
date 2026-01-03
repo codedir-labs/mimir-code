@@ -84,11 +84,15 @@ export class SetupCommand {
       process.on('SIGINT', cleanup);
       process.on('SIGTERM', cleanup);
 
-      void waitUntilExit().then(() => {
-        // Remove cleanup handlers
-        process.off('SIGINT', cleanup);
-        process.off('SIGTERM', cleanup);
-      });
+      waitUntilExit()
+        .then(() => {
+          // Remove cleanup handlers
+          process.off('SIGINT', cleanup);
+          process.off('SIGTERM', cleanup);
+        })
+        .catch((error) => {
+          logger.error('Error waiting for wizard exit', { error });
+        });
     });
   }
 }

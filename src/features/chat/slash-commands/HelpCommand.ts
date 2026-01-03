@@ -37,11 +37,12 @@ export class HelpCommand implements ISlashCommand {
         };
       }
 
+      const aliasesFormatted = command.aliases?.map((a) => `/${a}`).join(', ') ?? '';
       const helpText = [
         `Command: /${command.name}`,
         `Description: ${command.description}`,
         `Usage: ${command.usage}`,
-        command.aliases?.length ? `Aliases: ${command.aliases.map((a) => `/${a}`).join(', ')}` : '',
+        command.aliases?.length ? `Aliases: ${aliasesFormatted}` : '',
       ]
         .filter(Boolean)
         .join('\n');

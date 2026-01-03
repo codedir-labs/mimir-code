@@ -144,7 +144,8 @@ export class AttachmentManager {
    * @returns Number string or null
    */
   static getAttachmentNumber(label: string): string | null {
-    const match = label.match(/#(\d+)/);
+    const regex = /#(\d+)/;
+    const match = regex.exec(label);
     return match ? match[1]! : null;
   }
 
@@ -261,7 +262,7 @@ export class AttachmentManager {
     try {
       return encode(text).length;
     } catch {
-      // Fallback: rough estimate of ~4 chars per token
+      // Fallback: rough estimate of ~4 chars per token if tokenizer fails
       return Math.ceil(text.length / 4);
     }
   }

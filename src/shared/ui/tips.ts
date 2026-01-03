@@ -34,6 +34,7 @@ function generateTips(keyBindings: KeyBindingsConfig): string[] {
  */
 export function getRandomTip(keyBindings: KeyBindingsConfig): string {
   const tips = generateTips(keyBindings);
+  // eslint-disable-next-line sonarjs/pseudo-random
   const randomIndex = Math.floor(Math.random() * tips.length);
   return tips[randomIndex] ?? 'Tip: Use keyboard shortcuts for faster navigation';
 }

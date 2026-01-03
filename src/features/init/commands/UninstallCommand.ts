@@ -281,7 +281,8 @@ export class UninstallCommand {
               return 'npm';
             }
           } catch (error) {
-            // Ignore parse errors
+            // Ignore parse errors - package.json might be malformed
+            logger.debug('Failed to parse package.json', { error, path: packageJsonPath });
           }
         }
         const parentPath = path.dirname(currentPath);

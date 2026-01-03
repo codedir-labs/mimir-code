@@ -146,9 +146,11 @@ export class SlashCommandRegistry {
     const lowerPrefix = prefix.toLowerCase();
 
     for (const command of this.commands.values()) {
-      if (command.name.toLowerCase().startsWith(lowerPrefix)) {
-        results.push(command);
-      } else if (command.aliases?.some((a) => a.toLowerCase().startsWith(lowerPrefix))) {
+      const nameMatches = command.name.toLowerCase().startsWith(lowerPrefix);
+      const aliasMatches =
+        command.aliases?.some((a) => a.toLowerCase().startsWith(lowerPrefix)) ?? false;
+
+      if (nameMatches || aliasMatches) {
         results.push(command);
       }
     }

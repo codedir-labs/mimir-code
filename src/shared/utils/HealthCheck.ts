@@ -270,7 +270,7 @@ export class HealthChecker {
       return {
         name: 'disk',
         status: 'fail',
-        error: 'Unable to write to disk',
+        error: error instanceof Error ? error.message : 'Unable to write to disk',
       };
     }
   }
@@ -292,7 +292,14 @@ export class HealthChecker {
     ];
 
     for (const check of s.checks) {
-      const icon = check.status === 'pass' ? '✅' : check.status === 'warn' ? '⚠️' : '❌';
+      let icon: string;
+      if (check.status === 'pass') {
+        icon = '✅';
+      } else if (check.status === 'warn') {
+        icon = '⚠️';
+      } else {
+        icon = '❌';
+      }
       const time = check.responseTime ? ` (${check.responseTime}ms)` : '';
       lines.push(`  ${icon} ${check.name}${time}`);
 

@@ -130,6 +130,22 @@ function getTodoIcon(status: TodoItem['status']): string {
   return icons[status];
 }
 
+
+/**
+ * Get color function for todo status
+ */
+function getTodoColorFn(
+  status: TodoItem['status'],
+  colors: { success: (s: string) => string; info: (s: string) => string; comment: (s: string) => string }
+): (s: string) => string {
+  if (status === 'completed') {
+    return colors.success;
+  }
+  if (status === 'in_progress') {
+    return colors.info;
+  }
+  return colors.comment;
+}
 export const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, theme, onClose }) => {
   const themeDefinition = getTheme(theme);
 
@@ -202,12 +218,7 @@ export const AgentDetailView: React.FC<AgentDetailViewProps> = ({ agent, theme, 
             <Text bold>Tasks:</Text>
             {agent.todos.slice(0, 10).map((todo, index) => {
               const icon = getTodoIcon(todo.status);
-              const colorFn =
-                todo.status === 'completed'
-                  ? themeDefinition.colors.success
-                  : todo.status === 'in_progress'
-                    ? themeDefinition.colors.info
-                    : themeDefinition.colors.comment;
+              const colorFn = getTodoColorFn(todo.status, themeDefinition.colors);
 
               return (
                 <Box key={index}>

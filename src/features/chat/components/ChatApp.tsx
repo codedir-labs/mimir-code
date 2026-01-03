@@ -19,8 +19,8 @@ export interface ChatAppProps extends ChatInterfaceProps {
  * Inner component that uses keyboard hooks
  * Must be inside KeyboardProvider
  */
-function ChatInterfaceWithKeyboard(props: ChatInterfaceProps): React.JSX.Element {
-  const { stdin: _stdin, setRawMode, isRawModeSupported } = useStdin();
+function ChatInterfaceWithKeyboard(props: Readonly<ChatInterfaceProps>): React.JSX.Element {
+  const { setRawMode, isRawModeSupported } = useStdin();
 
   // Enable raw mode using Ink's API (not process.stdin directly)
   useEffect(() => {
@@ -55,7 +55,7 @@ function ChatInterfaceWithKeyboard(props: ChatInterfaceProps): React.JSX.Element
 /**
  * Top-level chat app with keyboard handling
  */
-export function ChatApp({ fs, projectRoot, ...chatProps }: ChatAppProps): JSX.Element {
+export function ChatApp({ fs, projectRoot, ...chatProps }: Readonly<ChatAppProps>): JSX.Element {
   return (
     <KeyboardProvider
       bindingsConfig={chatProps.config.keyBindings}

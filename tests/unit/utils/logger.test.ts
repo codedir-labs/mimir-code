@@ -52,6 +52,7 @@ describe('Logger', () => {
       expect(logger.debug).toBeInstanceOf(Function);
 
       // Check that logger has fileLoggingEnabled (via introspection)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((logger as any).fileLoggingEnabled).toBe(true);
     });
 
@@ -99,6 +100,7 @@ describe('Logger', () => {
       expect(() => logger!.info('Test message')).not.toThrow();
 
       // Check that fileLoggingEnabled is false
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((logger! as any).fileLoggingEnabled).toBe(false);
     });
 

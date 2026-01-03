@@ -11,6 +11,7 @@ const LOG_DIR = path.join(os.homedir(), '.mimir', 'logs');
 const LOG_FILE = path.join(LOG_DIR, 'paste-debug.log');
 
 // Unique session ID to track log entries
+// eslint-disable-next-line sonarjs/pseudo-random
 const SESSION_ID = Math.random().toString(36).substring(2, 8);
 let logSequence = 0;
 
@@ -19,8 +20,8 @@ try {
   if (!fs.existsSync(LOG_DIR)) {
     fs.mkdirSync(LOG_DIR, { recursive: true });
   }
-} catch (e) {
-  // Ignore errors creating directory
+} catch {
+  // Silently ignore errors creating directory - paste logging is non-critical
 }
 
 function getTimestamp(): string {
@@ -29,6 +30,7 @@ function getTimestamp(): string {
 
 function sanitizeContent(content: string, maxLen = 200): string {
   // Replace escape sequences with visible representations
+  // eslint-disable-next-line sonarjs/no-control-regex, no-control-regex
   const sanitized = content.replace(/\x1b/g, '<ESC>').replace(/\r/g, '<CR>').replace(/\n/g, '<LF>');
 
   if (sanitized.length > maxLen) {
@@ -67,7 +69,7 @@ export function pasteLog(category: string, message: string, data?: Record<string
     try {
       fs.appendFileSync(LOG_FILE, `[ERROR] pasteLog failed: ${e}\n`);
     } catch {
-      // Give up
+      // Give up - logging failed completely, nothing we can do
     }
   }
 }
@@ -79,8 +81,8 @@ export function pasteLogClear(): void {
       `=== Paste Debug Log Started ${getTimestamp()} | Session: ${SESSION_ID} ===\n`
     );
     logSequence = 0;
-  } catch (e) {
-    // Ignore
+  } catch {
+    // Silently ignore - paste logging is non-critical
   }
 }
 
@@ -108,6 +110,7 @@ export function enableGlobalStdinListener(): void {
       hex,
       preview: dataStr
         .substring(0, 40)
+        // eslint-disable-next-line sonarjs/no-control-regex, no-control-regex
         .replace(/[\x00-\x1f]/g, (c) => `<${c.charCodeAt(0).toString(16)}>`),
     });
   });

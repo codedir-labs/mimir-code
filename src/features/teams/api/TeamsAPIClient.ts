@@ -174,15 +174,24 @@ export class TeamsAPIClient implements ITeamsAPIClient {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error: unknown) => Promise.reject(error)
     );
 
     // Add response interceptor to handle token expiration
     this.httpClient.interceptors.response.use(
       (response) => response,
-      async (error) => {
+      async (error: unknown) => {
         // Handle 401 Unauthorized (token expired)
-        if (error.response?.status === 401 && this.onTokenExpired) {
+        if (
+          error &&
+          typeof error === 'object' &&
+          'response' in error &&
+          error.response &&
+          typeof error.response === 'object' &&
+          'status' in error.response &&
+          error.response.status === 401 &&
+          this.onTokenExpired
+        ) {
           await this.onTokenExpired();
         }
         return Promise.reject(error);

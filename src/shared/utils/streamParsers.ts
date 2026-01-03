@@ -63,8 +63,8 @@ export async function* parseOpenAIStream(stream: AsyncIterable<string>): AsyncGe
             yield { content: '', done: true };
             return;
           }
-        } catch (error) {
-          // Skip malformed JSON
+        } catch {
+          // Skip malformed JSON - streaming can have partial messages
           continue;
         }
       }

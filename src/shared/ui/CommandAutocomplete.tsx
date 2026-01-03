@@ -102,7 +102,7 @@ export const CommandAutocomplete: React.FC<CommandAutocompleteProps> = ({
   // Helper to truncate text with ellipsis if it exceeds max width
   const truncateText = (text: string, maxLen: number): string => {
     // Strip ANSI codes for accurate length calculation
-    // eslint-disable-next-line no-control-regex
+    // eslint-disable-next-line no-control-regex, sonarjs/no-control-regex
     const stripped = text.replace(/\x1B\[[0-9;]*m/g, '');
     if (stripped.length <= maxLen) {
       return stripped; // Always return stripped version for consistent formatting

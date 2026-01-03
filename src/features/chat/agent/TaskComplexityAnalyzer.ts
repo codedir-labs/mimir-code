@@ -201,8 +201,10 @@ Now analyze the given task and respond with JSON:`;
   private parseAnalysisResponse(content: string): ComplexityAnalysis {
     try {
       // Extract JSON from response (handle markdown code blocks)
-      const jsonMatch =
-        content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) || content.match(/(\{[\s\S]*\})/);
+      const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/;
+      // eslint-disable-next-line sonarjs/slow-regex
+      const jsonRegex = /(\{[\s\S]*\})/;
+      const jsonMatch = codeBlockRegex.exec(content) || jsonRegex.exec(content);
 
       if (!jsonMatch || !jsonMatch[1]) {
         throw new Error('No JSON found in response');

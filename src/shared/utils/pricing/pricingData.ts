@@ -104,7 +104,8 @@ export async function fetchDynamicPricing(
 
       // For deepseek-chat, look for the first pricing entry
       if (modelLower.includes('chat')) {
-        const match = html.match(/chat.*?\$?0\.14.*?\$?0\.28/i);
+        const chatRegex = /chat.*?\$?0\.14.*?\$?0\.28/i;
+        const match = chatRegex.exec(html);
         if (match) {
           return {
             inputPerMillionTokens: 0.14,
@@ -115,7 +116,8 @@ export async function fetchDynamicPricing(
 
       // For deepseek-reasoner, look for reasoner pricing
       if (modelLower.includes('reasoner')) {
-        const match = html.match(/reasoner.*?\$?0\.55.*?\$?2\.19/i);
+        const reasonerRegex = /reasoner.*?\$?0\.55.*?\$?2\.19/i;
+        const match = reasonerRegex.exec(html);
         if (match) {
           return {
             inputPerMillionTokens: 0.55,
@@ -126,8 +128,8 @@ export async function fetchDynamicPricing(
 
       // Fallback to static if scraping fails
       return null;
-    } catch (error) {
-      // Silently fail and use static pricing
+    } catch {
+      // Silently fail and use static pricing - dynamic pricing is optional
       return null;
     }
   }
@@ -162,8 +164,8 @@ export async function fetchDynamicPricing(
           outputPerMillionTokens: data.pricing.output_price_per_million_tokens,
         };
       }
-    } catch (error) {
-      // Silently fail and use static pricing
+    } catch {
+      // Silently fail and use static pricing - API fetch is optional
       return null;
     }
   }

@@ -19,7 +19,7 @@ export interface SetupWizardProps {
 
 type WizardStep = 'security' | 'theme';
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, keyBindings, theme }) => {
+export const SetupWizard: React.FC<Readonly<SetupWizardProps>> = ({ onComplete, onCancel, keyBindings, theme }) => {
   const [step, setStep] = useState<WizardStep>('security');
 
   const handleSecurityAccept = () => {
@@ -27,7 +27,10 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete, onCancel, 
   };
 
   const handleThemeSelect = (theme: Theme) => {
-    void onComplete(theme);
+    Promise.resolve(onComplete(theme)).catch((error) => {
+      // Handle async completion errors
+      console.error('Failed to complete setup', error);
+    });
   };
 
   return (

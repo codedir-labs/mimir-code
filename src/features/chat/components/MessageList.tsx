@@ -9,6 +9,7 @@ import { Box, Text } from 'ink';
 import { Message } from '@/types/index.js';
 import { Theme } from '@/shared/config/schemas.js';
 import { getTheme } from '@/shared/config/themes/index.js';
+import { logger } from '@/shared/utils/logger.js';
 
 export interface MessageListProps {
   messages: Message[];
@@ -176,8 +177,9 @@ export const MessageList: React.FC<MessageListProps> = ({
           {message.role === 'assistant' && renderThinkingIndicator(message)}
         </Box>
       );
-    } catch (_err) {
+    } catch (err) {
       // Fallback rendering if there's any error
+      logger.error('Error rendering message', { err, messageRole: message.role });
       return (
         <Box key={index} flexDirection="column" marginBottom={1}>
           <Text>[{message.role?.toUpperCase() || 'UNKNOWN'}]:</Text>

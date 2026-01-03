@@ -92,6 +92,7 @@ export class AuthStorage {
     try {
       await fs.access(mimirDir);
     } catch {
+      // Directory doesn't exist, create it
       await fs.mkdir(mimirDir, { recursive: true, mode: 0o700 }); // Owner read/write/execute only
     }
   }
@@ -104,7 +105,7 @@ export class AuthStorage {
     try {
       const data = await fs.readFile(AUTH_FILE_PATH, 'utf-8');
       return JSON.parse(data);
-    } catch (error) {
+    } catch {
       // File doesn't exist or is corrupted, return default
       return {
         user: null,

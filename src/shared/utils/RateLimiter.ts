@@ -6,6 +6,8 @@
 import { logger } from './logger.js';
 import { RateLimitConfig } from '@/shared/config/schemas.js';
 
+type RateLimitOperationType = 'command' | 'tool' | 'llm';
+
 interface TimeWindow {
   count: number;
   windowStart: number;
@@ -38,7 +40,7 @@ export class RateLimiter {
   /**
    * Check if operation is allowed within rate limit
    */
-  async check(operationType: 'command' | 'tool' | 'llm', identifier?: string): Promise<void> {
+  async check(operationType: RateLimitOperationType, identifier?: string): Promise<void> {
     if (!this.config.enabled) {
       return; // Rate limiting disabled
     }
@@ -88,7 +90,7 @@ export class RateLimiter {
    * Get current usage for an operation type
    */
   getUsage(
-    operationType: 'command' | 'tool' | 'llm',
+    operationType: RateLimitOperationType,
     identifier?: string
   ): {
     count: number;
@@ -121,7 +123,7 @@ export class RateLimiter {
   /**
    * Reset rate limit for specific operation
    */
-  reset(operationType: 'command' | 'tool' | 'llm', identifier?: string): void {
+  reset(operationType: RateLimitOperationType, identifier?: string): void {
     const key = identifier ? `${operationType}:${identifier}` : operationType;
     this.windows.delete(key);
     logger.info('Rate limit reset', { operationType, identifier });
@@ -138,7 +140,7 @@ export class RateLimiter {
   /**
    * Get limit for operation type
    */
-  private getLimit(operationType: 'command' | 'tool' | 'llm'): number {
+  private getLimit(operationType: RateLimitOperationType): number {
     switch (operationType) {
       case 'command':
         return this.config.commandsPerMinute;
