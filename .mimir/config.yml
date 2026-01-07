@@ -1,99 +1,97 @@
-# Mimir Configuration
-# This file can be committed to version control for team sharing
-# Store API keys in .env or environment variables instead
-
-# LLM Provider Configuration
 llm:
-  provider: deepseek  # deepseek | anthropic | openai | google | gemini | qwen | ollama
+  provider: deepseek
   model: deepseek-chat
-  # apiKey: ${DEEPSEEK_API_KEY}  # Use environment variable (recommended)
-  # baseURL: https://api.deepseek.com  # Optional: override API endpoint
   temperature: 0.7
   maxTokens: 4096
-
-# Permission System
+autoSwitch:
+  enabled: false
+  promptBeforeSwitch: true
+  preferQualityOverCost: true
+  maxCostTier: 3
 permissions:
-  autoAccept: false  # DANGEROUS: Auto-approve all commands
-  acceptRiskLevel: medium  # low | medium | high | critical
+  autoAccept: false
+  acceptRiskLevel: medium
   alwaysAcceptCommands: []
-
-# Keyboard Shortcuts
-# Format: all lowercase (ctrl+c, shift+tab, enter, escape, arrowup)
-# Supports: single string, array of strings, <leader> placeholder, "none" to disable
-#
-# Examples:
-#   accept: enter                        # Single shortcut
-#   interrupt: [ctrl+c, escape]          # Multiple shortcuts
-#   newSession: <leader>n                # Leader key + n (e.g., ctrl+x → n)
-#   help: [<leader>h, "?"]               # Both leader-based and direct shortcut
-#   clearScreen: none                    # Disable this shortcut
-#
-# Note: tab is recommended for autocomplete (ctrl+space doesn't work on Windows)
 keyBindings:
-  # Leader key configuration (optional, set to "none" to disable)
-  leader: none  # Example: ctrl+x (press leader first, then action key)
-  leaderTimeout: 1000  # Milliseconds to wait for action key after leader
-
-  # Core actions (direct shortcuts, no leader required)
-  interrupt: [Ctrl+C, Escape]
-  accept: Enter
-  modeSwitch: Shift+Tab
-  editCommand: Ctrl+E
-
-  # Autocomplete/navigation
-  showTooltip: Tab
-  navigateUp: ArrowUp
-  navigateDown: ArrowDown
-
-  # Utility shortcuts
+  leader: null
+  leaderTimeout: 1000
+  enabled: true
+  interrupt:
+    - Ctrl+C
+    - Escape
+  accept:
+    - Enter
+  modeSwitch:
+    - Shift+Tab
+  editCommand:
+    - Ctrl+E
+  showTooltip:
+    - Tab
+  navigateUp:
+    - ArrowUp
+  navigateDown:
+    - ArrowDown
+  navigateLeft:
+    - Ctrl+P
+  navigateRight:
+    - Ctrl+N
+  removeAttachment:
+    - Ctrl+D
+  insertAttachmentRef:
+    - Ctrl+R
+  openAttachment:
+    - Ctrl+O
+  pasteFromClipboard:
+    - Ctrl+V
   help: []
-  clearScreen: Ctrl+L
-  undo: Ctrl+Z
-  redo: Ctrl+Y
-
-  # Session management (use with leader key when enabled)
-  # Examples with leader enabled:
-  #   newSession: <leader>n      # ctrl+x → n
-  #   listSessions: <leader>l    # ctrl+x → l
-  #   resumeSession: <leader>r   # ctrl+x → r
+  clearScreen:
+    - Ctrl+L
+  undo:
+    - Ctrl+Z
+  redo:
+    - Ctrl+Y
   newSession: []
   listSessions: []
   resumeSession: []
-
-# Docker Sandbox (for running untrusted code)
+  cursorToLineStart: []
+  cursorToLineEnd: []
+  cursorWordLeft: []
+  cursorWordRight: []
+  deleteWordLeft: []
+  deleteWordRight: []
+  deleteToLineEnd: []
+  deleteToLineStart: []
+  deleteEntireLine: []
 docker:
   enabled: true
   baseImage: alpine:latest
-
-# User Interface
 ui:
-  theme: mimir  # mimir | dark | light | dark-colorblind | light-colorblind
+  theme: mimir
   syntaxHighlighting: true
   showLineNumbers: true
   compactMode: false
-  autocompleteAutoShow: true  # Auto-show autocomplete when suggestions available
-  autocompleteExecuteOnSelect: true  # Execute command if no more params needed
-
-# Monitoring & Metrics
+  autocompleteAutoShow: true
+  autocompleteExecuteOnSelect: true
 monitoring:
-  metricsRetentionDays: 90  # Keep metrics for N days
+  metricsRetentionDays: 90
   enableHealthChecks: true
   healthCheckIntervalSeconds: 300
   slowOperationThresholdMs: 5000
   batchWriteIntervalSeconds: 10
-
-# Budget Limits (prevents runaway costs)
 budget:
   enabled: false
-  # dailyLimit: 10.00  # USD per day (optional)
-  # weeklyLimit: 50.00  # USD per week (optional)
-  # monthlyLimit: 100.00  # USD per month (optional)
-  warningThreshold: 0.8  # Warn at 80% of limit
-
-# Rate Limiting (prevents excessive operations)
+  warningThreshold: 0.8
 rateLimit:
   enabled: true
   commandsPerMinute: 60
   toolExecutionsPerMinute: 30
   llmCallsPerMinute: 20
   maxFileSizeMB: 100
+paste:
+  enabled: true
+  bracketedPasteMode: true
+  textThreshold:
+    minChars: 500
+    minLines: 10
+  imageSupport: true
+  maxAttachments: 10

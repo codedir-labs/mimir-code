@@ -31,7 +31,7 @@ export function getModifierKey(): 'Cmd' | 'Ctrl' {
  */
 export function getPlatformKey(key: string): string {
   if (isMacOS) {
-    return key.replace(/Ctrl/g, 'Cmd');
+    return key.replace(/ctrl/gi, 'Cmd');
   }
   return key;
 }
